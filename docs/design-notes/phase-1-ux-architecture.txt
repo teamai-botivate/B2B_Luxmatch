@@ -1,0 +1,840 @@
+LuxeMatch — UX Architecture & Product Spec
+LuxeMatch  Product & UX
+Volume I · Architecture
+v1.0 · May 2026
+An internal product specification
+A jewellery house,
+reimagined for the screen.
+LuxeMatch is a premium, AI-powered jewellery discovery platform built for the Indian market. This document is the architectural blueprint — the sitemap, the journeys, the rooms each page must furnish, and the principles by which it must feel.
+“The platform should feel as considered as the showroom; as immediate as a search bar; as trustworthy as the hallmark itself.”
+— Product principle, north star
+Two audiences · Shopper & Jeweller
+26 routes · V1 scope
+No authentication · LocalStorage-first
+Mobile-first · Desktop-respected
+India · INR · BIS hallmark
+Contents
+Eleven sections,
+read in any order.
+01System overview§1
+02Sitemap & routes§2
+03Primary user journeys§3
+04Information architecture, per page§4
+05UX goals, per page§5
+06Component inventory§6
+07Mobile UX & breakpoints§7
+08Empty, loading, error states§8
+09Premium retail principles§9
+10Deferred until authentication§10
+11Trust signal inventory§11
+§ 01  ·  Overview
+Two doors, one house.
+LuxeMatch serves shoppers and jewellers from the same domain. The visual language, performance budget, and trust posture are shared; the entry points and dashboards are not.
+The shopper
+A first-time visitor or returning browser. Likely on an iPhone or mid-range Android during commute, lunch, or evening. Comparing across 2–3 jewellers. Sensitive to price, weight, BIS hallmark, and returnability. Sceptical of online jewellery.
+Wants: confidence, comparison, a sense of how it will look on them.
+The jeweller
+A boutique to mid-size house. May be photographer, owner, or shop manager. Comfortable with Instagram and basic spreadsheets; not necessarily comfortable with web admin tools. Uploads in batches, calibrates try-on once per SKU.
+Wants: a fast catalogue, a try-on that actually fits, proof it is working.
+∞
+Posture & voice
+Editorial, restrained, confident. Copy reads like a knowledgeable showroom assistant — not a marketplace, not a luxury blog. Numbers (carat, weight, gold purity) are foregrounded. Adjectives are rationed.
+Engineering posture
+Static-first for catalogue; client-side for personalisation. Camera, MediaPipe inference, comparison, saves, and quiz answers all execute in the browser. No server round-trip should sit between a shopper and a piece of jewellery.
+§ 02  ·  Sitemap
+The map of the house.
+Twenty-six routes across three tiers — shopper public, shopper tools, and the jeweller console. Tier boundaries are visible to the user; routing between them is one click from the home page.
+Tier 0 · Root
+/Home / discovery
+Tier 1 · Shopper — browse & discover
+/catalogAll jewellery
+/collectionsCurated edits
+/occasions/[slug]Wedding, gift, etc.
+/searchText + autocomplete
+/search/imageVisual search
+/store/[jeweller]Public storefront
+Tier 1 · Shopper — detail & tools
+/catalog/[slug]Product page
+/collections/[slug]Collection page
+/try-on2D AR mirror
+/compareUp to 4 items
+/savedLocal saves
+/style-quizAI recommender
+Tier 1 · Shopper — informational
+/size-guideRing, bangle, chain
+/aboutBrand story
+/helpFAQ, returns, care
+Tier 2 · Jeweller console
+/jewellerLanding / pitch
+/jeweller/onboardingSet up shop
+/jeweller/dashboardConsole home
+/jeweller/productsCatalog manager
+/jeweller/products/newUpload flow
+/jeweller/products/[id]Edit + calibrate
+/jeweller/analyticsPerformance
+Route inventory
+Route
+Audience
+Purpose
+Notes
+/
+Shopper
+Home — hero, featured collections, occasion entry, search bar.
+Sets the tone. Heaviest editorial work.
+/catalog
+Shopper
+Master grid of all jewellery with filter rail.
+Filters: category, metal, gemstone, price, weight, jeweller, occasion.
+/catalog/[slug]
+Shopper
+Product detail page (PDP).
+The conversion centre. Try-on, save, compare, jeweller card.
+/collections
+Shopper
+Index of editorial collections.
+Curated by LuxeMatch & jewellers.
+/collections/[slug]
+Shopper
+A single collection: story, hero, products.
+Editorial layout; magazine feel.
+/occasions/[slug]
+Shopper
+Bridal, gifting, festive, daily — filtered storefronts.
+Pre-baked query into /catalog.
+/search
+Shopper
+Text search results with autocomplete & chips.
+Suggestions for jeweller, gemstone, occasion.
+/search/image
+Shopper
+Drop a photo, get visually similar jewellery.
+Client-side image embedding; results inline.
+/try-on
+Shopper
+Browser AR mirror — earrings, necklaces, rings.
+MediaPipe JS; 2D transparent PNG only.
+/compare
+Shopper
+Side-by-side of up to 4 saved items.
+Specs, price, weight, hallmark, jeweller.
+/saved
+Shopper
+Local wishlist, grouped by date or occasion.
+localStorage; survives reload, not device.
+/style-quiz
+Shopper
+5–7 step quiz → personalised recommendations.
+Answers stored locally; result page is sharable URL.
+/size-guide
+Shopper
+Ring, bangle, chain sizing instructions.
+Interactive print-to-scale ring sizer.
+/store/[jeweller-slug]
+Shopper
+Public storefront for a single jeweller.
+Story + catalogue + contact + collections.
+/about
+Shopper
+What LuxeMatch is, who it’s for.
+Single page, editorial.
+/help
+Shopper
+FAQ, returns, care guide, contact.
+Searchable; trust-heavy.
+/jeweller
+Jeweller
+Pitch page — why list with LuxeMatch.
+Marketing surface for partners.
+/jeweller/onboarding
+Jeweller
+Multi-step setup: name, story, branding, first SKU.
+Local state until V1 auth ships.
+/jeweller/dashboard
+Jeweller
+Console home — today’s numbers, quick actions.
+One-screen overview.
+/jeweller/products
+Jeweller
+Catalogue list with bulk actions.
+Search, filter, sort, batch publish.
+/jeweller/products/new
+Jeweller
+Stepped upload — photos, specs, story, try-on.
+The most considered jeweller flow.
+/jeweller/products/[id]
+Jeweller
+Edit product; recalibrate try-on anchor.
+Same shell as /new but populated.
+/jeweller/analytics
+Jeweller
+Views, saves, try-ons, comparisons.
+Read-only; clear definitions of each metric.
+A note on slugs
+Product slugs are human-readable (kundan-polki-choker-anaya) and immutable once published; canonical for SEO. Jeweller slugs (kasturi-jewellers-jaipur) include city to disambiguate. Collection & occasion slugs are short and timeless (monsoon-edit, bridal).
+§ 03  ·  Journeys
+Five primary paths
+through the house.
+Each journey is plotted as a sequence of routes and intents. The annotation below each step is the user’s inner monologue — what they are wondering, not what we are showing them.
+Shopper · Browse to confidence
+Discovery flow · 4–8 min · mobile-typical
+Step 01
+/
+Lands on home
+Sees a featured edit, an occasion grid, a search bar.
+“Bridal earrings under a lakh — let’s see what’s here.”
+Step 02
+/occasions/bridal
+Filters to bridal
+Pre-filtered grid; sorts by price low-to-high.
+“I want range, not just the cheapest.”
+Step 03
+/catalog/[slug]
+Opens a piece
+Reads specs, sees BIS hallmark, scrolls to jeweller card.
+“Who’s selling this? Are they real?”
+Step 04
+/try-on
+Tries on
+Grants camera, sees earrings overlaid live.
+“Does this suit my face?”
+Step 05
+/saved
+Saves & returns later
+Heart icon, returns tomorrow, compares with two others.
+“I’ll decide tonight.”
+Shopper · Visual search & try-on
+Image-led flow · 2–4 min · cross-device
+Step 01
+/search/image
+Uploads a photo
+Drags a screenshot from Instagram, or shoots through camera.
+“Find me something like this.”
+Step 02
+/search/image?q=...
+Sees similar set
+12–20 matches with similarity score & price band.
+“That third one is closer than the original.”
+Step 03
+/search?q=jhumka
+Refines hybrid
+Adds “jhumka” to the image — narrows by name + visual.
+“Same vibe, but smaller drop.”
+Step 04
+/catalog/[slug]
+Opens result
+Reviews specs, hits try-on.
+“Right scale on me?”
+Step 05
+/try-on
+Tries on, saves
+Snaps a screenshot from inside the try-on, saves to wishlist.
+“Sending this to mum.”
+Shopper · Style quiz to shortlist
+Lean-back flow · 3–5 min · mobile-typical
+Step 01
+/style-quiz
+Intro
+5 questions, 90 seconds, no email required.
+“I have no idea what I want.”
+Step 02
+/style-quiz
+Visual prefs
+Choose 3 of 9 mood boards — bold, ethereal, heritage, minimal…
+“I’ll know it when I see it.”
+Step 03
+/style-quiz
+Practical inputs
+Occasion, budget band, metal preference, gemstone tolerance.
+“Within reason. Mostly yellow gold.”
+Step 04
+/style-quiz/result
+Personalised wall
+12 results with one-line reasons (“chosen because…”).
+“Some of these actually make sense.”
+Step 05
+/compare
+Shortlists 3
+Saves 3 picks, opens /compare to pit them against each other.
+“Heaviest is the one I’ll keep.”
+Jeweller · Onboarding to first listing
+Setup flow · 10–15 min · desktop-typical
+Step 01
+/jeweller
+Reads pitch
+Sees what listing on LuxeMatch buys them.
+“Is this worth my afternoon?”
+Step 02
+/jeweller/onboarding
+Basic identity
+Name, city, year founded, BIS licence number, 2-line story.
+“Quick.”
+Step 03
+/jeweller/onboarding
+Brand mark & voice
+Uploads logo, chooses storefront accent, picks a typeface.
+“Show me what it’ll look like.”
+Step 04
+/jeweller/products/new
+First product
+Walked through their first listing with a guided flow.
+“If this is easy, I’ll do twenty.”
+Step 05
+/jeweller/dashboard
+Lands in console
+One product live; clear next actions: add 5 more, set up analytics.
+“I’m in business.”
+Jeweller · Upload a product
+Repeated flow · 4–6 min per SKU · desktop-typical
+Step 01
+/jeweller/products/new
+Photos
+Drops 4–8 images. Auto-orientation check, primary image picker.
+“Are these good enough?”
+Step 02
+/jeweller/products/new
+Specs
+Category, metal, purity, weight, gemstone, size, price.
+“Most of this is on the invoice already.”
+Step 03
+/jeweller/products/new
+Story & tags
+Two-line description, occasions, collection, craft technique.
+“What makes this one different.”
+Step 04
+/jeweller/products/new
+Try-on calibration
+Uploads transparent PNG; drags anchor onto a model face. Preview.
+“That looks about right.”
+Step 05
+/jeweller/products/[id]
+Review & publish
+Preview as shopper, then publish. SKU live on storefront.
+“Done. Next one.”
+§ 04  ·  IA
+What sits on each page.
+For each key route, the elements that must be present. Order roughly reflects vertical placement on mobile; the ordering can be re-flowed for desktop without changing the inventory.
+/
+Home
+Set the tone; route by intent.
+Above the fold
+Brand wordmark + minimal nav (Catalog, Collections, Jeweller)
+Universal search bar (text + image trigger)
+Hero — single editorial collection, one image, one CTA
+Below
+Occasion grid (6 tiles: Bridal, Gifting, Festive, Daily, Office, Heirloom)
+“Featured jewellers” row (4 cards)
+Style-quiz entry strip
+Trust strip: BIS hallmark, returns, certified gemstones, secure
+Footer with help, about, jeweller signup
+/catalog
+Catalogue
+Show range; let people slice it.
+Layout
+Sticky filter rail (desktop) / bottom sheet (mobile)
+Sort dropdown (relevance, price, weight, newest)
+Result count + active filter chips (removable)
+Filters
+Category, metal, purity, gemstone, price band, weight band
+Jeweller, occasion, collection
+BIS-only toggle, certified-stones-only toggle
+Grid
+Product card: image, name, jeweller, price, weight, save heart
+Hover: secondary image + try-on shortcut
+Pagination via infinite scroll with load-more button as fallback
+/catalog/[slug]
+Product detail
+Convert intent into a save or a contact.
+Hero
+Gallery (4–8 images, zoom, fullscreen)
+Sticky name, price (INR), jeweller, weight, BIS mark
+Primary CTA: Try on · Secondary: Save · Tertiary: Compare
+Specs block
+Metal & purity, weight, gemstone (type, weight, certificate)
+Dimensions, size options, making charges note
+Story + jeweller
+2–3 paragraphs of provenance + craft
+Jeweller card → /store/[jeweller]
+Care, returns, hallmark policy
+Related
+From this jeweller (4)
+Similar pieces (6)
+/try-on
+Try-on
+A confident mirror, not a tech demo.
+Frame
+Full-bleed camera viewport, dark fallback before grant
+Top: piece tray (currently trying-on / swap / X)
+Bottom: capture, mirror toggle, lighting hint
+Side panel
+Other tryable items from this session (saved + currently viewing)
+Category switch (earrings / necklace / ring) when supported
+Save, share, “view product”
+Permission & consent
+Camera permission explainer overlay before request
+“Processed in your browser” reassurance, always visible
+/search · /search/image
+Search
+A single, calm input. Two ways in.
+Input
+Large search field, image-drop affordance to its right
+Recent searches (local), trending searches
+Autocomplete groups: products, jewellers, collections, occasions
+Results
+For text: relevance-ranked grid + filter chips
+For image: similarity strip + grid with score
+Hybrid: pinned image thumbnail next to query, editable
+“No matches” → 3 closest + a quiz nudge
+/compare
+Compare
+Decide between four pieces in 60 seconds.
+Layout
+2–4 column table; horizontal scroll on mobile, frozen first column of rows
+Sticky image row at top
+Rows: price, jeweller, weight, metal, gemstone, hallmark, returns, score
+Behaviours
+“Highlight differences” toggle dims matching rows
+Drop-and-add column from /saved without leaving page
+Share view as URL (encodes 4 slugs)
+/saved
+Saved
+A small, dignified wishlist.
+Default view
+Grid of saves, newest first, with delete + add-to-compare
+Group switch: chronological / by jeweller / by occasion
+“Stored on this device” reminder, with export-as-link option
+Empty
+Editorial empty state pointing to /style-quiz and /collections
+/style-quiz
+Style quiz
+Make taste explicit, then return jewellery.
+Steps
+Intent · Mood · Metal · Gemstone · Budget · Occasion
+Progress dots, back arrow, never blocking forward navigation
+Result
+Two-column: portrait card (your style) + 12-piece wall
+One-line “chosen because” per piece
+“Retake”, “Save shortlist”, “Share my taste”
+/store/[jeweller]
+Storefront
+A jeweller’s house, inside ours.
+Header
+Storefront accent & logo, name, city, founded
+Story (2–3 paragraphs), photo of workshop
+Trust band: BIS licence, certifications, years in trade
+Body
+Their collections strip
+Their catalogue grid (filtered to this jeweller)
+Contact card: phone / WhatsApp / address / hours
+/jeweller/dashboard
+Jeweller dashboard
+A single screen that answers: is it working?
+Header strip
+Greeting, current date, “view as shopper” link
+Metric tiles
+Views (today / 7d), saves, try-ons, comparisons
+Sparkline + delta vs last period
+Lists
+Most-viewed pieces (top 5)
+Pieces missing try-on calibration (action prompts)
+Recently added
+Quick actions
+Add product, edit story, set holiday hours, contact LuxeMatch
+/jeweller/products/new
+New product upload
+Make the 5th upload feel like the 1st was free.
+Stepper
+Photos · Specs · Story · Try-on · Review
+Save-as-draft on every step; auto-save to localStorage
+Photo step
+Drag-and-drop, primary picker, orientation warning
+Suggested shots (front, side, on-model, scale)
+Try-on step
+Upload transparent PNG, drag anchor onto preview face/hand
+Scale slider, rotation slider, mirror
+Live preview against 3 reference photos
+/jeweller/analytics
+Analytics
+Show the work the catalogue is doing.
+Top
+Time-range picker (7d / 30d / 90d / custom)
+4 headline KPIs with definition tooltips
+Charts
+Views over time (line)
+Try-on rate per piece (bar)
+Funnel: view → save → try-on → compare
+Tables
+Per-product performance, sortable
+Where shoppers found you (collections, occasions, search)
+§ 05  ·  UX goals
+The job of each page,
+in a single sentence.
+For every route, one verb-led sentence about what a successful visit feels like. Used as the criterion when in doubt about a design call.
+Route
+Successful visit feels like…
+/
+I know what kind of place this is, and where to start, within ten seconds.
+/catalog
+I can narrow forty-thousand pieces to a wearable shortlist using filters I already understand.
+/catalog/[slug]
+I have enough specifics and proof to either save this piece or move on without regret.
+/collections
+I find a curatorial point of view I trust, and one collection to enter.
+/collections/[slug]
+I understand why these pieces are grouped, and I want to scroll the whole edit.
+/occasions/[slug]
+I arrived with a need (“bridal earrings”) and the page is already filtered to it.
+/search
+I type freely and the suggestions help me know what to ask for.
+/search/image
+I drop a picture and find pieces I could plausibly own.
+/try-on
+I see the piece on me, well-lit, instantly, without the page asking me to wait.
+/compare
+I see what’s different at a glance, and the winner becomes obvious.
+/saved
+My list is intact, organisable, and gives me a one-step path back to deciding.
+/style-quiz
+I finish a quiz that felt like a conversation, and the results feel chosen for me.
+/size-guide
+I leave knowing my size — without printing, if possible.
+/store/[jeweller]
+I understand who this jeweller is and why I might trust them.
+/about
+I learn what LuxeMatch is and isn’t in under a minute.
+/help
+I find my answer without having to write to anyone.
+/jeweller
+I see what listing here will cost me in time, and what it pays back.
+/jeweller/onboarding
+I finish setup in one sitting, and the system feels handled-by-an-adult.
+/jeweller/dashboard
+I open my console in the morning and the four numbers I need are already on screen.
+/jeweller/products
+I can find any product in three seconds and act on twenty in one batch.
+/jeweller/products/new
+I finish my listing in under six minutes and I’m proud of how it reads as a shopper.
+/jeweller/products/[id]
+I edit one detail without re-walking the whole flow.
+/jeweller/analytics
+I leave the page with one decision I’ll actually take this week.
+§ 06  ·  Components
+The shared kit.
+Pieces of UI used in more than one place. Each is a single source of truth — small variations are encoded as props, not as forked components.
+ProductCardAtom / surface
+Image, name, jeweller, price, weight, BIS dot, save heart. Hover swap. Compact & library variants.
+/catalog/collections/[slug]/occasions/[slug]/search/saved/store/style-quiz/result
+FilterRailCompound
+Vertical chip + slider stack. Sticky on desktop; pops as bottom sheet on mobile. Active filters surface as removable chips above grid.
+/catalog/store/[jeweller]/search/collections/[slug]
+SearchOmnibarCompound
+Text input + image-drop affordance + autocomplete dropdown grouped by entity. Routes to /search or /search/image.
+//catalog (top)/search/search/image
+PriceTagAtom
+Formatted INR with optional “ex. making” and “starts at” modifiers. Live-updates against gold rate tooltip.
+/catalog/[slug]ProductCard/compare/jeweller/products
+TrustBandSurface
+Horizontal row of trust marks: BIS hallmark, certified stones, returns, secure. Light + dark variants.
+//catalog/[slug] (footer of specs)/help/store
+JewellerCardCompound
+Logo, name, city, year, BIS licence number, “view storefront”. Inline + full variants.
+/catalog/[slug]/collections/[slug]//compare (header)
+TryOnViewerModule
+Camera viewport, overlay renderer, capture, mirror, lighting hint, piece tray. Used as full page and as embedded modal.
+/try-on/catalog/[slug] (modal)/jeweller/products/new (preview)
+QuizStepCompound
+Single question shell: progress dots, prompt, choices, back arrow. Choice variants (image, chip, slider).
+/style-quiz/jeweller/onboarding (shared shell)
+CompareColumnAtom
+A vertical strip representing one piece in compare. Renders specs against a shared row schema.
+/compare
+MetricTileAtom
+Number, label, delta, sparkline. Three sizes: hero, card, inline.
+/jeweller/dashboard/jeweller/analytics
+UploadDropzoneAtom
+Drag-and-drop with click-to-pick fallback. Image preview tiles with primary picker. Image and CSV variants.
+/jeweller/products/new/jeweller/products/[id]/search/image
+SpecRowAtom
+Label/value pair with optional tooltip and unit. Used to render product specs uniformly.
+/catalog/[slug]/compare/jeweller/products/new
+EmptyStateSurface
+Editorial empty state: glyph, one-line caption, one CTA, optional secondary text. Variant per page.
+/saved/compare/search/jeweller/products/jeweller/analytics
+PermissionExplainerSurface
+Pre-browser-prompt overlay. Camera (try-on, image search). Always offers a no-camera alternative.
+/try-on/search/image
+ToasterSystem
+Bottom-anchored, single-line confirmations. “Saved”, “Added to compare”, “Image too small”.
+Global
+BottomSheetSystem
+Mobile-only modal pattern for filters, sort, sharing. Persistent drag-handle, escape via swipe-down.
+/catalog/search/compare/try-on (settings)
+RouteTabsCompound
+Section tabs used inside large pages (e.g. storefront, dashboard). Hash-routed for deep links.
+/store/[jeweller]/jeweller/dashboard/help
+ShareLinkPillAtom
+Copy-link button with copied-state. Encodes local state (saved, compare, quiz result) into the URL.
+/saved/compare/style-quiz/result/try-on (capture)
+§ 07  ·  Mobile UX
+Mobile-first, in practice.
+Four breakpoints, with rules for what changes at each. Touch is the default input; pointer and keyboard are respected upgrades.
+XS
+360
+< 480 px
+Single-column everything
+Bottom tab bar nav (Home, Search, Saved, Try-on)
+Filters in bottom sheet
+Product gallery: swipe carousel
+Compare: horizontal scroll, 2 cols visible
+SM
+640
+480 – 767 px
+Two-column grids for catalogue
+Bottom nav becomes 5 items
+Quiz steps gain illustration column
+PDP: gallery + sticky price bar
+MD
+1024
+768 – 1199 px
+Filter rail returns as sidebar
+Top nav replaces bottom tabs
+3-col catalogue grid
+Compare: 3 columns visible
+Jeweller dashboard: 2-col tiles
+LG
+1440+
+≥ 1200 px
+4-col catalogue grid
+Editorial collections gain margin breathing room
+PDP: gallery + sticky details split
+Compare: 4 columns visible
+Jeweller analytics: side-by-side charts
+Touch rules
+Hit targets ≥ 44 × 44 px, always
+Bottom-half placement for primary CTAs on phones
+Thumb-zone aware (right-hand bias is fine; we mirror nothing automatically)
+No hover-only affordances; long-press is the supported equivalent
+Safe-area insets honoured for notched devices
+Type & density
+Body text never below 15 px on mobile
+Headlines reflow, not just shrink (e.g. PDP name moves above gallery)
+Specs stay legible — never collapsed into a marquee or accordion alone
+Try-on UI is always one-thumb operable; secondary controls are revealed, not hidden
+Network & weight
+Target: first meaningful paint < 1.5 s on a mid-range Android on 4G. Catalogue images served as AVIF with WebP fallback, lazy-loaded, sized to viewport. Try-on bundle (MediaPipe + overlay renderer) is route-split — never paid for outside /try-on and the embedded modal.
+§ 08  ·  States
+Empty, loading, error.
+For every key page, the three states that aren’t the happy path. These are designed, not defaulted — they carry as much of the brand as the hero does.
+Page
+Empty
+Loading
+Error
+Home/
+EmptyNever empty by design. If feature collections fail, fall back to evergreen occasion grid.
+LoadingSkeleton hero with serif wordmark fade-in. No spinner.
+ErrorEditorial 500 page: “A moment, please.” with retry & help links.
+Catalogue/catalog
+EmptyZero filter results: “No pieces in this range — try a wider band” with 1-tap filter relax.
+Loading12 card skeletons with shimmer. Filter rail interactive immediately.
+ErrorFailed shelf load: inline retry within shelf; rail remains usable.
+Product detail/catalog/[slug]
+EmptyProduct unpublished: editorial 404 with 6 similar pieces & the jeweller’s storefront link.
+LoadingGallery placeholder + specs skeleton. Sticky CTA appears with content.
+ErrorIf images fail, show specs-first layout with grey tile. Try-on disabled.
+Search/search
+EmptyNo query: recent + trending + a quiz nudge. No query result: 3 close matches + quiz CTA.
+LoadingInline pulse under input; first 6 result skeletons appear in 300 ms.
+Error“We couldn’t reach the catalogue.” — retry; recent local results still browsable.
+Image search/search/image
+EmptyNo image: drop-zone with 3 example queries (“try a screenshot”).
+LoadingTwo stages: “Analysing image…” → “Finding similar pieces…”
+ErrorImage too small / unsupported: actionable error with example dimensions.
+Try-on/try-on
+EmptyNo piece selected: gallery prompt “choose a piece to try” with recent saves.
+LoadingCamera initialising + MediaPipe loading bar, “processed in your browser” note.
+ErrorPermission denied: graceful upload-a-selfie fallback. No-WebGL: still photo overlay.
+Compare/compare
+EmptyZero items: “Compare up to four pieces side by side” with link to /saved & /catalog.
+LoadingColumn skeletons with image-tile placeholders.
+ErrorShared link broken (missing slug): show valid columns; placeholder on bad one with remove button.
+Saved/saved
+Empty“Hearts you press appear here.” with quiz + collections CTA.
+LoadingInstant (local). No state.
+ErrorCorrupted localStorage: prompt to clear with reassurance, link to retake quiz.
+Style quiz/style-quiz
+EmptyPre-start landing with one-sentence pitch & example results.
+LoadingComputing results screen: 1.5 s minimum for craft feel (with 3-line tagline).
+ErrorIf recommender fails, fall back to occasion + budget filter on /catalog with the same answers preserved.
+Storefront/store/[jeweller]
+EmptyNewly onboarded jeweller with 0 pieces: story shown, “catalogue coming soon” placeholder.
+LoadingHeader loads first (cached), grid streams below.
+ErrorUnknown slug: 404 with directory link to all jewellers.
+Jeweller dashboard/jeweller/dashboard
+EmptyFirst login: setup checklist replaces metric tiles; 5 tasks to “launch”.
+LoadingTiles populate one by one; sparklines stream in.
+ErrorIf analytics offline: tiles show last cached value with “as of [time]” pill.
+Product upload/jeweller/products/new
+EmptyStepper visible, photo step active. Examples shown.
+LoadingImage upload progress per file; non-blocking on other fields.
+ErrorField-level inline errors; step gate only blocks on hard requireds. Draft always recoverable.
+Analytics/jeweller/analytics
+EmptyAccount < 7 days old: “Data appears as shoppers do — check back this Friday.”
+LoadingTime-range usable immediately; charts skeleton then stream.
+ErrorPer-chart inline error with retry; doesn’t take down the page.
+§ 09  ·  Principles
+Premium jewellery retail,
+translated for the screen.
+Twelve rules — half drawn from showroom craft, half from web product instinct. When two designs both work, the one that better matches these wins.
+i
+The product, then everything else.
+Imagery and specs always lead. Marketing copy, badges, and promos must earn the right to interrupt them.
+— Showroom: the case, then the conversation.
+ii
+Restraint is the look.
+Negative space, hairline rules, type-led layouts. Decoration is the jewellery itself; the page is the velvet.
+— Less chrome, more chroma.
+iii
+Numbers are foregrounded.
+Weight (g), purity (KT), gem weight (ct), price (₹) — never compressed into a paragraph. They are the contract.
+— Specs are not fine print.
+iv
+Trust is structural, not decorative.
+Hallmark, returns, certification — visible at the moment of doubt (PDP, footer of specs, near CTAs), not banished to a footer.
+— Doubt is timed; reassurance must be too.
+v
+The jeweller is a person, not a brand block.
+Every product carries its house. Provenance is part of the price.
+— A name, a city, a face if possible.
+vi
+Imagery is editorial, not marketplace.
+No watermark grids of identical white-background SKUs. Curated shoots; the catalogue tolerates difference.
+— Closer to a magazine than to a marketplace.
+vii
+Quiet motion, never showy.
+Crossfades and gentle slides < 240 ms. No parallax stunts, no scroll-jacking. Animation justifies itself or doesn’t ship.
+— Motion follows function.
+viii
+The try-on is a mirror, not a filter.
+No beautification, no gimmick effects. The job is honest scale and placement, even if it disappoints.
+— The piece, not the persona.
+ix
+Local-first is a feature, not a constraint.
+Saves, compares, quiz answers live on-device. We surface this calmly — privacy as posture, not press release.
+— Yours, on your device.
+x
+Indian context, not Indian costume.
+INR, BIS, hallmark, festival calendar are infrastructure. Visual language draws on craft, not pastiche.
+— Lakshmi vault, not festival sale.
+xi
+Speed is a luxury cue.
+Pages open as fast as a showroom door. We pay for it with discipline (split bundles, image budgets), not with skeletons.
+— Latency is rudeness.
+xii
+One voice, two doors.
+The jeweller console shares the shopper’s typography, palette, and tone. It is not an admin panel; it is the back of the same shop.
+— Same hand wrote both surfaces.
+§ 10  ·  Deferred
+What waits for authentication.
+V1 ships without accounts. These features are deferred — not denied — until shoppers and jewellers have identity. Each is explicitly shaped to be addable without re-architecting the V1 surface.
+Shopper
+Cross-device wishlist
+Saves currently live in localStorage. With auth, sync via shopper account & share-by-account.
+Shopper
+Purchase & checkout
+V1 routes shoppers to jeweller via WhatsApp / phone. Cart, address, payments, GST invoice — all deferred.
+Shopper
+Order tracking
+Status, delivery, returns flow.
+Shopper
+Reviews & verified buys
+Authentic reviews require purchase ID, which requires accounts.
+Shopper
+Price & back-in-stock alerts
+Needs an addressable channel — email or push token.
+Shopper
+Quiz history
+Multiple stored quizzes, named, comparable. Local-only in V1.
+Shopper
+Private appointments
+Book a video viewing or in-store appointment with a jeweller.
+Shopper
+Personalised home
+Returning-user home reordered by stored taste.
+Jeweller
+Real authentication & team access
+Login, multi-user, role permissions for staff & photographers.
+Jeweller
+Order & lead management
+Inbound interest captured, assigned, replied to.
+Jeweller
+Payouts & commerce
+Stripe / Razorpay onboarding, settlements, GSTIN.
+Jeweller
+Inventory & SKU sync
+API or sheet-based stock sync against a real ERP.
+Jeweller
+Promotions engine
+Time-bound offers, coupon codes, festive overrides.
+Jeweller
+Buyer messaging
+In-product chat between shopper and jeweller.
+System
+Cross-device personalisation
+Recommender informed by long-term browsing history rather than session.
+System
+Email / marketing surface
+Editorial newsletter, drop alerts, abandoned-save nudges.
+§ 11  ·  Trust
+The seals we carry,
+and where they sit.
+A short list of trust signals built into V1. Each has a defined placement, a written treatment, and a clear non-decorative role.
+BIS
+BIS Hallmark
+Every gold piece carries the BIS hallmark with HUID. Shown on PDP next to weight; jeweller’s BIS licence number shown on storefront.
+/catalog/[slug] · /store/[jeweller] · ProductCard dot
+CERT
+Certified gemstones
+Diamonds and coloured stones above a threshold carry a recognised lab certificate (IGI, GIA, SSEF). Cert number printed next to gem weight.
+/catalog/[slug] · /compare
+RET
+Returns & buyback
+Per-jeweller return window (typically 7 days) plus lifetime buyback policy where supported. Stated in plain language at the CTA.
+/catalog/[slug] (sticky) · /help · /store/[jeweller]
+22K
+Purity, declared
+Purity (14/18/22/24K) shown explicitly with hallmark match. Conflicting purity vs. hallmark is a blocking validation in upload.
+/catalog/[slug] · ProductCard · /jeweller/products/new
+₹
+Transparent INR pricing
+Price shown in INR with making charges noted separately. Live gold rate tooltip explains daily fluctuation.
+/catalog/[slug] · /compare · ProductCard
+SEC
+Browser-only processing
+Camera frames for try-on never leave the device. Stated on the permission overlay and in the persistent try-on hint.
+/try-on · /search/image · /about
+YR
+Years in trade
+Each jeweller shows its year of founding. A small but meaningful Indian retail proof point.
+/store/[jeweller] · JewellerCard
+SHIP
+Insured shipping
+Per-jeweller declared shipping & insurance policy, shown near the CTA at PDP and on storefront contact card.
+/catalog/[slug] · /store/[jeweller]
+CARE
+Care & cleaning
+Jewellery type-specific care notes (kundan, polki, gold, gem). Set expectations before purchase.
+/catalog/[slug] (below specs) · /help
+A note on placement
+Trust signals appear near the moment of doubt, not in a banner at the top. The shopper’s questions are sequenced: is this real? (PDP hero), can I return it? (near CTA), can I trust the camera? (try-on overlay), is the price fair today? (price hover). Each seal is matched to the question it answers.
+Document
+LuxeMatch UX Architecture
+Volume I · v1.0
+May 2026
+Scope
+26 routes · 2 audiences
+V1, no authentication
+Mobile-first, India-primary
+Set in
+Cormorant Garamond
+Manrope
+JetBrains Mono
+— fin. —

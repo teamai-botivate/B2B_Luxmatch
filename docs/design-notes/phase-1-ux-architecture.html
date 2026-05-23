@@ -1,0 +1,1499 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>LuxeMatch — UX Architecture & Product Spec</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400;1,500&family=Manrope:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F4EFE6;
+  --paper-2:#EAE1D2;
+  --paper-3:#E0D4BE;
+  --ink:#1B1410;
+  --ink-2:#4A3F35;
+  --ink-3:#8A7B6A;
+  --hairline:#C9BBA6;
+  --hairline-2:#D9CDB6;
+  --gold:#9C7A3F;
+  --gold-2:#C9A55F;
+  --emerald:#2C5040;
+  --ruby:#6B2329;
+  --sapphire:#1F3A4F;
+  --mono:'JetBrains Mono',ui-monospace,monospace;
+  --serif:'Cormorant Garamond',Georgia,serif;
+  --sans:'Manrope',system-ui,sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-weight:400;line-height:1.55;-webkit-font-smoothing:antialiased}
+body{font-size:15px;letter-spacing:-0.005em}
+
+/* ---------- Layout ---------- */
+.page{max-width:1240px;margin:0 auto;padding:0 56px}
+@media (max-width:900px){.page{padding:0 24px}}
+section{padding:96px 0;border-top:1px solid var(--hairline)}
+section:first-of-type{border-top:none}
+
+/* ---------- Type ---------- */
+h1,h2,h3,h4{font-family:var(--serif);font-weight:400;letter-spacing:-0.01em;color:var(--ink);margin:0}
+h1{font-size:clamp(56px,8vw,112px);line-height:0.95;font-weight:300;letter-spacing:-0.025em}
+h2{font-size:clamp(36px,5vw,56px);line-height:1.02;font-weight:400}
+h3{font-size:28px;line-height:1.15;font-weight:500}
+h4{font-size:19px;line-height:1.25;font-weight:600;font-family:var(--sans);letter-spacing:0.01em;color:var(--ink)}
+p{margin:0 0 1em}
+.lede{font-family:var(--serif);font-size:24px;line-height:1.4;font-weight:300;font-style:italic;color:var(--ink-2);max-width:62ch}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:0.16em;text-transform:uppercase;color:var(--gold);font-weight:500;display:inline-flex;align-items:center;gap:10px}
+.eyebrow::before{content:"";width:24px;height:1px;background:var(--gold)}
+.muted{color:var(--ink-3)}
+.small{font-size:13px}
+.tiny{font-size:11px;font-family:var(--mono);letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-3)}
+code,.code{font-family:var(--mono);font-size:0.88em;color:var(--ruby);background:rgba(107,35,41,0.06);padding:1px 6px;border-radius:2px;letter-spacing:-0.01em}
+.kbd{font-family:var(--mono);font-size:11px;border:1px solid var(--hairline);padding:2px 6px;border-radius:3px;background:#fff8ec;color:var(--ink-2)}
+
+/* ---------- Hero ---------- */
+.hero{padding:120px 0 80px;position:relative}
+.hero .meta-row{display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid var(--ink);padding-bottom:18px;margin-bottom:64px;font-family:var(--mono);font-size:11px;letter-spacing:0.14em;text-transform:uppercase}
+.hero h1 em{font-style:italic;color:var(--gold);font-weight:400}
+.hero .subtitle{margin-top:42px;display:grid;grid-template-columns:1fr 1fr;gap:48px;border-top:1px solid var(--hairline);padding-top:32px}
+@media (max-width:780px){.hero .subtitle{grid-template-columns:1fr}}
+.hero .quote{font-family:var(--serif);font-style:italic;font-size:22px;line-height:1.4;color:var(--ink-2)}
+.hero-marks{display:flex;gap:32px;margin-top:48px;flex-wrap:wrap}
+.hero-mark{font-family:var(--mono);font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-3);display:flex;align-items:center;gap:8px}
+.hero-mark .dot{width:6px;height:6px;background:var(--gold);border-radius:50%}
+
+/* ---------- TOC ---------- */
+.toc{display:grid;grid-template-columns:repeat(2,1fr);gap:0;border-top:1px solid var(--ink)}
+.toc a{display:grid;grid-template-columns:60px 1fr 60px;align-items:baseline;gap:16px;padding:22px 4px;border-bottom:1px solid var(--hairline);color:var(--ink);text-decoration:none;font-family:var(--serif);font-size:22px;font-weight:400;transition:background 0.2s}
+.toc a:hover{background:rgba(156,122,63,0.08)}
+.toc a .n{font-family:var(--mono);font-size:11px;color:var(--gold);letter-spacing:0.1em}
+.toc a .pg{font-family:var(--mono);font-size:11px;color:var(--ink-3);text-align:right}
+@media (max-width:780px){.toc{grid-template-columns:1fr}}
+
+/* ---------- Section header ---------- */
+.section-head{display:grid;grid-template-columns:120px 1fr;gap:48px;margin-bottom:64px;align-items:start}
+.section-head .marker{font-family:var(--mono);font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:var(--gold);padding-top:14px;border-top:1px solid var(--gold);display:inline-block}
+.section-head .ttl h2{margin-bottom:18px}
+.section-head .ttl .lede{max-width:56ch}
+@media (max-width:780px){.section-head{grid-template-columns:1fr;gap:18px}}
+
+/* ---------- Sitemap tree ---------- */
+.sitemap{background:var(--paper-2);padding:48px;border:1px solid var(--hairline);position:relative}
+.sitemap::before,.sitemap::after{content:"";position:absolute;width:14px;height:14px;border:1px solid var(--gold)}
+.sitemap::before{top:-1px;left:-1px;border-right:none;border-bottom:none}
+.sitemap::after{bottom:-1px;right:-1px;border-left:none;border-top:none}
+.tree{font-family:var(--mono);font-size:13px;line-height:1.85;color:var(--ink-2)}
+.tree .root{color:var(--ink);font-weight:500}
+.tree .branch{padding-left:0}
+.tree .leaf{display:flex;align-items:baseline;gap:14px}
+.tree .leaf .r{color:var(--ruby);min-width:280px}
+.tree .leaf .d{color:var(--ink-3);font-family:var(--sans);font-size:13px}
+.tree .group{margin-top:18px;padding-top:14px;border-top:1px dashed var(--hairline-2)}
+.tree .group-title{font-family:var(--sans);font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:var(--gold);margin-bottom:8px}
+@media (max-width:780px){.tree .leaf{flex-direction:column;gap:2px;margin-bottom:10px} .tree .leaf .r{min-width:0}}
+
+/* ---------- Tables ---------- */
+.table{width:100%;border-collapse:collapse;font-size:13px;margin:24px 0}
+.table th,.table td{text-align:left;padding:14px 16px;border-bottom:1px solid var(--hairline);vertical-align:top}
+.table th{font-family:var(--mono);font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:var(--gold);font-weight:500;border-bottom:1px solid var(--ink);padding-bottom:10px}
+.table tr:last-child td{border-bottom:1px solid var(--ink)}
+.table td.route{font-family:var(--mono);color:var(--ruby);font-size:12px;white-space:nowrap}
+.table td.tag{font-family:var(--mono);font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--ink-3)}
+
+/* ---------- Journey diagram ---------- */
+.journey{margin:32px 0 56px}
+.journey-head{display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid var(--ink);padding-bottom:14px;margin-bottom:28px;gap:24px;flex-wrap:wrap}
+.journey-head h3{font-size:30px}
+.journey-head .meta{font-family:var(--mono);font-size:11px;letter-spacing:0.1em;color:var(--ink-3);text-transform:uppercase}
+.flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:0;position:relative}
+.step{padding:24px 18px 24px 0;border-right:1px solid var(--hairline);position:relative}
+.step:last-child{border-right:none}
+.step .num{font-family:var(--mono);font-size:10px;letter-spacing:0.12em;color:var(--gold);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.step .num::after{content:"";flex:1;height:1px;background:var(--hairline);margin-right:24px}
+.step .route{font-family:var(--mono);font-size:11px;color:var(--ruby);margin-bottom:6px}
+.step h4{font-family:var(--serif);font-size:18px;font-weight:500;margin-bottom:6px;letter-spacing:0}
+.step p{font-size:13px;color:var(--ink-2);margin:0;line-height:1.45}
+.step .think{font-style:italic;color:var(--ink-3);font-size:12px;margin-top:8px;display:block}
+@media (max-width:780px){.flow{grid-template-columns:1fr}.step{border-right:none;border-bottom:1px solid var(--hairline);padding:18px 0}.step:last-child{border-bottom:none}}
+
+/* ---------- IA cards ---------- */
+.ia-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:0;border-top:1px solid var(--ink)}
+.ia{padding:32px 28px 32px 0;border-bottom:1px solid var(--hairline);border-right:1px solid var(--hairline)}
+.ia:nth-child(2n){padding-right:0;padding-left:28px;border-right:none}
+.ia .route{font-family:var(--mono);font-size:11px;color:var(--ruby);margin-bottom:6px;display:block}
+.ia h4{font-family:var(--serif);font-size:24px;font-weight:500;margin-bottom:6px;letter-spacing:0}
+.ia .goal{font-style:italic;color:var(--ink-2);font-size:14px;margin-bottom:18px;font-family:var(--serif);font-size:15px}
+.ia ul{list-style:none;padding:0;margin:0;font-size:13px}
+.ia ul li{padding:6px 0;border-bottom:1px dotted var(--hairline-2);display:flex;gap:12px;align-items:baseline}
+.ia ul li::before{content:"·";color:var(--gold);font-size:18px;line-height:1}
+.ia ul li:last-child{border-bottom:none}
+.ia .ia-sub{font-family:var(--mono);font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--gold);margin:18px 0 6px}
+@media (max-width:760px){.ia-grid{grid-template-columns:1fr}.ia{padding:24px 0;border-right:none}.ia:nth-child(2n){padding-left:0}}
+
+/* ---------- Components inventory ---------- */
+.comp-row{display:grid;grid-template-columns:240px 1fr 1fr;gap:32px;padding:20px 0;border-bottom:1px solid var(--hairline);align-items:start}
+.comp-row:first-child{border-top:1px solid var(--ink)}
+.comp-row .name{font-family:var(--serif);font-size:20px;font-weight:500}
+.comp-row .name .tag{font-family:var(--mono);font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--ink-3);display:block;margin-top:4px}
+.comp-row .desc{font-size:13px;color:var(--ink-2)}
+.comp-row .where{font-size:12px;color:var(--ink-3);font-family:var(--mono);line-height:1.65}
+.comp-row .where span{display:inline-block;color:var(--ruby);margin-right:6px}
+@media (max-width:780px){.comp-row{grid-template-columns:1fr;gap:8px}}
+
+/* ---------- Breakpoint diagram ---------- */
+.bp-diagram{display:grid;grid-template-columns:repeat(4,1fr);gap:24px;margin:32px 0 8px}
+.bp{padding:24px;background:var(--paper-2);border:1px solid var(--hairline);position:relative;min-height:220px}
+.bp .label{font-family:var(--mono);font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:var(--gold)}
+.bp .size{font-family:var(--serif);font-size:34px;font-weight:300;color:var(--ink);margin:6px 0 4px;line-height:1}
+.bp .range{font-family:var(--mono);font-size:11px;color:var(--ink-3);margin-bottom:14px}
+.bp ul{list-style:none;padding:0;margin:0;font-size:12px;color:var(--ink-2)}
+.bp ul li{padding:3px 0}
+.bp .glyph{position:absolute;top:24px;right:24px;border:1px solid var(--ink-2);background:#fff}
+@media (max-width:780px){.bp-diagram{grid-template-columns:1fr 1fr}}
+@media (max-width:480px){.bp-diagram{grid-template-columns:1fr}}
+
+/* ---------- States table ---------- */
+.states{margin:24px 0}
+.state-row{display:grid;grid-template-columns:200px repeat(3,1fr);gap:20px;padding:22px 0;border-bottom:1px solid var(--hairline)}
+.state-row:first-child{border-top:1px solid var(--ink);font-family:var(--mono);font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:var(--gold);padding-bottom:14px;border-bottom:1px solid var(--ink)}
+.state-row .pname{font-family:var(--serif);font-size:18px;font-weight:500}
+.state-row .pname .r{display:block;font-family:var(--mono);font-size:10px;color:var(--ruby);margin-top:4px;letter-spacing:0}
+.state-row .cell{font-size:13px;color:var(--ink-2)}
+.state-row .cell .lbl{display:block;font-family:var(--mono);font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink-3);margin-bottom:4px}
+.state-row.head .cell{color:var(--gold)}
+@media (max-width:900px){.state-row{grid-template-columns:1fr;gap:8px}.state-row:first-child{display:none}.state-row .cell .lbl{margin-bottom:0;display:inline-block;margin-right:8px}}
+
+/* ---------- Principles ---------- */
+.principles{display:grid;grid-template-columns:repeat(2,1fr);gap:0;border-top:1px solid var(--ink)}
+.principle{padding:36px 32px 36px 0;border-bottom:1px solid var(--hairline);border-right:1px solid var(--hairline);position:relative}
+.principle:nth-child(2n){padding-right:0;padding-left:32px;border-right:none}
+.principle .num{font-family:var(--serif);font-size:48px;font-weight:300;color:var(--gold);line-height:1;letter-spacing:-0.02em;font-style:italic}
+.principle h4{font-family:var(--serif);font-size:24px;font-weight:500;margin:14px 0 10px;letter-spacing:0;line-height:1.2}
+.principle p{font-size:14px;color:var(--ink-2);margin:0}
+.principle .rule{font-family:var(--mono);font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:var(--ruby);margin-top:14px;display:block}
+@media (max-width:780px){.principles{grid-template-columns:1fr}.principle{padding:24px 0;border-right:none}.principle:nth-child(2n){padding-left:0}}
+
+/* ---------- Two col ---------- */
+.two{display:grid;grid-template-columns:1fr 1fr;gap:64px}
+@media (max-width:780px){.two{grid-template-columns:1fr;gap:32px}}
+
+/* ---------- Notes ---------- */
+.note{background:var(--paper-2);border-left:2px solid var(--gold);padding:20px 24px;margin:24px 0;font-size:13px;color:var(--ink-2)}
+.note .lbl{font-family:var(--mono);font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:var(--gold);margin-bottom:6px;display:block}
+
+/* ---------- Trust ---------- */
+.trust-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:24px;margin-top:32px}
+.trust{padding:24px;background:#fff;border:1px solid var(--hairline);position:relative}
+.trust .seal{width:48px;height:48px;border:1.5px solid var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:13px;font-weight:600;color:var(--gold);margin-bottom:14px;font-style:italic;letter-spacing:0.05em}
+.trust h4{font-family:var(--serif);font-size:20px;font-weight:500;margin-bottom:8px;letter-spacing:0}
+.trust p{font-size:13px;color:var(--ink-2);margin:0}
+.trust .placement{font-family:var(--mono);font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--ink-3);margin-top:12px;display:block}
+
+/* ---------- Deferred list ---------- */
+.deferred{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:0;border-top:1px solid var(--ink);border-bottom:1px solid var(--ink)}
+.def{padding:20px 0;border-bottom:1px solid var(--hairline);padding-right:24px}
+.def:last-child{border-bottom:none}
+.def .lbl{font-family:var(--mono);font-size:10px;letter-spacing:0.12em;color:var(--gold);text-transform:uppercase}
+.def h4{font-family:var(--serif);font-size:18px;font-weight:500;margin:6px 0 4px;letter-spacing:0}
+.def p{font-size:12px;color:var(--ink-2);margin:0}
+
+/* ---------- Sitemap visual map ---------- */
+.map-wrap{margin:32px 0;background:var(--paper-2);padding:32px;border:1px solid var(--hairline);overflow-x:auto}
+.map{display:grid;grid-template-columns:1fr;gap:8px;min-width:760px}
+.map .tier{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;position:relative}
+.map .node{background:#fff;border:1px solid var(--hairline);padding:12px 14px;font-family:var(--mono);font-size:11px;color:var(--ruby);position:relative;line-height:1.3}
+.map .node .lbl{font-family:var(--sans);font-size:10px;color:var(--ink-3);letter-spacing:0.06em;text-transform:uppercase;display:block;margin-top:4px}
+.map .node.root{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.map .node.root .lbl{color:var(--gold-2)}
+.map .node.jeweller{border-color:var(--emerald);background:#F2F5F0}
+.map .node.special{border-color:var(--gold);background:#FBF6E9}
+.map .tier-label{font-family:var(--mono);font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:var(--gold);grid-column:1/-1;margin:12px 0 0;padding-top:8px;border-top:1px dashed var(--hairline)}
+.map .tier-label:first-child{border-top:none;margin-top:0}
+
+/* ---------- Footer ---------- */
+footer{border-top:1px solid var(--ink);padding:48px 0 80px;margin-top:64px}
+footer .colophon{display:grid;grid-template-columns:1fr 1fr 1fr;gap:32px;font-size:12px;color:var(--ink-3)}
+footer .colophon strong{display:block;font-family:var(--mono);font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:var(--gold);margin-bottom:8px;font-weight:500}
+footer .mark{font-family:var(--serif);font-style:italic;font-size:24px;color:var(--ink);margin-top:32px}
+@media (max-width:780px){footer .colophon{grid-template-columns:1fr}}
+
+/* Decorative diamond glyph */
+.diamond{display:inline-block;width:6px;height:6px;background:var(--gold);transform:rotate(45deg);margin:0 8px;vertical-align:middle}
+
+/* Ornamental rule */
+.orn{display:flex;align-items:center;justify-content:center;margin:40px 0;color:var(--gold)}
+.orn::before,.orn::after{content:"";flex:1;height:1px;background:var(--hairline)}
+.orn span{padding:0 24px;font-family:var(--serif);font-style:italic;font-size:18px}
+</style>
+</head>
+<body>
+
+<div class="page">
+
+<!-- ============== HERO ============== -->
+<section class="hero" data-screen-label="01 Cover">
+  <div class="meta-row">
+    <span>LuxeMatch <span class="diamond"></span> Product &amp; UX</span>
+    <span>Volume I &middot; Architecture</span>
+    <span>v1.0 &middot; May 2026</span>
+  </div>
+
+  <div class="eyebrow">An internal product specification</div>
+
+  <h1 style="margin-top:28px">A jewellery house,<br/><em>reimagined for the screen.</em></h1>
+
+  <div class="subtitle">
+    <p class="lede">LuxeMatch is a premium, AI-powered jewellery discovery platform built for the Indian market. This document is the architectural blueprint — the sitemap, the journeys, the rooms each page must furnish, and the principles by which it must feel.</p>
+    <div>
+      <p class="quote">&ldquo;The platform should feel as considered as the showroom; as immediate as a search bar; as trustworthy as the hallmark itself.&rdquo;</p>
+      <p class="tiny" style="margin-top:16px">— Product principle, north star</p>
+    </div>
+  </div>
+
+  <div class="hero-marks">
+    <span class="hero-mark"><span class="dot"></span>Two audiences &middot; Shopper &amp; Jeweller</span>
+    <span class="hero-mark"><span class="dot"></span>26 routes &middot; V1 scope</span>
+    <span class="hero-mark"><span class="dot"></span>No authentication &middot; LocalStorage-first</span>
+    <span class="hero-mark"><span class="dot"></span>Mobile-first &middot; Desktop-respected</span>
+    <span class="hero-mark"><span class="dot"></span>India &middot; INR &middot; BIS hallmark</span>
+  </div>
+</section>
+
+<!-- ============== TOC ============== -->
+<section data-screen-label="02 Contents" style="padding-top:64px">
+  <div class="section-head">
+    <span class="marker">Contents</span>
+    <div class="ttl">
+      <h2>Eleven sections,<br/>read in any order.</h2>
+    </div>
+  </div>
+
+  <nav class="toc">
+    <a href="#overview"><span class="n">01</span><span>System overview</span><span class="pg">§1</span></a>
+    <a href="#sitemap"><span class="n">02</span><span>Sitemap &amp; routes</span><span class="pg">§2</span></a>
+    <a href="#journeys"><span class="n">03</span><span>Primary user journeys</span><span class="pg">§3</span></a>
+    <a href="#ia"><span class="n">04</span><span>Information architecture, per page</span><span class="pg">§4</span></a>
+    <a href="#goals"><span class="n">05</span><span>UX goals, per page</span><span class="pg">§5</span></a>
+    <a href="#components"><span class="n">06</span><span>Component inventory</span><span class="pg">§6</span></a>
+    <a href="#mobile"><span class="n">07</span><span>Mobile UX &amp; breakpoints</span><span class="pg">§7</span></a>
+    <a href="#states"><span class="n">08</span><span>Empty, loading, error states</span><span class="pg">§8</span></a>
+    <a href="#principles"><span class="n">09</span><span>Premium retail principles</span><span class="pg">§9</span></a>
+    <a href="#deferred"><span class="n">10</span><span>Deferred until authentication</span><span class="pg">§10</span></a>
+    <a href="#trust"><span class="n">11</span><span>Trust signal inventory</span><span class="pg">§11</span></a>
+  </nav>
+</section>
+
+<!-- ============== 01 OVERVIEW ============== -->
+<section id="overview" data-screen-label="03 Overview">
+  <div class="section-head">
+    <span class="marker">§ 01 &nbsp;&middot;&nbsp; Overview</span>
+    <div class="ttl">
+      <h2>Two doors, one house.</h2>
+      <p class="lede">LuxeMatch serves shoppers and jewellers from the same domain. The visual language, performance budget, and trust posture are shared; the entry points and dashboards are not.</p>
+    </div>
+  </div>
+
+  <div class="two">
+    <div>
+      <h4>The shopper</h4>
+      <p class="muted small" style="margin-top:8px">A first-time visitor or returning browser. Likely on an iPhone or mid-range Android during commute, lunch, or evening. Comparing across 2–3 jewellers. Sensitive to price, weight, BIS hallmark, and returnability. Sceptical of online jewellery.</p>
+      <p class="muted small">Wants: confidence, comparison, a sense of how it will look on them.</p>
+    </div>
+    <div>
+      <h4>The jeweller</h4>
+      <p class="muted small" style="margin-top:8px">A boutique to mid-size house. May be photographer, owner, or shop manager. Comfortable with Instagram and basic spreadsheets; not necessarily comfortable with web admin tools. Uploads in batches, calibrates try-on once per SKU.</p>
+      <p class="muted small">Wants: a fast catalogue, a try-on that actually fits, proof it is working.</p>
+    </div>
+  </div>
+
+  <div class="orn"><span>&infin;</span></div>
+
+  <div class="two">
+    <div>
+      <h4>Posture &amp; voice</h4>
+      <p class="muted small" style="margin-top:8px">Editorial, restrained, confident. Copy reads like a knowledgeable showroom assistant — not a marketplace, not a luxury blog. Numbers (carat, weight, gold purity) are foregrounded. Adjectives are rationed.</p>
+    </div>
+    <div>
+      <h4>Engineering posture</h4>
+      <p class="muted small" style="margin-top:8px">Static-first for catalogue; client-side for personalisation. Camera, MediaPipe inference, comparison, saves, and quiz answers all execute in the browser. No server round-trip should sit between a shopper and a piece of jewellery.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============== 02 SITEMAP ============== -->
+<section id="sitemap" data-screen-label="04 Sitemap">
+  <div class="section-head">
+    <span class="marker">§ 02 &nbsp;&middot;&nbsp; Sitemap</span>
+    <div class="ttl">
+      <h2>The map of the house.</h2>
+      <p class="lede">Twenty-six routes across three tiers — shopper public, shopper tools, and the jeweller console. Tier boundaries are visible to the user; routing between them is one click from the home page.</p>
+    </div>
+  </div>
+
+  <!-- Visual map -->
+  <div class="map-wrap">
+    <div class="map">
+      <span class="tier-label">Tier 0 &middot; Root</span>
+      <div class="tier"><div class="node root">/<span class="lbl">Home / discovery</span></div></div>
+
+      <span class="tier-label">Tier 1 &middot; Shopper — browse &amp; discover</span>
+      <div class="tier">
+        <div class="node">/catalog<span class="lbl">All jewellery</span></div>
+        <div class="node">/collections<span class="lbl">Curated edits</span></div>
+        <div class="node">/occasions/[slug]<span class="lbl">Wedding, gift, etc.</span></div>
+        <div class="node">/search<span class="lbl">Text + autocomplete</span></div>
+        <div class="node">/search/image<span class="lbl">Visual search</span></div>
+        <div class="node">/store/[jeweller]<span class="lbl">Public storefront</span></div>
+      </div>
+
+      <span class="tier-label">Tier 1 &middot; Shopper — detail &amp; tools</span>
+      <div class="tier">
+        <div class="node">/catalog/[slug]<span class="lbl">Product page</span></div>
+        <div class="node">/collections/[slug]<span class="lbl">Collection page</span></div>
+        <div class="node special">/try-on<span class="lbl">2D AR mirror</span></div>
+        <div class="node special">/compare<span class="lbl">Up to 4 items</span></div>
+        <div class="node special">/saved<span class="lbl">Local saves</span></div>
+        <div class="node special">/style-quiz<span class="lbl">AI recommender</span></div>
+      </div>
+
+      <span class="tier-label">Tier 1 &middot; Shopper — informational</span>
+      <div class="tier">
+        <div class="node">/size-guide<span class="lbl">Ring, bangle, chain</span></div>
+        <div class="node">/about<span class="lbl">Brand story</span></div>
+        <div class="node">/help<span class="lbl">FAQ, returns, care</span></div>
+      </div>
+
+      <span class="tier-label">Tier 2 &middot; Jeweller console</span>
+      <div class="tier">
+        <div class="node jeweller">/jeweller<span class="lbl">Landing / pitch</span></div>
+        <div class="node jeweller">/jeweller/onboarding<span class="lbl">Set up shop</span></div>
+        <div class="node jeweller">/jeweller/dashboard<span class="lbl">Console home</span></div>
+        <div class="node jeweller">/jeweller/products<span class="lbl">Catalog manager</span></div>
+        <div class="node jeweller">/jeweller/products/new<span class="lbl">Upload flow</span></div>
+        <div class="node jeweller">/jeweller/products/[id]<span class="lbl">Edit + calibrate</span></div>
+        <div class="node jeweller">/jeweller/analytics<span class="lbl">Performance</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Route table -->
+  <h3 style="margin:48px 0 12px">Route inventory</h3>
+  <table class="table">
+    <thead>
+      <tr><th style="width:24%">Route</th><th style="width:18%">Audience</th><th style="width:30%">Purpose</th><th>Notes</th></tr>
+    </thead>
+    <tbody>
+      <tr><td class="route">/</td><td class="tag">Shopper</td><td>Home — hero, featured collections, occasion entry, search bar.</td><td>Sets the tone. Heaviest editorial work.</td></tr>
+      <tr><td class="route">/catalog</td><td class="tag">Shopper</td><td>Master grid of all jewellery with filter rail.</td><td>Filters: category, metal, gemstone, price, weight, jeweller, occasion.</td></tr>
+      <tr><td class="route">/catalog/[slug]</td><td class="tag">Shopper</td><td>Product detail page (PDP).</td><td>The conversion centre. Try-on, save, compare, jeweller card.</td></tr>
+      <tr><td class="route">/collections</td><td class="tag">Shopper</td><td>Index of editorial collections.</td><td>Curated by LuxeMatch &amp; jewellers.</td></tr>
+      <tr><td class="route">/collections/[slug]</td><td class="tag">Shopper</td><td>A single collection: story, hero, products.</td><td>Editorial layout; magazine feel.</td></tr>
+      <tr><td class="route">/occasions/[slug]</td><td class="tag">Shopper</td><td>Bridal, gifting, festive, daily — filtered storefronts.</td><td>Pre-baked query into /catalog.</td></tr>
+      <tr><td class="route">/search</td><td class="tag">Shopper</td><td>Text search results with autocomplete &amp; chips.</td><td>Suggestions for jeweller, gemstone, occasion.</td></tr>
+      <tr><td class="route">/search/image</td><td class="tag">Shopper</td><td>Drop a photo, get visually similar jewellery.</td><td>Client-side image embedding; results inline.</td></tr>
+      <tr><td class="route">/try-on</td><td class="tag">Shopper</td><td>Browser AR mirror — earrings, necklaces, rings.</td><td>MediaPipe JS; 2D transparent PNG only.</td></tr>
+      <tr><td class="route">/compare</td><td class="tag">Shopper</td><td>Side-by-side of up to 4 saved items.</td><td>Specs, price, weight, hallmark, jeweller.</td></tr>
+      <tr><td class="route">/saved</td><td class="tag">Shopper</td><td>Local wishlist, grouped by date or occasion.</td><td>localStorage; survives reload, not device.</td></tr>
+      <tr><td class="route">/style-quiz</td><td class="tag">Shopper</td><td>5–7 step quiz → personalised recommendations.</td><td>Answers stored locally; result page is sharable URL.</td></tr>
+      <tr><td class="route">/size-guide</td><td class="tag">Shopper</td><td>Ring, bangle, chain sizing instructions.</td><td>Interactive print-to-scale ring sizer.</td></tr>
+      <tr><td class="route">/store/[jeweller-slug]</td><td class="tag">Shopper</td><td>Public storefront for a single jeweller.</td><td>Story + catalogue + contact + collections.</td></tr>
+      <tr><td class="route">/about</td><td class="tag">Shopper</td><td>What LuxeMatch is, who it&rsquo;s for.</td><td>Single page, editorial.</td></tr>
+      <tr><td class="route">/help</td><td class="tag">Shopper</td><td>FAQ, returns, care guide, contact.</td><td>Searchable; trust-heavy.</td></tr>
+      <tr><td class="route">/jeweller</td><td class="tag">Jeweller</td><td>Pitch page — why list with LuxeMatch.</td><td>Marketing surface for partners.</td></tr>
+      <tr><td class="route">/jeweller/onboarding</td><td class="tag">Jeweller</td><td>Multi-step setup: name, story, branding, first SKU.</td><td>Local state until V1 auth ships.</td></tr>
+      <tr><td class="route">/jeweller/dashboard</td><td class="tag">Jeweller</td><td>Console home — today&rsquo;s numbers, quick actions.</td><td>One-screen overview.</td></tr>
+      <tr><td class="route">/jeweller/products</td><td class="tag">Jeweller</td><td>Catalogue list with bulk actions.</td><td>Search, filter, sort, batch publish.</td></tr>
+      <tr><td class="route">/jeweller/products/new</td><td class="tag">Jeweller</td><td>Stepped upload — photos, specs, story, try-on.</td><td>The most considered jeweller flow.</td></tr>
+      <tr><td class="route">/jeweller/products/[id]</td><td class="tag">Jeweller</td><td>Edit product; recalibrate try-on anchor.</td><td>Same shell as /new but populated.</td></tr>
+      <tr><td class="route">/jeweller/analytics</td><td class="tag">Jeweller</td><td>Views, saves, try-ons, comparisons.</td><td>Read-only; clear definitions of each metric.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="note">
+    <span class="lbl">A note on slugs</span>
+    Product slugs are human-readable (<code>kundan-polki-choker-anaya</code>) and immutable once published; canonical for SEO. Jeweller slugs (<code>kasturi-jewellers-jaipur</code>) include city to disambiguate. Collection &amp; occasion slugs are short and timeless (<code>monsoon-edit</code>, <code>bridal</code>).
+  </div>
+</section>
+
+<!-- ============== 03 JOURNEYS ============== -->
+<section id="journeys" data-screen-label="05 Journeys">
+  <div class="section-head">
+    <span class="marker">§ 03 &nbsp;&middot;&nbsp; Journeys</span>
+    <div class="ttl">
+      <h2>Five primary paths<br/>through the house.</h2>
+      <p class="lede">Each journey is plotted as a sequence of routes and intents. The annotation below each step is the user&rsquo;s inner monologue — what they are wondering, not what we are showing them.</p>
+    </div>
+  </div>
+
+  <!-- Journey 1 -->
+  <div class="journey">
+    <div class="journey-head">
+      <h3>Shopper &middot; Browse to confidence</h3>
+      <span class="meta">Discovery flow &middot; 4–8 min &middot; mobile-typical</span>
+    </div>
+    <div class="flow">
+      <div class="step">
+        <div class="num">Step 01</div>
+        <div class="route">/</div>
+        <h4>Lands on home</h4>
+        <p>Sees a featured edit, an occasion grid, a search bar.</p>
+        <span class="think">&ldquo;Bridal earrings under a lakh — let&rsquo;s see what&rsquo;s here.&rdquo;</span>
+      </div>
+      <div class="step">
+        <div class="num">Step 02</div>
+        <div class="route">/occasions/bridal</div>
+        <h4>Filters to bridal</h4>
+        <p>Pre-filtered grid; sorts by price low-to-high.</p>
+        <span class="think">&ldquo;I want range, not just the cheapest.&rdquo;</span>
+      </div>
+      <div class="step">
+        <div class="num">Step 03</div>
+        <div class="route">/catalog/[slug]</div>
+        <h4>Opens a piece</h4>
+        <p>Reads specs, sees BIS hallmark, scrolls to jeweller card.</p>
+        <span class="think">&ldquo;Who&rsquo;s selling this? Are they real?&rdquo;</span>
+      </div>
+      <div class="step">
+        <div class="num">Step 04</div>
+        <div class="route">/try-on</div>
+        <h4>Tries on</h4>
+        <p>Grants camera, sees earrings overlaid live.</p>
+        <span class="think">&ldquo;Does this suit my face?&rdquo;</span>
+      </div>
+      <div class="step">
+        <div class="num">Step 05</div>
+        <div class="route">/saved</div>
+        <h4>Saves &amp; returns later</h4>
+        <p>Heart icon, returns tomorrow, compares with two others.</p>
+        <span class="think">&ldquo;I&rsquo;ll decide tonight.&rdquo;</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Journey 2 -->
+  <div class="journey">
+    <div class="journey-head">
+      <h3>Shopper &middot; Visual search &amp; try-on</h3>
+      <span class="meta">Image-led flow &middot; 2–4 min &middot; cross-device</span>
+    </div>
+    <div class="flow">
+      <div class="step">
+        <div class="num">Step 01</div>
+        <div class="route">/search/image</div>
+        <h4>Uploads a photo</h4>
+        <p>Drags a screenshot from Instagram, or shoots through camera.</p>
+        <span class="think">&ldquo;Find me something like this.&rdquo;</span>
+      </div>
+      <div class="step">
+        <div class="num">Step 02</div>
+        <div class="route">/search/image?q=...</div>
+        <h4>Sees similar set</h4>
+        <p>12–20 matches with similarity score &amp; price band.</p>
+        <span class="think">&ldquo;That third one is closer than the original.&rdquo;</span>
+      </div>
+      <div class="step">
+        <div class="num">Step 03</div>
+        <div class="route">/search?q=jhumka</div>
+        <h4>Refines hybrid</h4>
+        <p>Adds &ldquo;jhumka&rdquo; to the image — narrows by name + visual.</p>
+        <span class="think">&ldquo;Same vibe, but smaller drop.&rdquo;</span>
+      </div>
+      <div class="step">
+        <div class="num">Step 04</div>
+        <div class="route">/catalog/[slug]</div>
+        <h4>Opens result</h4>
+        <p>Reviews specs, hits try-on.</p>
+        <span class="think">&ldquo;Right scale on me?&rdquo;</span>
+      </div>
+      <div class="step">
+        <div class="num">Step 05</div>
+        <div class="route">/try-on</div>
+        <h4>Tries on, saves</h4>
+        <p>Snaps a screenshot from inside the try-on, saves to wishlist.</p>
+        <span class="think">&ldquo;Sending this to mum.&rdquo;</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Journey 3 -->
+  <div class="journey">
+    <div class="journey-head">
+      <h3>Shopper &middot; Style quiz to shortlist</h3>
+      <span class="meta">Lean-back flow &middot; 3–5 min &middot; mobile-typical</span>
+    </div>
+    <div class="flow">
+      <div class="step">
+        <div class="num">Step 01</div>
+        <div class="route">/style-quiz</div>
+        <h4>Intro</h4>
+        <p>5 questions, 90 seconds, no email required.</p>
+        <span class="think">&ldquo;I have no idea what I want.&rdquo;</span>
+      </div>
+      <div class="step">
+        <div class="num">Step 02</div>
+        <div class="route">/style-quiz</div>
+        <h4>Visual prefs</h4>
+        <p>Choose 3 of 9 mood boards — bold, ethereal, heritage, minimal&hellip;</p>
+        <span class="think">&ldquo;I&rsquo;ll know it when I see it.&rdquo;</span>
+      </div>
+      <div class="step">
+        <div class="num">Step 03</div>
+        <div class="route">/style-quiz</div>
+        <h4>Practical inputs</h4>
+        <p>Occasion, budget band, metal preference, gemstone tolerance.</p>
+        <span class="think">&ldquo;Within reason. Mostly yellow gold.&rdquo;</span>
+      </div>
+      <div class="step">
+        <div class="num">Step 04</div>
+        <div class="route">/style-quiz/result</div>
+        <h4>Personalised wall</h4>
+        <p>12 results with one-line reasons (&ldquo;chosen because&hellip;&rdquo;).</p>
+        <span class="think">&ldquo;Some of these actually make sense.&rdquo;</span>
+      </div>
+      <div class="step">
+        <div class="num">Step 05</div>
+        <div class="route">/compare</div>
+        <h4>Shortlists 3</h4>
+        <p>Saves 3 picks, opens /compare to pit them against each other.</p>
+        <span class="think">&ldquo;Heaviest is the one I&rsquo;ll keep.&rdquo;</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Journey 4 -->
+  <div class="journey">
+    <div class="journey-head">
+      <h3>Jeweller &middot; Onboarding to first listing</h3>
+      <span class="meta">Setup flow &middot; 10–15 min &middot; desktop-typical</span>
+    </div>
+    <div class="flow">
+      <div class="step">
+        <div class="num">Step 01</div>
+        <div class="route">/jeweller</div>
+        <h4>Reads pitch</h4>
+        <p>Sees what listing on LuxeMatch buys them.</p>
+        <span class="think">&ldquo;Is this worth my afternoon?&rdquo;</span>
+      </div>
+      <div class="step">
+        <div class="num">Step 02</div>
+        <div class="route">/jeweller/onboarding</div>
+        <h4>Basic identity</h4>
+        <p>Name, city, year founded, BIS licence number, 2-line story.</p>
+        <span class="think">&ldquo;Quick.&rdquo;</span>
+      </div>
+      <div class="step">
+        <div class="num">Step 03</div>
+        <div class="route">/jeweller/onboarding</div>
+        <h4>Brand mark &amp; voice</h4>
+        <p>Uploads logo, chooses storefront accent, picks a typeface.</p>
+        <span class="think">&ldquo;Show me what it&rsquo;ll look like.&rdquo;</span>
+      </div>
+      <div class="step">
+        <div class="num">Step 04</div>
+        <div class="route">/jeweller/products/new</div>
+        <h4>First product</h4>
+        <p>Walked through their first listing with a guided flow.</p>
+        <span class="think">&ldquo;If this is easy, I&rsquo;ll do twenty.&rdquo;</span>
+      </div>
+      <div class="step">
+        <div class="num">Step 05</div>
+        <div class="route">/jeweller/dashboard</div>
+        <h4>Lands in console</h4>
+        <p>One product live; clear next actions: add 5 more, set up analytics.</p>
+        <span class="think">&ldquo;I&rsquo;m in business.&rdquo;</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Journey 5 -->
+  <div class="journey">
+    <div class="journey-head">
+      <h3>Jeweller &middot; Upload a product</h3>
+      <span class="meta">Repeated flow &middot; 4–6 min per SKU &middot; desktop-typical</span>
+    </div>
+    <div class="flow">
+      <div class="step">
+        <div class="num">Step 01</div>
+        <div class="route">/jeweller/products/new</div>
+        <h4>Photos</h4>
+        <p>Drops 4–8 images. Auto-orientation check, primary image picker.</p>
+        <span class="think">&ldquo;Are these good enough?&rdquo;</span>
+      </div>
+      <div class="step">
+        <div class="num">Step 02</div>
+        <div class="route">/jeweller/products/new</div>
+        <h4>Specs</h4>
+        <p>Category, metal, purity, weight, gemstone, size, price.</p>
+        <span class="think">&ldquo;Most of this is on the invoice already.&rdquo;</span>
+      </div>
+      <div class="step">
+        <div class="num">Step 03</div>
+        <div class="route">/jeweller/products/new</div>
+        <h4>Story &amp; tags</h4>
+        <p>Two-line description, occasions, collection, craft technique.</p>
+        <span class="think">&ldquo;What makes this one different.&rdquo;</span>
+      </div>
+      <div class="step">
+        <div class="num">Step 04</div>
+        <div class="route">/jeweller/products/new</div>
+        <h4>Try-on calibration</h4>
+        <p>Uploads transparent PNG; drags anchor onto a model face. Preview.</p>
+        <span class="think">&ldquo;That looks about right.&rdquo;</span>
+      </div>
+      <div class="step">
+        <div class="num">Step 05</div>
+        <div class="route">/jeweller/products/[id]</div>
+        <h4>Review &amp; publish</h4>
+        <p>Preview as shopper, then publish. SKU live on storefront.</p>
+        <span class="think">&ldquo;Done. Next one.&rdquo;</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== 04 IA ============== -->
+<section id="ia" data-screen-label="06 Information Architecture">
+  <div class="section-head">
+    <span class="marker">§ 04 &nbsp;&middot;&nbsp; IA</span>
+    <div class="ttl">
+      <h2>What sits on each page.</h2>
+      <p class="lede">For each key route, the elements that must be present. Order roughly reflects vertical placement on mobile; the ordering can be re-flowed for desktop without changing the inventory.</p>
+    </div>
+  </div>
+
+  <div class="ia-grid">
+
+    <div class="ia">
+      <span class="route">/</span>
+      <h4>Home</h4>
+      <p class="goal">Set the tone; route by intent.</p>
+      <div class="ia-sub">Above the fold</div>
+      <ul>
+        <li>Brand wordmark + minimal nav (Catalog, Collections, Jeweller)</li>
+        <li>Universal search bar (text + image trigger)</li>
+        <li>Hero — single editorial collection, one image, one CTA</li>
+      </ul>
+      <div class="ia-sub">Below</div>
+      <ul>
+        <li>Occasion grid (6 tiles: Bridal, Gifting, Festive, Daily, Office, Heirloom)</li>
+        <li>&ldquo;Featured jewellers&rdquo; row (4 cards)</li>
+        <li>Style-quiz entry strip</li>
+        <li>Trust strip: BIS hallmark, returns, certified gemstones, secure</li>
+        <li>Footer with help, about, jeweller signup</li>
+      </ul>
+    </div>
+
+    <div class="ia">
+      <span class="route">/catalog</span>
+      <h4>Catalogue</h4>
+      <p class="goal">Show range; let people slice it.</p>
+      <div class="ia-sub">Layout</div>
+      <ul>
+        <li>Sticky filter rail (desktop) / bottom sheet (mobile)</li>
+        <li>Sort dropdown (relevance, price, weight, newest)</li>
+        <li>Result count + active filter chips (removable)</li>
+      </ul>
+      <div class="ia-sub">Filters</div>
+      <ul>
+        <li>Category, metal, purity, gemstone, price band, weight band</li>
+        <li>Jeweller, occasion, collection</li>
+        <li>BIS-only toggle, certified-stones-only toggle</li>
+      </ul>
+      <div class="ia-sub">Grid</div>
+      <ul>
+        <li>Product card: image, name, jeweller, price, weight, save heart</li>
+        <li>Hover: secondary image + try-on shortcut</li>
+        <li>Pagination via infinite scroll with load-more button as fallback</li>
+      </ul>
+    </div>
+
+    <div class="ia">
+      <span class="route">/catalog/[slug]</span>
+      <h4>Product detail</h4>
+      <p class="goal">Convert intent into a save or a contact.</p>
+      <div class="ia-sub">Hero</div>
+      <ul>
+        <li>Gallery (4–8 images, zoom, fullscreen)</li>
+        <li>Sticky name, price (INR), jeweller, weight, BIS mark</li>
+        <li>Primary CTA: Try on &middot; Secondary: Save &middot; Tertiary: Compare</li>
+      </ul>
+      <div class="ia-sub">Specs block</div>
+      <ul>
+        <li>Metal &amp; purity, weight, gemstone (type, weight, certificate)</li>
+        <li>Dimensions, size options, making charges note</li>
+      </ul>
+      <div class="ia-sub">Story + jeweller</div>
+      <ul>
+        <li>2–3 paragraphs of provenance + craft</li>
+        <li>Jeweller card → /store/[jeweller]</li>
+        <li>Care, returns, hallmark policy</li>
+      </ul>
+      <div class="ia-sub">Related</div>
+      <ul>
+        <li>From this jeweller (4)</li>
+        <li>Similar pieces (6)</li>
+      </ul>
+    </div>
+
+    <div class="ia">
+      <span class="route">/try-on</span>
+      <h4>Try-on</h4>
+      <p class="goal">A confident mirror, not a tech demo.</p>
+      <div class="ia-sub">Frame</div>
+      <ul>
+        <li>Full-bleed camera viewport, dark fallback before grant</li>
+        <li>Top: piece tray (currently trying-on / swap / X)</li>
+        <li>Bottom: capture, mirror toggle, lighting hint</li>
+      </ul>
+      <div class="ia-sub">Side panel</div>
+      <ul>
+        <li>Other tryable items from this session (saved + currently viewing)</li>
+        <li>Category switch (earrings / necklace / ring) when supported</li>
+        <li>Save, share, &ldquo;view product&rdquo;</li>
+      </ul>
+      <div class="ia-sub">Permission &amp; consent</div>
+      <ul>
+        <li>Camera permission explainer overlay before request</li>
+        <li>&ldquo;Processed in your browser&rdquo; reassurance, always visible</li>
+      </ul>
+    </div>
+
+    <div class="ia">
+      <span class="route">/search &middot; /search/image</span>
+      <h4>Search</h4>
+      <p class="goal">A single, calm input. Two ways in.</p>
+      <div class="ia-sub">Input</div>
+      <ul>
+        <li>Large search field, image-drop affordance to its right</li>
+        <li>Recent searches (local), trending searches</li>
+        <li>Autocomplete groups: products, jewellers, collections, occasions</li>
+      </ul>
+      <div class="ia-sub">Results</div>
+      <ul>
+        <li>For text: relevance-ranked grid + filter chips</li>
+        <li>For image: similarity strip + grid with score</li>
+        <li>Hybrid: pinned image thumbnail next to query, editable</li>
+        <li>&ldquo;No matches&rdquo; → 3 closest + a quiz nudge</li>
+      </ul>
+    </div>
+
+    <div class="ia">
+      <span class="route">/compare</span>
+      <h4>Compare</h4>
+      <p class="goal">Decide between four pieces in 60 seconds.</p>
+      <div class="ia-sub">Layout</div>
+      <ul>
+        <li>2–4 column table; horizontal scroll on mobile, frozen first column of rows</li>
+        <li>Sticky image row at top</li>
+        <li>Rows: price, jeweller, weight, metal, gemstone, hallmark, returns, score</li>
+      </ul>
+      <div class="ia-sub">Behaviours</div>
+      <ul>
+        <li>&ldquo;Highlight differences&rdquo; toggle dims matching rows</li>
+        <li>Drop-and-add column from /saved without leaving page</li>
+        <li>Share view as URL (encodes 4 slugs)</li>
+      </ul>
+    </div>
+
+    <div class="ia">
+      <span class="route">/saved</span>
+      <h4>Saved</h4>
+      <p class="goal">A small, dignified wishlist.</p>
+      <div class="ia-sub">Default view</div>
+      <ul>
+        <li>Grid of saves, newest first, with delete + add-to-compare</li>
+        <li>Group switch: chronological / by jeweller / by occasion</li>
+        <li>&ldquo;Stored on this device&rdquo; reminder, with export-as-link option</li>
+      </ul>
+      <div class="ia-sub">Empty</div>
+      <ul>
+        <li>Editorial empty state pointing to /style-quiz and /collections</li>
+      </ul>
+    </div>
+
+    <div class="ia">
+      <span class="route">/style-quiz</span>
+      <h4>Style quiz</h4>
+      <p class="goal">Make taste explicit, then return jewellery.</p>
+      <div class="ia-sub">Steps</div>
+      <ul>
+        <li>Intent &middot; Mood &middot; Metal &middot; Gemstone &middot; Budget &middot; Occasion</li>
+        <li>Progress dots, back arrow, never blocking forward navigation</li>
+      </ul>
+      <div class="ia-sub">Result</div>
+      <ul>
+        <li>Two-column: portrait card (your style) + 12-piece wall</li>
+        <li>One-line &ldquo;chosen because&rdquo; per piece</li>
+        <li>&ldquo;Retake&rdquo;, &ldquo;Save shortlist&rdquo;, &ldquo;Share my taste&rdquo;</li>
+      </ul>
+    </div>
+
+    <div class="ia">
+      <span class="route">/store/[jeweller]</span>
+      <h4>Storefront</h4>
+      <p class="goal">A jeweller&rsquo;s house, inside ours.</p>
+      <div class="ia-sub">Header</div>
+      <ul>
+        <li>Storefront accent &amp; logo, name, city, founded</li>
+        <li>Story (2–3 paragraphs), photo of workshop</li>
+        <li>Trust band: BIS licence, certifications, years in trade</li>
+      </ul>
+      <div class="ia-sub">Body</div>
+      <ul>
+        <li>Their collections strip</li>
+        <li>Their catalogue grid (filtered to this jeweller)</li>
+        <li>Contact card: phone / WhatsApp / address / hours</li>
+      </ul>
+    </div>
+
+    <div class="ia">
+      <span class="route">/jeweller/dashboard</span>
+      <h4>Jeweller dashboard</h4>
+      <p class="goal">A single screen that answers: is it working?</p>
+      <div class="ia-sub">Header strip</div>
+      <ul>
+        <li>Greeting, current date, &ldquo;view as shopper&rdquo; link</li>
+      </ul>
+      <div class="ia-sub">Metric tiles</div>
+      <ul>
+        <li>Views (today / 7d), saves, try-ons, comparisons</li>
+        <li>Sparkline + delta vs last period</li>
+      </ul>
+      <div class="ia-sub">Lists</div>
+      <ul>
+        <li>Most-viewed pieces (top 5)</li>
+        <li>Pieces missing try-on calibration (action prompts)</li>
+        <li>Recently added</li>
+      </ul>
+      <div class="ia-sub">Quick actions</div>
+      <ul>
+        <li>Add product, edit story, set holiday hours, contact LuxeMatch</li>
+      </ul>
+    </div>
+
+    <div class="ia">
+      <span class="route">/jeweller/products/new</span>
+      <h4>New product upload</h4>
+      <p class="goal">Make the 5th upload feel like the 1st was free.</p>
+      <div class="ia-sub">Stepper</div>
+      <ul>
+        <li>Photos &middot; Specs &middot; Story &middot; Try-on &middot; Review</li>
+        <li>Save-as-draft on every step; auto-save to localStorage</li>
+      </ul>
+      <div class="ia-sub">Photo step</div>
+      <ul>
+        <li>Drag-and-drop, primary picker, orientation warning</li>
+        <li>Suggested shots (front, side, on-model, scale)</li>
+      </ul>
+      <div class="ia-sub">Try-on step</div>
+      <ul>
+        <li>Upload transparent PNG, drag anchor onto preview face/hand</li>
+        <li>Scale slider, rotation slider, mirror</li>
+        <li>Live preview against 3 reference photos</li>
+      </ul>
+    </div>
+
+    <div class="ia">
+      <span class="route">/jeweller/analytics</span>
+      <h4>Analytics</h4>
+      <p class="goal">Show the work the catalogue is doing.</p>
+      <div class="ia-sub">Top</div>
+      <ul>
+        <li>Time-range picker (7d / 30d / 90d / custom)</li>
+        <li>4 headline KPIs with definition tooltips</li>
+      </ul>
+      <div class="ia-sub">Charts</div>
+      <ul>
+        <li>Views over time (line)</li>
+        <li>Try-on rate per piece (bar)</li>
+        <li>Funnel: view &rarr; save &rarr; try-on &rarr; compare</li>
+      </ul>
+      <div class="ia-sub">Tables</div>
+      <ul>
+        <li>Per-product performance, sortable</li>
+        <li>Where shoppers found you (collections, occasions, search)</li>
+      </ul>
+    </div>
+
+  </div>
+</section>
+
+<!-- ============== 05 GOALS ============== -->
+<section id="goals" data-screen-label="07 UX Goals">
+  <div class="section-head">
+    <span class="marker">§ 05 &nbsp;&middot;&nbsp; UX goals</span>
+    <div class="ttl">
+      <h2>The job of each page,<br/>in a single sentence.</h2>
+      <p class="lede">For every route, one verb-led sentence about what a successful visit feels like. Used as the criterion when in doubt about a design call.</p>
+    </div>
+  </div>
+
+  <table class="table">
+    <thead>
+      <tr><th style="width:24%">Route</th><th>Successful visit feels like&hellip;</th></tr>
+    </thead>
+    <tbody>
+      <tr><td class="route">/</td><td>I know what kind of place this is, and where to start, within ten seconds.</td></tr>
+      <tr><td class="route">/catalog</td><td>I can narrow forty-thousand pieces to a wearable shortlist using filters I already understand.</td></tr>
+      <tr><td class="route">/catalog/[slug]</td><td>I have enough specifics and proof to either save this piece or move on without regret.</td></tr>
+      <tr><td class="route">/collections</td><td>I find a curatorial point of view I trust, and one collection to enter.</td></tr>
+      <tr><td class="route">/collections/[slug]</td><td>I understand why these pieces are grouped, and I want to scroll the whole edit.</td></tr>
+      <tr><td class="route">/occasions/[slug]</td><td>I arrived with a need (&ldquo;bridal earrings&rdquo;) and the page is already filtered to it.</td></tr>
+      <tr><td class="route">/search</td><td>I type freely and the suggestions help me know what to ask for.</td></tr>
+      <tr><td class="route">/search/image</td><td>I drop a picture and find pieces I could plausibly own.</td></tr>
+      <tr><td class="route">/try-on</td><td>I see the piece on me, well-lit, instantly, without the page asking me to wait.</td></tr>
+      <tr><td class="route">/compare</td><td>I see what&rsquo;s different at a glance, and the winner becomes obvious.</td></tr>
+      <tr><td class="route">/saved</td><td>My list is intact, organisable, and gives me a one-step path back to deciding.</td></tr>
+      <tr><td class="route">/style-quiz</td><td>I finish a quiz that felt like a conversation, and the results feel chosen for me.</td></tr>
+      <tr><td class="route">/size-guide</td><td>I leave knowing my size — without printing, if possible.</td></tr>
+      <tr><td class="route">/store/[jeweller]</td><td>I understand who this jeweller is and why I might trust them.</td></tr>
+      <tr><td class="route">/about</td><td>I learn what LuxeMatch is and isn&rsquo;t in under a minute.</td></tr>
+      <tr><td class="route">/help</td><td>I find my answer without having to write to anyone.</td></tr>
+      <tr><td class="route">/jeweller</td><td>I see what listing here will cost me in time, and what it pays back.</td></tr>
+      <tr><td class="route">/jeweller/onboarding</td><td>I finish setup in one sitting, and the system feels handled-by-an-adult.</td></tr>
+      <tr><td class="route">/jeweller/dashboard</td><td>I open my console in the morning and the four numbers I need are already on screen.</td></tr>
+      <tr><td class="route">/jeweller/products</td><td>I can find any product in three seconds and act on twenty in one batch.</td></tr>
+      <tr><td class="route">/jeweller/products/new</td><td>I finish my listing in under six minutes and I&rsquo;m proud of how it reads as a shopper.</td></tr>
+      <tr><td class="route">/jeweller/products/[id]</td><td>I edit one detail without re-walking the whole flow.</td></tr>
+      <tr><td class="route">/jeweller/analytics</td><td>I leave the page with one decision I&rsquo;ll actually take this week.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============== 06 COMPONENTS ============== -->
+<section id="components" data-screen-label="08 Components">
+  <div class="section-head">
+    <span class="marker">§ 06 &nbsp;&middot;&nbsp; Components</span>
+    <div class="ttl">
+      <h2>The shared kit.</h2>
+      <p class="lede">Pieces of UI used in more than one place. Each is a single source of truth — small variations are encoded as props, not as forked components.</p>
+    </div>
+  </div>
+
+  <div class="comp-row">
+    <div class="name">ProductCard<span class="tag">Atom / surface</span></div>
+    <div class="desc">Image, name, jeweller, price, weight, BIS dot, save heart. Hover swap. Compact &amp; library variants.</div>
+    <div class="where"><span>/catalog</span><span>/collections/[slug]</span><span>/occasions/[slug]</span><span>/search</span><span>/saved</span><span>/store</span><span>/style-quiz/result</span></div>
+  </div>
+
+  <div class="comp-row">
+    <div class="name">FilterRail<span class="tag">Compound</span></div>
+    <div class="desc">Vertical chip + slider stack. Sticky on desktop; pops as bottom sheet on mobile. Active filters surface as removable chips above grid.</div>
+    <div class="where"><span>/catalog</span><span>/store/[jeweller]</span><span>/search</span><span>/collections/[slug]</span></div>
+  </div>
+
+  <div class="comp-row">
+    <div class="name">SearchOmnibar<span class="tag">Compound</span></div>
+    <div class="desc">Text input + image-drop affordance + autocomplete dropdown grouped by entity. Routes to /search or /search/image.</div>
+    <div class="where"><span>/</span><span>/catalog (top)</span><span>/search</span><span>/search/image</span></div>
+  </div>
+
+  <div class="comp-row">
+    <div class="name">PriceTag<span class="tag">Atom</span></div>
+    <div class="desc">Formatted INR with optional &ldquo;ex. making&rdquo; and &ldquo;starts at&rdquo; modifiers. Live-updates against gold rate tooltip.</div>
+    <div class="where"><span>/catalog/[slug]</span><span>ProductCard</span><span>/compare</span><span>/jeweller/products</span></div>
+  </div>
+
+  <div class="comp-row">
+    <div class="name">TrustBand<span class="tag">Surface</span></div>
+    <div class="desc">Horizontal row of trust marks: BIS hallmark, certified stones, returns, secure. Light + dark variants.</div>
+    <div class="where"><span>/</span><span>/catalog/[slug] (footer of specs)</span><span>/help</span><span>/store</span></div>
+  </div>
+
+  <div class="comp-row">
+    <div class="name">JewellerCard<span class="tag">Compound</span></div>
+    <div class="desc">Logo, name, city, year, BIS licence number, &ldquo;view storefront&rdquo;. Inline + full variants.</div>
+    <div class="where"><span>/catalog/[slug]</span><span>/collections/[slug]</span><span>/</span><span>/compare (header)</span></div>
+  </div>
+
+  <div class="comp-row">
+    <div class="name">TryOnViewer<span class="tag">Module</span></div>
+    <div class="desc">Camera viewport, overlay renderer, capture, mirror, lighting hint, piece tray. Used as full page and as embedded modal.</div>
+    <div class="where"><span>/try-on</span><span>/catalog/[slug] (modal)</span><span>/jeweller/products/new (preview)</span></div>
+  </div>
+
+  <div class="comp-row">
+    <div class="name">QuizStep<span class="tag">Compound</span></div>
+    <div class="desc">Single question shell: progress dots, prompt, choices, back arrow. Choice variants (image, chip, slider).</div>
+    <div class="where"><span>/style-quiz</span><span>/jeweller/onboarding (shared shell)</span></div>
+  </div>
+
+  <div class="comp-row">
+    <div class="name">CompareColumn<span class="tag">Atom</span></div>
+    <div class="desc">A vertical strip representing one piece in compare. Renders specs against a shared row schema.</div>
+    <div class="where"><span>/compare</span></div>
+  </div>
+
+  <div class="comp-row">
+    <div class="name">MetricTile<span class="tag">Atom</span></div>
+    <div class="desc">Number, label, delta, sparkline. Three sizes: hero, card, inline.</div>
+    <div class="where"><span>/jeweller/dashboard</span><span>/jeweller/analytics</span></div>
+  </div>
+
+  <div class="comp-row">
+    <div class="name">UploadDropzone<span class="tag">Atom</span></div>
+    <div class="desc">Drag-and-drop with click-to-pick fallback. Image preview tiles with primary picker. Image and CSV variants.</div>
+    <div class="where"><span>/jeweller/products/new</span><span>/jeweller/products/[id]</span><span>/search/image</span></div>
+  </div>
+
+  <div class="comp-row">
+    <div class="name">SpecRow<span class="tag">Atom</span></div>
+    <div class="desc">Label/value pair with optional tooltip and unit. Used to render product specs uniformly.</div>
+    <div class="where"><span>/catalog/[slug]</span><span>/compare</span><span>/jeweller/products/new</span></div>
+  </div>
+
+  <div class="comp-row">
+    <div class="name">EmptyState<span class="tag">Surface</span></div>
+    <div class="desc">Editorial empty state: glyph, one-line caption, one CTA, optional secondary text. Variant per page.</div>
+    <div class="where"><span>/saved</span><span>/compare</span><span>/search</span><span>/jeweller/products</span><span>/jeweller/analytics</span></div>
+  </div>
+
+  <div class="comp-row">
+    <div class="name">PermissionExplainer<span class="tag">Surface</span></div>
+    <div class="desc">Pre-browser-prompt overlay. Camera (try-on, image search). Always offers a no-camera alternative.</div>
+    <div class="where"><span>/try-on</span><span>/search/image</span></div>
+  </div>
+
+  <div class="comp-row">
+    <div class="name">Toaster<span class="tag">System</span></div>
+    <div class="desc">Bottom-anchored, single-line confirmations. &ldquo;Saved&rdquo;, &ldquo;Added to compare&rdquo;, &ldquo;Image too small&rdquo;.</div>
+    <div class="where"><span>Global</span></div>
+  </div>
+
+  <div class="comp-row">
+    <div class="name">BottomSheet<span class="tag">System</span></div>
+    <div class="desc">Mobile-only modal pattern for filters, sort, sharing. Persistent drag-handle, escape via swipe-down.</div>
+    <div class="where"><span>/catalog</span><span>/search</span><span>/compare</span><span>/try-on (settings)</span></div>
+  </div>
+
+  <div class="comp-row">
+    <div class="name">RouteTabs<span class="tag">Compound</span></div>
+    <div class="desc">Section tabs used inside large pages (e.g. storefront, dashboard). Hash-routed for deep links.</div>
+    <div class="where"><span>/store/[jeweller]</span><span>/jeweller/dashboard</span><span>/help</span></div>
+  </div>
+
+  <div class="comp-row">
+    <div class="name">ShareLinkPill<span class="tag">Atom</span></div>
+    <div class="desc">Copy-link button with copied-state. Encodes local state (saved, compare, quiz result) into the URL.</div>
+    <div class="where"><span>/saved</span><span>/compare</span><span>/style-quiz/result</span><span>/try-on (capture)</span></div>
+  </div>
+</section>
+
+<!-- ============== 07 MOBILE ============== -->
+<section id="mobile" data-screen-label="09 Mobile">
+  <div class="section-head">
+    <span class="marker">§ 07 &nbsp;&middot;&nbsp; Mobile UX</span>
+    <div class="ttl">
+      <h2>Mobile-first, in practice.</h2>
+      <p class="lede">Four breakpoints, with rules for what changes at each. Touch is the default input; pointer and keyboard are respected upgrades.</p>
+    </div>
+  </div>
+
+  <div class="bp-diagram">
+    <div class="bp">
+      <span class="label">XS</span>
+      <div class="size">360</div>
+      <div class="range">&lt; 480 px</div>
+      <ul>
+        <li>Single-column everything</li>
+        <li>Bottom tab bar nav (Home, Search, Saved, Try-on)</li>
+        <li>Filters in bottom sheet</li>
+        <li>Product gallery: swipe carousel</li>
+        <li>Compare: horizontal scroll, 2 cols visible</li>
+      </ul>
+    </div>
+    <div class="bp">
+      <span class="label">SM</span>
+      <div class="size">640</div>
+      <div class="range">480 – 767 px</div>
+      <ul>
+        <li>Two-column grids for catalogue</li>
+        <li>Bottom nav becomes 5 items</li>
+        <li>Quiz steps gain illustration column</li>
+        <li>PDP: gallery + sticky price bar</li>
+      </ul>
+    </div>
+    <div class="bp">
+      <span class="label">MD</span>
+      <div class="size">1024</div>
+      <div class="range">768 – 1199 px</div>
+      <ul>
+        <li>Filter rail returns as sidebar</li>
+        <li>Top nav replaces bottom tabs</li>
+        <li>3-col catalogue grid</li>
+        <li>Compare: 3 columns visible</li>
+        <li>Jeweller dashboard: 2-col tiles</li>
+      </ul>
+    </div>
+    <div class="bp">
+      <span class="label">LG</span>
+      <div class="size">1440+</div>
+      <div class="range">&ge; 1200 px</div>
+      <ul>
+        <li>4-col catalogue grid</li>
+        <li>Editorial collections gain margin breathing room</li>
+        <li>PDP: gallery + sticky details split</li>
+        <li>Compare: 4 columns visible</li>
+        <li>Jeweller analytics: side-by-side charts</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="two" style="margin-top:48px">
+    <div>
+      <h4>Touch rules</h4>
+      <ul class="muted small" style="padding-left:18px;line-height:1.7">
+        <li>Hit targets ≥ 44 × 44 px, always</li>
+        <li>Bottom-half placement for primary CTAs on phones</li>
+        <li>Thumb-zone aware (right-hand bias is fine; we mirror nothing automatically)</li>
+        <li>No hover-only affordances; long-press is the supported equivalent</li>
+        <li>Safe-area insets honoured for notched devices</li>
+      </ul>
+    </div>
+    <div>
+      <h4>Type &amp; density</h4>
+      <ul class="muted small" style="padding-left:18px;line-height:1.7">
+        <li>Body text never below 15 px on mobile</li>
+        <li>Headlines reflow, not just shrink (e.g. PDP name moves above gallery)</li>
+        <li>Specs stay legible — never collapsed into a marquee or accordion alone</li>
+        <li>Try-on UI is always one-thumb operable; secondary controls are revealed, not hidden</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="note">
+    <span class="lbl">Network &amp; weight</span>
+    Target: first meaningful paint &lt; 1.5 s on a mid-range Android on 4G. Catalogue images served as AVIF with WebP fallback, lazy-loaded, sized to viewport. Try-on bundle (MediaPipe + overlay renderer) is route-split — never paid for outside <code>/try-on</code> and the embedded modal.
+  </div>
+</section>
+
+<!-- ============== 08 STATES ============== -->
+<section id="states" data-screen-label="10 States">
+  <div class="section-head">
+    <span class="marker">§ 08 &nbsp;&middot;&nbsp; States</span>
+    <div class="ttl">
+      <h2>Empty, loading, error.</h2>
+      <p class="lede">For every key page, the three states that aren&rsquo;t the happy path. These are designed, not defaulted — they carry as much of the brand as the hero does.</p>
+    </div>
+  </div>
+
+  <div class="states">
+    <div class="state-row head">
+      <div>Page</div>
+      <div class="cell">Empty</div>
+      <div class="cell">Loading</div>
+      <div class="cell">Error</div>
+    </div>
+
+    <div class="state-row">
+      <div class="pname">Home<span class="r">/</span></div>
+      <div class="cell"><span class="lbl">Empty</span>Never empty by design. If feature collections fail, fall back to evergreen occasion grid.</div>
+      <div class="cell"><span class="lbl">Loading</span>Skeleton hero with serif wordmark fade-in. No spinner.</div>
+      <div class="cell"><span class="lbl">Error</span>Editorial 500 page: &ldquo;A moment, please.&rdquo; with retry &amp; help links.</div>
+    </div>
+
+    <div class="state-row">
+      <div class="pname">Catalogue<span class="r">/catalog</span></div>
+      <div class="cell"><span class="lbl">Empty</span>Zero filter results: &ldquo;No pieces in this range — try a wider band&rdquo; with 1-tap filter relax.</div>
+      <div class="cell"><span class="lbl">Loading</span>12 card skeletons with shimmer. Filter rail interactive immediately.</div>
+      <div class="cell"><span class="lbl">Error</span>Failed shelf load: inline retry within shelf; rail remains usable.</div>
+    </div>
+
+    <div class="state-row">
+      <div class="pname">Product detail<span class="r">/catalog/[slug]</span></div>
+      <div class="cell"><span class="lbl">Empty</span>Product unpublished: editorial 404 with 6 similar pieces &amp; the jeweller&rsquo;s storefront link.</div>
+      <div class="cell"><span class="lbl">Loading</span>Gallery placeholder + specs skeleton. Sticky CTA appears with content.</div>
+      <div class="cell"><span class="lbl">Error</span>If images fail, show specs-first layout with grey tile. Try-on disabled.</div>
+    </div>
+
+    <div class="state-row">
+      <div class="pname">Search<span class="r">/search</span></div>
+      <div class="cell"><span class="lbl">Empty</span>No query: recent + trending + a quiz nudge. No query result: 3 close matches + quiz CTA.</div>
+      <div class="cell"><span class="lbl">Loading</span>Inline pulse under input; first 6 result skeletons appear in 300 ms.</div>
+      <div class="cell"><span class="lbl">Error</span>&ldquo;We couldn&rsquo;t reach the catalogue.&rdquo; — retry; recent local results still browsable.</div>
+    </div>
+
+    <div class="state-row">
+      <div class="pname">Image search<span class="r">/search/image</span></div>
+      <div class="cell"><span class="lbl">Empty</span>No image: drop-zone with 3 example queries (&ldquo;try a screenshot&rdquo;).</div>
+      <div class="cell"><span class="lbl">Loading</span>Two stages: &ldquo;Analysing image&hellip;&rdquo; → &ldquo;Finding similar pieces&hellip;&rdquo;</div>
+      <div class="cell"><span class="lbl">Error</span>Image too small / unsupported: actionable error with example dimensions.</div>
+    </div>
+
+    <div class="state-row">
+      <div class="pname">Try-on<span class="r">/try-on</span></div>
+      <div class="cell"><span class="lbl">Empty</span>No piece selected: gallery prompt &ldquo;choose a piece to try&rdquo; with recent saves.</div>
+      <div class="cell"><span class="lbl">Loading</span>Camera initialising + MediaPipe loading bar, &ldquo;processed in your browser&rdquo; note.</div>
+      <div class="cell"><span class="lbl">Error</span>Permission denied: graceful upload-a-selfie fallback. No-WebGL: still photo overlay.</div>
+    </div>
+
+    <div class="state-row">
+      <div class="pname">Compare<span class="r">/compare</span></div>
+      <div class="cell"><span class="lbl">Empty</span>Zero items: &ldquo;Compare up to four pieces side by side&rdquo; with link to /saved &amp; /catalog.</div>
+      <div class="cell"><span class="lbl">Loading</span>Column skeletons with image-tile placeholders.</div>
+      <div class="cell"><span class="lbl">Error</span>Shared link broken (missing slug): show valid columns; placeholder on bad one with remove button.</div>
+    </div>
+
+    <div class="state-row">
+      <div class="pname">Saved<span class="r">/saved</span></div>
+      <div class="cell"><span class="lbl">Empty</span>&ldquo;Hearts you press appear here.&rdquo; with quiz + collections CTA.</div>
+      <div class="cell"><span class="lbl">Loading</span>Instant (local). No state.</div>
+      <div class="cell"><span class="lbl">Error</span>Corrupted localStorage: prompt to clear with reassurance, link to retake quiz.</div>
+    </div>
+
+    <div class="state-row">
+      <div class="pname">Style quiz<span class="r">/style-quiz</span></div>
+      <div class="cell"><span class="lbl">Empty</span>Pre-start landing with one-sentence pitch &amp; example results.</div>
+      <div class="cell"><span class="lbl">Loading</span>Computing results screen: 1.5 s minimum for craft feel (with 3-line tagline).</div>
+      <div class="cell"><span class="lbl">Error</span>If recommender fails, fall back to occasion + budget filter on /catalog with the same answers preserved.</div>
+    </div>
+
+    <div class="state-row">
+      <div class="pname">Storefront<span class="r">/store/[jeweller]</span></div>
+      <div class="cell"><span class="lbl">Empty</span>Newly onboarded jeweller with 0 pieces: story shown, &ldquo;catalogue coming soon&rdquo; placeholder.</div>
+      <div class="cell"><span class="lbl">Loading</span>Header loads first (cached), grid streams below.</div>
+      <div class="cell"><span class="lbl">Error</span>Unknown slug: 404 with directory link to all jewellers.</div>
+    </div>
+
+    <div class="state-row">
+      <div class="pname">Jeweller dashboard<span class="r">/jeweller/dashboard</span></div>
+      <div class="cell"><span class="lbl">Empty</span>First login: setup checklist replaces metric tiles; 5 tasks to &ldquo;launch&rdquo;.</div>
+      <div class="cell"><span class="lbl">Loading</span>Tiles populate one by one; sparklines stream in.</div>
+      <div class="cell"><span class="lbl">Error</span>If analytics offline: tiles show last cached value with &ldquo;as of [time]&rdquo; pill.</div>
+    </div>
+
+    <div class="state-row">
+      <div class="pname">Product upload<span class="r">/jeweller/products/new</span></div>
+      <div class="cell"><span class="lbl">Empty</span>Stepper visible, photo step active. Examples shown.</div>
+      <div class="cell"><span class="lbl">Loading</span>Image upload progress per file; non-blocking on other fields.</div>
+      <div class="cell"><span class="lbl">Error</span>Field-level inline errors; step gate only blocks on hard requireds. Draft always recoverable.</div>
+    </div>
+
+    <div class="state-row">
+      <div class="pname">Analytics<span class="r">/jeweller/analytics</span></div>
+      <div class="cell"><span class="lbl">Empty</span>Account &lt; 7 days old: &ldquo;Data appears as shoppers do — check back this Friday.&rdquo;</div>
+      <div class="cell"><span class="lbl">Loading</span>Time-range usable immediately; charts skeleton then stream.</div>
+      <div class="cell"><span class="lbl">Error</span>Per-chart inline error with retry; doesn&rsquo;t take down the page.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== 09 PRINCIPLES ============== -->
+<section id="principles" data-screen-label="11 Principles">
+  <div class="section-head">
+    <span class="marker">§ 09 &nbsp;&middot;&nbsp; Principles</span>
+    <div class="ttl">
+      <h2>Premium jewellery retail,<br/>translated for the screen.</h2>
+      <p class="lede">Twelve rules — half drawn from showroom craft, half from web product instinct. When two designs both work, the one that better matches these wins.</p>
+    </div>
+  </div>
+
+  <div class="principles">
+    <div class="principle">
+      <span class="num">i</span>
+      <h4>The product, then everything else.</h4>
+      <p>Imagery and specs always lead. Marketing copy, badges, and promos must earn the right to interrupt them.</p>
+      <span class="rule">— Showroom: the case, then the conversation.</span>
+    </div>
+    <div class="principle">
+      <span class="num">ii</span>
+      <h4>Restraint is the look.</h4>
+      <p>Negative space, hairline rules, type-led layouts. Decoration is the jewellery itself; the page is the velvet.</p>
+      <span class="rule">— Less chrome, more chroma.</span>
+    </div>
+    <div class="principle">
+      <span class="num">iii</span>
+      <h4>Numbers are foregrounded.</h4>
+      <p>Weight (g), purity (KT), gem weight (ct), price (₹) — never compressed into a paragraph. They are the contract.</p>
+      <span class="rule">— Specs are not fine print.</span>
+    </div>
+    <div class="principle">
+      <span class="num">iv</span>
+      <h4>Trust is structural, not decorative.</h4>
+      <p>Hallmark, returns, certification — visible at the moment of doubt (PDP, footer of specs, near CTAs), not banished to a footer.</p>
+      <span class="rule">— Doubt is timed; reassurance must be too.</span>
+    </div>
+    <div class="principle">
+      <span class="num">v</span>
+      <h4>The jeweller is a person, not a brand block.</h4>
+      <p>Every product carries its house. Provenance is part of the price.</p>
+      <span class="rule">— A name, a city, a face if possible.</span>
+    </div>
+    <div class="principle">
+      <span class="num">vi</span>
+      <h4>Imagery is editorial, not marketplace.</h4>
+      <p>No watermark grids of identical white-background SKUs. Curated shoots; the catalogue tolerates difference.</p>
+      <span class="rule">— Closer to a magazine than to a marketplace.</span>
+    </div>
+    <div class="principle">
+      <span class="num">vii</span>
+      <h4>Quiet motion, never showy.</h4>
+      <p>Crossfades and gentle slides &lt; 240 ms. No parallax stunts, no scroll-jacking. Animation justifies itself or doesn&rsquo;t ship.</p>
+      <span class="rule">— Motion follows function.</span>
+    </div>
+    <div class="principle">
+      <span class="num">viii</span>
+      <h4>The try-on is a mirror, not a filter.</h4>
+      <p>No beautification, no gimmick effects. The job is honest scale and placement, even if it disappoints.</p>
+      <span class="rule">— The piece, not the persona.</span>
+    </div>
+    <div class="principle">
+      <span class="num">ix</span>
+      <h4>Local-first is a feature, not a constraint.</h4>
+      <p>Saves, compares, quiz answers live on-device. We surface this calmly — privacy as posture, not press release.</p>
+      <span class="rule">— Yours, on your device.</span>
+    </div>
+    <div class="principle">
+      <span class="num">x</span>
+      <h4>Indian context, not Indian costume.</h4>
+      <p>INR, BIS, hallmark, festival calendar are infrastructure. Visual language draws on craft, not pastiche.</p>
+      <span class="rule">— Lakshmi vault, not festival sale.</span>
+    </div>
+    <div class="principle">
+      <span class="num">xi</span>
+      <h4>Speed is a luxury cue.</h4>
+      <p>Pages open as fast as a showroom door. We pay for it with discipline (split bundles, image budgets), not with skeletons.</p>
+      <span class="rule">— Latency is rudeness.</span>
+    </div>
+    <div class="principle">
+      <span class="num">xii</span>
+      <h4>One voice, two doors.</h4>
+      <p>The jeweller console shares the shopper&rsquo;s typography, palette, and tone. It is not an admin panel; it is the back of the same shop.</p>
+      <span class="rule">— Same hand wrote both surfaces.</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============== 10 DEFERRED ============== -->
+<section id="deferred" data-screen-label="12 Deferred">
+  <div class="section-head">
+    <span class="marker">§ 10 &nbsp;&middot;&nbsp; Deferred</span>
+    <div class="ttl">
+      <h2>What waits for authentication.</h2>
+      <p class="lede">V1 ships without accounts. These features are deferred — not denied — until shoppers and jewellers have identity. Each is explicitly shaped to be addable without re-architecting the V1 surface.</p>
+    </div>
+  </div>
+
+  <div class="deferred">
+    <div class="def"><span class="lbl">Shopper</span><h4>Cross-device wishlist</h4><p>Saves currently live in localStorage. With auth, sync via shopper account &amp; share-by-account.</p></div>
+    <div class="def"><span class="lbl">Shopper</span><h4>Purchase &amp; checkout</h4><p>V1 routes shoppers to jeweller via WhatsApp / phone. Cart, address, payments, GST invoice — all deferred.</p></div>
+    <div class="def"><span class="lbl">Shopper</span><h4>Order tracking</h4><p>Status, delivery, returns flow.</p></div>
+    <div class="def"><span class="lbl">Shopper</span><h4>Reviews &amp; verified buys</h4><p>Authentic reviews require purchase ID, which requires accounts.</p></div>
+    <div class="def"><span class="lbl">Shopper</span><h4>Price &amp; back-in-stock alerts</h4><p>Needs an addressable channel — email or push token.</p></div>
+    <div class="def"><span class="lbl">Shopper</span><h4>Quiz history</h4><p>Multiple stored quizzes, named, comparable. Local-only in V1.</p></div>
+    <div class="def"><span class="lbl">Shopper</span><h4>Private appointments</h4><p>Book a video viewing or in-store appointment with a jeweller.</p></div>
+    <div class="def"><span class="lbl">Shopper</span><h4>Personalised home</h4><p>Returning-user home reordered by stored taste.</p></div>
+    <div class="def"><span class="lbl">Jeweller</span><h4>Real authentication &amp; team access</h4><p>Login, multi-user, role permissions for staff &amp; photographers.</p></div>
+    <div class="def"><span class="lbl">Jeweller</span><h4>Order &amp; lead management</h4><p>Inbound interest captured, assigned, replied to.</p></div>
+    <div class="def"><span class="lbl">Jeweller</span><h4>Payouts &amp; commerce</h4><p>Stripe / Razorpay onboarding, settlements, GSTIN.</p></div>
+    <div class="def"><span class="lbl">Jeweller</span><h4>Inventory &amp; SKU sync</h4><p>API or sheet-based stock sync against a real ERP.</p></div>
+    <div class="def"><span class="lbl">Jeweller</span><h4>Promotions engine</h4><p>Time-bound offers, coupon codes, festive overrides.</p></div>
+    <div class="def"><span class="lbl">Jeweller</span><h4>Buyer messaging</h4><p>In-product chat between shopper and jeweller.</p></div>
+    <div class="def"><span class="lbl">System</span><h4>Cross-device personalisation</h4><p>Recommender informed by long-term browsing history rather than session.</p></div>
+    <div class="def"><span class="lbl">System</span><h4>Email / marketing surface</h4><p>Editorial newsletter, drop alerts, abandoned-save nudges.</p></div>
+  </div>
+</section>
+
+<!-- ============== 11 TRUST ============== -->
+<section id="trust" data-screen-label="13 Trust signals">
+  <div class="section-head">
+    <span class="marker">§ 11 &nbsp;&middot;&nbsp; Trust</span>
+    <div class="ttl">
+      <h2>The seals we carry,<br/>and where they sit.</h2>
+      <p class="lede">A short list of trust signals built into V1. Each has a defined placement, a written treatment, and a clear non-decorative role.</p>
+    </div>
+  </div>
+
+  <div class="trust-grid">
+    <div class="trust">
+      <div class="seal">BIS</div>
+      <h4>BIS Hallmark</h4>
+      <p>Every gold piece carries the BIS hallmark with HUID. Shown on PDP next to weight; jeweller&rsquo;s BIS licence number shown on storefront.</p>
+      <span class="placement">/catalog/[slug] · /store/[jeweller] · ProductCard dot</span>
+    </div>
+    <div class="trust">
+      <div class="seal">CERT</div>
+      <h4>Certified gemstones</h4>
+      <p>Diamonds and coloured stones above a threshold carry a recognised lab certificate (IGI, GIA, SSEF). Cert number printed next to gem weight.</p>
+      <span class="placement">/catalog/[slug] · /compare</span>
+    </div>
+    <div class="trust">
+      <div class="seal">RET</div>
+      <h4>Returns &amp; buyback</h4>
+      <p>Per-jeweller return window (typically 7 days) plus lifetime buyback policy where supported. Stated in plain language at the CTA.</p>
+      <span class="placement">/catalog/[slug] (sticky) · /help · /store/[jeweller]</span>
+    </div>
+    <div class="trust">
+      <div class="seal">22K</div>
+      <h4>Purity, declared</h4>
+      <p>Purity (14/18/22/24K) shown explicitly with hallmark match. Conflicting purity vs. hallmark is a blocking validation in upload.</p>
+      <span class="placement">/catalog/[slug] · ProductCard · /jeweller/products/new</span>
+    </div>
+    <div class="trust">
+      <div class="seal">₹</div>
+      <h4>Transparent INR pricing</h4>
+      <p>Price shown in INR with making charges noted separately. Live gold rate tooltip explains daily fluctuation.</p>
+      <span class="placement">/catalog/[slug] · /compare · ProductCard</span>
+    </div>
+    <div class="trust">
+      <div class="seal">SEC</div>
+      <h4>Browser-only processing</h4>
+      <p>Camera frames for try-on never leave the device. Stated on the permission overlay and in the persistent try-on hint.</p>
+      <span class="placement">/try-on · /search/image · /about</span>
+    </div>
+    <div class="trust">
+      <div class="seal">YR</div>
+      <h4>Years in trade</h4>
+      <p>Each jeweller shows its year of founding. A small but meaningful Indian retail proof point.</p>
+      <span class="placement">/store/[jeweller] · JewellerCard</span>
+    </div>
+    <div class="trust">
+      <div class="seal">SHIP</div>
+      <h4>Insured shipping</h4>
+      <p>Per-jeweller declared shipping &amp; insurance policy, shown near the CTA at PDP and on storefront contact card.</p>
+      <span class="placement">/catalog/[slug] · /store/[jeweller]</span>
+    </div>
+    <div class="trust">
+      <div class="seal">CARE</div>
+      <h4>Care &amp; cleaning</h4>
+      <p>Jewellery type-specific care notes (kundan, polki, gold, gem). Set expectations before purchase.</p>
+      <span class="placement">/catalog/[slug] (below specs) · /help</span>
+    </div>
+  </div>
+
+  <div class="note" style="margin-top:48px">
+    <span class="lbl">A note on placement</span>
+    Trust signals appear near the moment of doubt, not in a banner at the top. The shopper&rsquo;s questions are sequenced: <em>is this real?</em> (PDP hero), <em>can I return it?</em> (near CTA), <em>can I trust the camera?</em> (try-on overlay), <em>is the price fair today?</em> (price hover). Each seal is matched to the question it answers.
+  </div>
+</section>
+
+<!-- ============== FOOTER ============== -->
+<footer>
+  <div class="colophon">
+    <div>
+      <strong>Document</strong>
+      LuxeMatch UX Architecture<br/>
+      Volume I · v1.0<br/>
+      May 2026
+    </div>
+    <div>
+      <strong>Scope</strong>
+      26 routes &middot; 2 audiences<br/>
+      V1, no authentication<br/>
+      Mobile-first, India-primary
+    </div>
+    <div>
+      <strong>Set in</strong>
+      Cormorant Garamond<br/>
+      Manrope<br/>
+      JetBrains Mono
+    </div>
+  </div>
+  <p class="mark"><em>&mdash; fin. &mdash;</em></p>
+</footer>
+
+</div>
+
+</body>
+</html>
