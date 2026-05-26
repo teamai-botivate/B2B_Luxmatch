@@ -56,8 +56,8 @@ export default function ProductDetailPanel({ product }: ProductDetailPanelProps)
       <div className="flex flex-wrap gap-2">
         <TrustBadge variant="BIS Hallmarked" />
         <TrustBadge variant="Certified" />
-        <TrustBadge variant="Easy Returns" />
-        {product.hasTryOn && <TrustBadge variant="Insured Delivery" />}
+        <TrustBadge variant="Staff Assisted" />
+        {product.hasTryOn && <TrustBadge variant="Virtual Try-On" />}
       </div>
 
       {/* Actions */}

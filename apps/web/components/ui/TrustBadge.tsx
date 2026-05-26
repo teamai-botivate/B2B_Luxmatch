@@ -1,14 +1,14 @@
 'use client';
 
-import { Shield, Award, Truck, RotateCcw } from "lucide-react";
+import { Shield, Award, Camera, Users } from "lucide-react";
 
-type Variant = "BIS Hallmarked" | "Certified" | "Insured Delivery" | "Easy Returns";
+type Variant = "BIS Hallmarked" | "Certified" | "Virtual Try-On" | "Staff Assisted";
 
 const config: Record<Variant, { icon: typeof Shield; label: string }> = {
   "BIS Hallmarked": { icon: Shield, label: "BIS Hallmarked" },
   "Certified": { icon: Award, label: "Certified" },
-  "Insured Delivery": { icon: Truck, label: "Insured Delivery" },
-  "Easy Returns": { icon: RotateCcw, label: "Easy Returns" },
+  "Virtual Try-On": { icon: Camera, label: "Virtual Try-On" },
+  "Staff Assisted": { icon: Users, label: "Staff Assisted" },
 };
 
 export default function TrustBadge({ variant }: { variant: Variant }) {

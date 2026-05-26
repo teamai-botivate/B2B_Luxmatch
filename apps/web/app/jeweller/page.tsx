@@ -205,7 +205,7 @@ export default function JewellerEntryPage() {
       {/* Trusted by section */}
       <section className="py-10 bg-muted/30">
         <div className="max-w-3xl mx-auto px-6 flex flex-wrap justify-center gap-8 items-center text-sm text-muted-foreground">
-          {["BIS Hallmarked Products", "Secure Payments", "Instant Onboarding", "24/7 Support"].map(item => (
+          {["BIS Hallmarked Products", "AR Try-On", "Instant Onboarding", "24/7 Support"].map(item => (
             <div key={item} className="flex items-center gap-2">
               <CheckCircle className="w-4 h-4 text-primary" />
               {item}

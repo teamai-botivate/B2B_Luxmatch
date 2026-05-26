@@ -4,7 +4,7 @@ import CustomerLayout from "@/components/layout/CustomerLayout";
 
 import { usePathname, useRouter } from "next/navigation";
 import { motion } from "motion/react";
-import { Sparkles, ArrowRight, Shield, Award, Truck, RotateCcw } from "lucide-react";
+import { Sparkles, ArrowRight, Shield, Award, Camera, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ProductCard from "@/components/product/ProductCard";
 import { MOCK_PRODUCTS, MOCK_COLLECTIONS, MOCK_OCCASIONS, getFeaturedProducts } from "@/lib/mock-data";
@@ -12,8 +12,8 @@ import { MOCK_PRODUCTS, MOCK_COLLECTIONS, MOCK_OCCASIONS, getFeaturedProducts } 
 const trustItems = [
   { icon: Shield, label: "BIS Hallmarked", desc: "Every piece certified" },
   { icon: Award, label: "Certified Jewellers", desc: "Vetted & verified stores" },
-  { icon: Truck, label: "Insured Delivery", desc: "Safe to your door" },
-  { icon: RotateCcw, label: "Easy Returns", desc: "30-day hassle-free" },
+  { icon: Camera, label: "Virtual Try-On", desc: "See pieces in-store" },
+  { icon: Users, label: "Staff Assisted", desc: "Guided showroom experience" },
 ];
 
 export default function HomePage() {

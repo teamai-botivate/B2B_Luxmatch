@@ -1,0 +1,44 @@
+services:
+  - type: web
+    name: luxematch-web
+    runtime: node
+    plan: free
+    autoDeploy: true
+    buildCommand: corepack enable && corepack prepare pnpm@10.33.2 --activate && pnpm install --frozen-lockfile && pnpm --filter @luxematch/web build
+    startCommand: corepack enable && pnpm --filter @luxematch/web start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: 20.18.1
+      - key: SHOP_JEWELLER_ID
+        sync: false
+      - key: LM_PIN_COOKIE_SECRET
+        sync: false
+      - key: LM_PIN_COOKIE_TTL_SECONDS
+        value: "14400"
+      - key: NEXT_PUBLIC_SUPABASE_URL
+        sync: false
+      - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: EMBEDDER_URL
+        sync: false
+      - key: EMBEDDER_API_KEY
+        sync: false
+      - key: QDRANT_URL
+        sync: false
+      - key: QDRANT_API_KEY
+        sync: false
+      - key: QDRANT_COLLECTION
+        value: luxematch_products
+      - key: JEWELLERY_AI_URL
+        value: https://botivate2026-jewellery.hf.space

@@ -2,13 +2,13 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Shield, Award, CreditCard, RotateCcw, Sparkles } from "lucide-react";
+import { Shield, Award, Camera, Users, Sparkles } from "lucide-react";
 
 const trustBadges = [
   { icon: Shield, label: "BIS Hallmarked" },
   { icon: Award, label: "Certified Jewellers" },
-  { icon: CreditCard, label: "Secure Payments" },
-  { icon: RotateCcw, label: "Easy Returns" },
+  { icon: Camera, label: "Virtual Try-On" },
+  { icon: Users, label: "Staff Assisted" },
 ];
 
 const columns = [
@@ -28,7 +28,7 @@ const columns = [
       { label: "Help Center", href: "/help" },
       { label: "Camera Permissions", href: "/help" },
       { label: "Contact Support", href: "/help" },
-      { label: "Track Order", href: "/help" },
+      { label: "Visit Support", href: "/help" },
     ],
   },
   {
@@ -46,7 +46,6 @@ const columns = [
       { label: "Privacy Policy", href: "/" },
       { label: "Terms of Service", href: "/" },
       { label: "Cookie Policy", href: "/" },
-      { label: "Refund Policy", href: "/" },
     ],
   },
 ];
