@@ -1,18 +1,23 @@
 import {
+  createProduct,
+  deleteProduct,
   getCategories,
   getCollectionBySlug,
   getCollectionProductIds,
   getCollections,
+  getProductById,
   getProductBySlug,
   listProducts,
   listTryOnProducts,
+  recordProductSale,
+  updateProduct,
 } from '@luxematch/db';
 import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
 import { sendData, sendError } from './envelope';
-import { tenantMiddleware } from './middleware';
+import { pinGuard, tenantMiddleware } from './middleware';
 
 type Vars = { Variables: { shopJewellerId: string } };
 
@@ -60,6 +65,15 @@ catalogRoutes.get('/products', zValidator('query', listQuery), async (c) => {
   return sendData(c, { products, total });
 });
 
+catalogRoutes.get('/products/manage', pinGuard, async (c) => {
+  const jewellerId = c.get('shopJewellerId');
+  const { products, total } = await listProducts(jewellerId, {
+    includeInactive: true,
+    limit: 200,
+  });
+  return sendData(c, { products, total });
+});
+
 // ────────────────────────────────────────────────────────────────────────────
 // GET /api/products/:slug
 // ────────────────────────────────────────────────────────────────────────────
@@ -100,6 +114,109 @@ catalogRoutes.get('/collections/:slug', async (c) => {
   const idSet = new Set(productIds);
   const collectionProducts = products.filter((p) => idSet.has(p.id));
   return sendData(c, { collection, products: collectionProducts });
+});
+
+// ────────────────────────────────────────────────────────────────────────────
+// GET /api/products/by-id/:id  — for the edit page (slug isn't stable).
+// ────────────────────────────────────────────────────────────────────────────
+catalogRoutes.get('/products/by-id/:id', async (c) => {
+  const jewellerId = c.get('shopJewellerId');
+  const product = await getProductById(jewellerId, c.req.param('id'));
+  if (!product) return sendError(c, 'not_found', 'Product not found', 404);
+  return sendData(c, product);
+});
+
+// ────────────────────────────────────────────────────────────────────────────
+// Product CRUD (PIN-gated)
+// ────────────────────────────────────────────────────────────────────────────
+
+const slugRe = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+const ProductCreateBody = z.object({
+  slug: z.string().min(1).max(120).regex(slugRe),
+  sku: z.string().max(60).nullable().optional(),
+  name: z.string().min(1).max(160),
+  description: z.string().max(4000).nullable().optional(),
+  categoryId: z.string().uuid().nullable().optional(),
+  brandId: z.string().uuid().nullable().optional(),
+  metal: z.string().max(40).nullable().optional(),
+  purity: z.string().max(20).nullable().optional(),
+  gemstones: z.array(z.string()).optional(),
+  styleTags: z.array(z.string()).optional(),
+  occasionTags: z.array(z.string()).optional(),
+  priceMin: z.number().nonnegative().nullable().optional(),
+  priceMax: z.number().nonnegative().nullable().optional(),
+  weightGrams: z.number().nonnegative().nullable().optional(),
+  stockCount: z.number().int().nonnegative().optional(),
+  isActive: z.boolean().optional(),
+  isFeatured: z.boolean().optional(),
+});
+
+catalogRoutes.post('/products', pinGuard, zValidator('json', ProductCreateBody), async (c) => {
+  const jewellerId = c.get('shopJewellerId');
+  const body = c.req.valid('json');
+  try {
+    const row = await createProduct(jewellerId, body);
+    return sendData(c, row, 201);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (/duplicate key/i.test(msg)) {
+      return sendError(c, 'conflict', 'A product with that slug or SKU already exists', 409);
+    }
+    return sendError(c, 'internal_error', msg, 500);
+  }
+});
+
+const ProductPatchBody = ProductCreateBody.partial();
+
+catalogRoutes.patch('/products/:id', pinGuard, zValidator('json', ProductPatchBody), async (c) => {
+  const jewellerId = c.get('shopJewellerId');
+  const id = c.req.param('id');
+  const body = c.req.valid('json');
+  try {
+    const row = await updateProduct(jewellerId, id, body);
+    if (!row) return sendError(c, 'not_found', 'Product not found', 404);
+    return sendData(c, row);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (/duplicate key/i.test(msg)) {
+      return sendError(c, 'conflict', 'Slug or SKU collides with another product', 409);
+    }
+    return sendError(c, 'internal_error', msg, 500);
+  }
+});
+
+catalogRoutes.delete('/products/:id', pinGuard, async (c) => {
+  const jewellerId = c.get('shopJewellerId');
+  const ok = await deleteProduct(jewellerId, c.req.param('id'));
+  if (!ok) return sendError(c, 'not_found', 'Product not found', 404);
+  return sendData(c, { ok: true });
+});
+
+// ────────────────────────────────────────────────────────────────────────────
+// POST /api/products/:id/sales  // PIN GUARD
+//   "Mark sold" — feeds Phase 9.5 inventory intelligence.
+// ────────────────────────────────────────────────────────────────────────────
+const SaleBody = z.object({
+  quantity: z.number().int().positive().optional(),
+  soldPrice: z.number().nonnegative().nullable().optional(),
+  occasion: z.string().max(40).nullable().optional(),
+  customerAgeBand: z.string().max(20).nullable().optional(),
+  customerGender: z.string().max(20).nullable().optional(),
+  notes: z.string().max(500).nullable().optional(),
+});
+
+catalogRoutes.post('/products/:id/sales', pinGuard, zValidator('json', SaleBody), async (c) => {
+  const jewellerId = c.get('shopJewellerId');
+  const id = c.req.param('id');
+  try {
+    await recordProductSale(jewellerId, { productId: id, ...c.req.valid('json') });
+    return sendData(c, { ok: true });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (/not found/i.test(msg)) return sendError(c, 'not_found', msg, 404);
+    return sendError(c, 'internal_error', msg, 500);
+  }
 });
 
 // ────────────────────────────────────────────────────────────────────────────

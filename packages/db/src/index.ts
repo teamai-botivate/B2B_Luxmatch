@@ -3,10 +3,12 @@ export { getSupabaseServer } from './client';
 export {
   getJewellerPublic,
   getJewellerInternal,
+  getJewellerSettings,
   updateJewellerInfo,
   updateJewellerPinHash,
   type JewellerRow,
   type JewellerPublic,
+  type JewellerSettings,
 } from './jewellers';
 
 export {
@@ -15,11 +17,21 @@ export {
   getProductById,
   getProductsByIds,
   fullTextSearchProducts,
+  createProduct,
+  updateProduct,
+  deleteProduct,
+  recordProductSale,
   type ProductRow,
   type ProductImageRow,
   type ProductWithImages,
   type ProductListFilters,
+  type CreateProductInput,
+  type UpdateProductInput,
+  type RecordSaleInput,
 } from './products';
+
+export { getShopMetrics, type ShopMetrics } from './metrics';
+export { getShopAnalytics, type ShopAnalytics } from './analytics';
 
 export {
   getCategories,

@@ -22,11 +22,16 @@ export type JewellerPublic = Pick<
   'id' | 'slug' | 'store_name' | 'city' | 'logo_url' | 'idle_reset_enabled' | 'idle_reset_seconds'
 >;
 
+export type JewellerSettings = Omit<JewellerRow, 'pin_hash' | 'pin_salt'>;
+
 const PUBLIC_COLUMNS =
   'id, slug, store_name, city, logo_url, idle_reset_enabled, idle_reset_seconds';
 
 const FULL_COLUMNS =
   'id, slug, store_name, city, gstin, owner_name, phone, logo_url, pin_hash, pin_salt, idle_reset_enabled, idle_reset_seconds, created_at, updated_at';
+
+const SETTINGS_COLUMNS =
+  'id, slug, store_name, city, gstin, owner_name, phone, logo_url, idle_reset_enabled, idle_reset_seconds, created_at, updated_at';
 
 /**
  * Fetch the customer-safe view of a jeweller. Used by GET /api/shop.
@@ -57,6 +62,17 @@ export async function getJewellerInternal(id: string): Promise<JewellerRow | nul
   return (data as JewellerRow | null) ?? null;
 }
 
+export async function getJewellerSettings(id: string): Promise<JewellerSettings | null> {
+  const sb = getSupabaseServer();
+  const { data, error } = await sb
+    .from('jewellers')
+    .select(SETTINGS_COLUMNS)
+    .eq('id', id)
+    .maybeSingle();
+  if (error) throw error;
+  return (data as JewellerSettings | null) ?? null;
+}
+
 /**
  * Update fields on a jeweller. Always scoped by id; never returns or accepts
  * pin_hash here — PIN rotation goes through updateJewellerPinHash.
@@ -76,16 +92,16 @@ export async function updateJewellerInfo(
       | 'idle_reset_seconds'
     >
   >,
-): Promise<JewellerPublic | null> {
+): Promise<JewellerSettings | null> {
   const sb = getSupabaseServer();
   const { data, error } = await sb
     .from('jewellers')
     .update(patch)
     .eq('id', id)
-    .select(PUBLIC_COLUMNS)
+    .select(SETTINGS_COLUMNS)
     .maybeSingle();
   if (error) throw error;
-  return (data as JewellerPublic | null) ?? null;
+  return (data as JewellerSettings | null) ?? null;
 }
 
 export async function updateJewellerPinHash(id: string, pinHash: string): Promise<void> {

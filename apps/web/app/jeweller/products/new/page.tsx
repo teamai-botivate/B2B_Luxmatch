@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { motion } from "motion/react";
 import { ImagePlus, X, Star, Upload, ArrowLeft, CheckCircle2 } from "lucide-react";
@@ -24,6 +24,28 @@ const MOCK_THUMBS = [
   "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=300&q=80",
   "https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=300&q=80",
 ];
+
+function slugify(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 100);
+}
+
+function splitList(value?: string) {
+  return (value ?? "")
+    .split(",")
+    .map((v) => v.trim())
+    .filter(Boolean);
+}
+
+function optionalNumber(value?: string) {
+  if (!value?.trim()) return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
 
 interface FormValues {
   name: string;
@@ -57,6 +79,7 @@ export default function AddProductPage() {
   const [uploadedImages, setUploadedImages] = useState<string[]>(MOCK_THUMBS);
   const [primaryIndex, setPrimaryIndex] = useState(0);
   const [tryOnUploaded, setTryOnUploaded] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const { register, handleSubmit, setValue, formState: { errors } } = useForm<FormValues>();
 
@@ -69,9 +92,43 @@ export default function AddProductPage() {
     if (primaryIndex >= i && primaryIndex > 0) setPrimaryIndex(p => p - 1);
   };
 
-  const onSubmit = (_data: FormValues) => {
-    toast({ title: "Product created successfully", description: "Your product is now live on LuxeMatch." });
-    router.push("/jeweller/products");
+  const onSubmit = async (data: FormValues) => {
+    setSaving(true);
+    try {
+      const slugBase = slugify(data.name);
+      const res = await fetch("/api/products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          slug: `${slugBase}-${Date.now().toString(36)}`,
+          name: data.name.trim(),
+          description: data.description?.trim() || null,
+          metal: data.metal || null,
+          purity: data.purity || null,
+          gemstones: splitList(data.gemstones),
+          styleTags: splitList(data.styleTags),
+          occasionTags: occasions.map((o) => slugify(o)),
+          priceMin: optionalNumber(data.priceMin),
+          priceMax: optionalNumber(data.priceMax),
+          weightGrams: optionalNumber(data.weight),
+          stockCount: 1,
+          isActive: true,
+          isFeatured: false,
+        }),
+      });
+      const json = (await res.json().catch(() => ({}))) as { error?: { message: string } };
+      if (!res.ok) throw new Error(json.error?.message ?? "Product creation failed");
+      toast({ title: "Product created successfully", description: "Your product is now live on LuxeMatch." });
+      router.push("/jeweller/products");
+    } catch (e) {
+      toast({
+        title: "Could not create product",
+        description: e instanceof Error ? e.message : "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -326,8 +383,9 @@ export default function AddProductPage() {
               type="submit"
               className="rounded-full px-6 bg-primary text-primary-foreground hover:opacity-90"
               data-testid="button-save-product"
+              disabled={saving}
             >
-              Save Product
+              {saving ? "Saving..." : "Save Product"}
             </Button>
           </div>
         </form>

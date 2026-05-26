@@ -1,145 +1,248 @@
 'use client';
 
-import { motion } from "motion/react";
-import { BarChart3, Eye, Heart, Package, TrendingUp } from "lucide-react";
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, AreaChart, Area } from "recharts";
-import DashboardMetricCard from "@/components/jeweller/DashboardMetricCard";
-import JewellerLayout from "@/components/layout/JewellerLayout";
-import { MOCK_PRODUCTS } from "@/lib/mock-data";
-import { formatINR } from "@/lib/format";
+import type { ShopMetrics } from '@luxematch/db';
+import { AlertTriangle, Camera, Eye, Package, Plus, RefreshCw, Search } from 'lucide-react';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
 
-const IMPRESSIONS = [
-  { day: "Mon", views: 420 }, { day: "Tue", views: 680 }, { day: "Wed", views: 540 },
-  { day: "Thu", views: 820 }, { day: "Fri", views: 960 }, { day: "Sat", views: 1100 },
-  { day: "Sun", views: 780 },
-];
+import JewellerLayout from '@/components/layout/JewellerLayout';
+import { Button } from '@/components/ui/button';
 
-const SAVES_DATA = [
-  { day: "Mon", saves: 12 }, { day: "Tue", saves: 18 }, { day: "Wed", saves: 15 },
-  { day: "Thu", saves: 24 }, { day: "Fri", saves: 31 }, { day: "Sat", saves: 40 },
-  { day: "Sun", saves: 27 },
-];
-
-// Stable mock numbers derived from id to avoid re-render flicker
-const RECENT_PRODUCTS = MOCK_PRODUCTS.slice(0, 5).map((p, i) => ({
-  ...p,
-  mockViews: [312, 87, 194, 441, 73][i],
-  mockSaves: [28, 11, 19, 35, 6][i],
-}));
+function MetricCard({
+  label,
+  value,
+  sub,
+  href,
+  warn,
+}: {
+  label: string;
+  value: string | number;
+  sub?: string;
+  href?: string;
+  warn?: boolean;
+}) {
+  const inner = (
+    <div
+      className={`rounded-2xl border p-5 transition ${
+        warn ? 'border-amber-300 bg-amber-50/40' : 'border-border bg-card'
+      } ${href ? 'hover:border-foreground/30' : ''}`}
+    >
+      <div className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
+        {label}
+      </div>
+      <div className={`mt-2 text-3xl font-semibold tracking-tight ${warn ? 'text-amber-800' : ''}`}>
+        {value}
+      </div>
+      {sub && <div className="mt-1 text-xs text-muted-foreground">{sub}</div>}
+    </div>
+  );
+  return href ? <Link href={href}>{inner}</Link> : inner;
+}
 
 export default function DashboardPage() {
+  const [metrics, setMetrics] = useState<ShopMetrics | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [reindexing, setReindexing] = useState(false);
+  const [reindexMessage, setReindexMessage] = useState<string | null>(null);
+
+  async function load() {
+    setError(null);
+    try {
+      const res = await fetch('/api/shop/metrics', { cache: 'no-store' });
+      const json = (await res.json()) as
+        | { data: ShopMetrics }
+        | { error: { message: string } };
+      if ('error' in json) {
+        setError(json.error.message);
+        return;
+      }
+      setMetrics(json.data);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to load metrics');
+    }
+  }
+
+  useEffect(() => {
+    void load();
+  }, []);
+
+  // Reindex-all walks the product list and hits the per-product reindex
+  // endpoint in series. At shop-scale (<200 products) the sequential loop
+  // is fine; for larger fleets we'd push this to a server-side job queue.
+  async function reindexAll() {
+    if (!confirm('Re-embed every active product? This may take a minute.')) return;
+    setReindexing(true);
+    setReindexMessage(null);
+    try {
+      const list = await fetch('/api/products?limit=200', { cache: 'no-store' });
+      const listJson = (await list.json()) as
+        | { data: { products: { id: string }[] } }
+        | { error: { message: string } };
+      if ('error' in listJson) throw new Error(listJson.error.message);
+      const ids = listJson.data.products.map((p) => p.id);
+      let ok = 0;
+      let failed = 0;
+      for (const id of ids) {
+        const r = await fetch(`/api/embeddings/product/${id}`, { method: 'POST' });
+        if (r.ok) ok++;
+        else failed++;
+      }
+      setReindexMessage(`Reindex finished — ${ok} OK, ${failed} failed`);
+      void load();
+    } catch (e) {
+      setReindexMessage(e instanceof Error ? e.message : 'Reindex failed');
+    } finally {
+      setReindexing(false);
+    }
+  }
+
   return (
     <JewellerLayout>
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} data-testid="jeweller-dashboard">
-        <h1 className="text-xl md:text-2xl font-medium tracking-tight mb-6">Dashboard</h1>
+      <div className="mx-auto max-w-6xl px-6 py-8">
+        <header className="mb-6 flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-medium tracking-tight">Dashboard</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              All numbers are scoped to this shop.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Link href="/jeweller/products/new">
+              <Button>
+                <Plus className="mr-2 h-4 w-4" /> Add product
+              </Button>
+            </Link>
+            <Button variant="outline" onClick={reindexAll} disabled={reindexing}>
+              <RefreshCw className={`mr-2 h-4 w-4 ${reindexing ? 'animate-spin' : ''}`} />
+              {reindexing ? 'Reindexing…' : 'Reindex all'}
+            </Button>
+          </div>
+        </header>
 
-        {/* Metrics */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
-          <DashboardMetricCard label="Total Views" value="5,280" trend="up" trendValue="+18% this week" icon={Eye} accent="default" />
-          <DashboardMetricCard label="Saves" value="167" trend="up" trendValue="+12% this week" icon={Heart} accent="amber" />
-          <DashboardMetricCard label="Products" value="24" trend="neutral" icon={Package} accent="default" />
-          <DashboardMetricCard label="Try-Ons" value="43" trend="up" trendValue="+6% this week" icon={BarChart3} accent="green" />
-        </div>
+        {error ? (
+          <div className="mb-4 rounded-xl bg-red-50 px-4 py-2 text-sm text-red-700">{error}</div>
+        ) : null}
+        {reindexMessage ? (
+          <div className="mb-4 rounded-xl bg-emerald-50 px-4 py-2 text-sm text-emerald-700">
+            {reindexMessage}
+          </div>
+        ) : null}
 
-        {/* Charts */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-6 md:mb-8">
-          {/* Impressions */}
-          <div className="bg-card rounded-2xl border border-card-border p-4 md:p-5" data-testid="chart-impressions">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold">Impressions This Week</h3>
-              <TrendingUp className="w-4 h-4 text-primary" />
+        {/* Inventory health — warning tiles link to filtered product list */}
+        <section className="mb-8">
+          <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            Inventory
+          </h2>
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+            <MetricCard label="Total products" value={metrics?.total_products ?? '—'} href="/jeweller/products" />
+            <MetricCard label="Active" value={metrics?.active_products ?? '—'} href="/jeweller/products" />
+            <MetricCard
+              label="Missing image"
+              value={metrics?.missing_images_count ?? '—'}
+              warn={(metrics?.missing_images_count ?? 0) > 0}
+              href="/jeweller/products?filter=missing-image"
+            />
+            <MetricCard
+              label="Missing try-on"
+              value={metrics?.missing_tryon_count ?? '—'}
+              warn={(metrics?.missing_tryon_count ?? 0) > 0}
+              href="/jeweller/products?filter=missing-tryon"
+            />
+            <MetricCard
+              label="Missing search index"
+              value={metrics?.missing_embedding_count ?? '—'}
+              warn={(metrics?.missing_embedding_count ?? 0) > 0}
+              href="/jeweller/products?filter=missing-embedding"
+            />
+          </div>
+        </section>
+
+        {/* Engagement — today / week / month side-by-side */}
+        <section className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2">
+          <div className="rounded-2xl border bg-card p-5">
+            <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              <Camera className="h-3 w-3" /> Try-ons
             </div>
-            <ResponsiveContainer width="100%" height={150}>
-              <AreaChart data={IMPRESSIONS}>
-                <defs>
-                  <linearGradient id="impressionGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#C9A84C" stopOpacity={0.2} />
-                    <stop offset="95%" stopColor="#C9A84C" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#F0ECE5" />
-                <XAxis dataKey="day" tick={{ fontSize: 10 }} />
-                <YAxis tick={{ fontSize: 10 }} width={32} />
-                <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid #e8e0d5", fontSize: 11 }} />
-                <Area type="monotone" dataKey="views" stroke="#C9A84C" strokeWidth={2} fill="url(#impressionGrad)" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Saves */}
-          <div className="bg-card rounded-2xl border border-card-border p-4 md:p-5" data-testid="chart-saves">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold">Saves This Week</h3>
-              <Heart className="w-4 h-4 text-primary" />
-            </div>
-            <ResponsiveContainer width="100%" height={150}>
-              <LineChart data={SAVES_DATA}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#F0ECE5" />
-                <XAxis dataKey="day" tick={{ fontSize: 10 }} />
-                <YAxis tick={{ fontSize: 10 }} width={28} />
-                <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid #e8e0d5", fontSize: 11 }} />
-                <Line type="monotone" dataKey="saves" stroke="#C9A84C" strokeWidth={2} dot={false} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Recent Products */}
-        <div className="bg-card rounded-2xl border border-card-border overflow-hidden" data-testid="table-recent-products">
-          <div className="px-4 md:px-5 py-4 border-b border-border">
-            <h3 className="text-sm font-semibold">Recent Products</h3>
-          </div>
-
-          {/* ── MOBILE: Stacked rows (< md) ── */}
-          <div className="md:hidden divide-y divide-border">
-            {RECENT_PRODUCTS.map(p => (
-              <div key={p.id} className="flex items-center gap-3 px-4 py-3">
-                <img src={p.images[0]?.url} alt={p.name} className="w-10 h-10 rounded-xl object-cover bg-muted flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-xs line-clamp-1">{p.name}</p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">{p.category} · {formatINR(p.price)}</p>
-                </div>
-                <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-[#F0FDF4] text-[#15803D]">Live</span>
-                  <span className="text-[10px] text-muted-foreground">{p.mockViews} views</span>
-                </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <div className="text-2xl font-semibold">{metrics?.tryon_events_today ?? '—'}</div>
+                <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Today</div>
               </div>
-            ))}
+              <div>
+                <div className="text-2xl font-semibold">{metrics?.tryon_events_week ?? '—'}</div>
+                <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Week</div>
+              </div>
+              <div>
+                <div className="text-2xl font-semibold">{metrics?.tryon_events_month ?? '—'}</div>
+                <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Month</div>
+              </div>
+            </div>
           </div>
+          <div className="rounded-2xl border bg-card p-5">
+            <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              <Search className="h-3 w-3" /> Searches
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <div className="text-2xl font-semibold">{metrics?.search_events_today ?? '—'}</div>
+                <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Today</div>
+              </div>
+              <div>
+                <div className="text-2xl font-semibold">{metrics?.search_events_week ?? '—'}</div>
+                <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Week</div>
+              </div>
+              <div>
+                <div className="text-2xl font-semibold">{metrics?.search_events_month ?? '—'}</div>
+                <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Month</div>
+              </div>
+            </div>
+          </div>
+        </section>
 
-          {/* ── DESKTOP: Full table (≥ md) ── */}
-          <div className="hidden md:block overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/40">
-                <tr>
-                  {["Product", "Category", "Price", "Views", "Saves", "Status"].map(h => (
-                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {RECENT_PRODUCTS.map((p, i) => (
-                  <tr key={p.id} className={`border-t border-border ${i % 2 === 0 ? "" : "bg-muted/10"}`} data-testid={`row-product-${p.id}`}>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <img src={p.images[0]?.url} alt={p.name} className="w-9 h-9 rounded-xl object-cover bg-muted" />
-                        <span className="font-medium text-xs line-clamp-1 max-w-[140px]">{p.name}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-xs text-muted-foreground">{p.category}</td>
-                    <td className="px-4 py-3 text-xs font-medium">{formatINR(p.price)}</td>
-                    <td className="px-4 py-3 text-xs text-muted-foreground">{p.mockViews}</td>
-                    <td className="px-4 py-3 text-xs text-muted-foreground">{p.mockSaves}</td>
-                    <td className="px-4 py-3">
-                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#F0FDF4] text-[#15803D]">Live</span>
-                    </td>
+        <section>
+          <h2 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            <Eye className="h-3 w-3" /> Top viewed (30 days)
+          </h2>
+          <div className="overflow-hidden rounded-2xl border">
+            {metrics?.top_viewed_products?.length ? (
+              <table className="w-full text-sm">
+                <thead className="bg-muted/40 text-xs uppercase tracking-widest text-muted-foreground">
+                  <tr>
+                    <th className="px-4 py-2 text-left">Product</th>
+                    <th className="px-4 py-2 text-right">Views</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {metrics.top_viewed_products.map((p) => (
+                    <tr key={p.product_id} className="border-t">
+                      <td className="px-4 py-2 font-medium">{p.name}</td>
+                      <td className="px-4 py-2 text-right font-mono text-sm">{p.view_count}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <div className="flex items-center gap-2 p-6 text-sm text-muted-foreground">
+                <Package className="h-4 w-4" />
+                No views yet — customers haven&apos;t opened a product page in the last 30 days.
+              </div>
+            )}
           </div>
-        </div>
-      </motion.div>
+        </section>
+
+        {(metrics?.missing_images_count ?? 0) > 0 ||
+        (metrics?.missing_tryon_count ?? 0) > 0 ||
+        (metrics?.missing_embedding_count ?? 0) > 0 ? (
+          <section className="mt-8 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+            <div>
+              <strong>Heads up:</strong> some products are missing images, try-on assets, or
+              search-index entries. Customers won&apos;t see those pieces in catalog browsing,
+              search, or AR. Click the warning tiles above to filter the product list.
+            </div>
+          </section>
+        ) : null}
+      </div>
     </JewellerLayout>
   );
 }

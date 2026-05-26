@@ -2,6 +2,10 @@ import { getServerEnv } from '@luxematch/config';
 import {
   getJewellerInternal,
   getJewellerPublic,
+  getJewellerSettings,
+  getShopAnalytics,
+  getShopMetrics,
+  updateJewellerInfo,
   updateJewellerPinHash,
 } from '@luxematch/db';
 import {
@@ -140,3 +144,54 @@ shopRoutes.post(
     return sendData(c, { ok: true });
   },
 );
+
+// ────────────────────────────────────────────────────────────────────────────
+// GET /api/shop/metrics  // PIN GUARD
+//   Dashboard counts. Per-block error tolerance lives in getShopMetrics.
+// ────────────────────────────────────────────────────────────────────────────
+shopRoutes.get('/metrics', pinGuard, async (c) => {
+  const metrics = await getShopMetrics(c.get('shopJewellerId'));
+  return sendData(c, metrics);
+});
+
+// ────────────────────────────────────────────────────────────────────────────
+// GET /api/shop/analytics  // PIN GUARD
+//   30-day rollups for charts on /jeweller/analytics.
+// ────────────────────────────────────────────────────────────────────────────
+shopRoutes.get('/analytics', pinGuard, async (c) => {
+  const analytics = await getShopAnalytics(c.get('shopJewellerId'));
+  return sendData(c, analytics);
+});
+
+shopRoutes.get('/settings', pinGuard, async (c) => {
+  const settings = await getJewellerSettings(c.get('shopJewellerId'));
+  if (!settings) {
+    return sendError(c, 'not_found', 'Shop not provisioned', 404);
+  }
+  return sendData(c, settings);
+});
+
+// ────────────────────────────────────────────────────────────────────────────
+// PATCH /api/shop  // PIN GUARD
+//   Edit store info + idle-reset config. PIN change lives on its own route.
+// ────────────────────────────────────────────────────────────────────────────
+const ShopPatchBody = z.object({
+  store_name: z.string().min(1).max(120).optional(),
+  city: z.string().max(120).nullable().optional(),
+  gstin: z.string().max(40).nullable().optional(),
+  owner_name: z.string().max(120).nullable().optional(),
+  phone: z.string().max(40).nullable().optional(),
+  logo_url: z.string().url().nullable().optional(),
+  idle_reset_enabled: z.boolean().optional(),
+  idle_reset_seconds: z.number().int().min(15).max(600).optional(),
+});
+
+shopRoutes.patch('/', pinGuard, zValidator('json', ShopPatchBody), async (c) => {
+  const jewellerId = c.get('shopJewellerId');
+  const body = c.req.valid('json');
+  const updated = await updateJewellerInfo(jewellerId, body);
+  if (!updated) {
+    return sendError(c, 'not_found', 'Shop not provisioned', 404);
+  }
+  return sendData(c, updated);
+});

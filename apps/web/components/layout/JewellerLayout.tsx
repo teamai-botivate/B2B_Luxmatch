@@ -10,7 +10,7 @@ const navItems = [
   { label: "Dashboard", href: "/jeweller/dashboard", icon: LayoutDashboard },
   { label: "Products", href: "/jeweller/products", icon: Package },
   { label: "Analytics", href: "/jeweller/analytics", icon: BarChart3 },
-  { label: "Settings", href: "/jeweller/settings", icon: Settings, disabled: true },
+  { label: "Settings", href: "/jeweller/settings", icon: Settings },
 ];
 
 function getJewellerData() {
@@ -47,15 +47,13 @@ export default function JewellerLayout({ children }: { children: React.ReactNode
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-1">
-        {navItems.map(({ label, href, icon: Icon, disabled }) => {
+        {navItems.map(({ label, href, icon: Icon }) => {
           const active = pathname === href;
           return (
-            <Link key={href} href={disabled ? "#" : href}>
+            <Link key={href} href={href}>
               <div
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer ${
-                  disabled
-                    ? "opacity-40 cursor-not-allowed"
-                    : active
+                  active
                     ? "bg-primary text-primary-foreground"
                     : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                 }`}
@@ -63,7 +61,6 @@ export default function JewellerLayout({ children }: { children: React.ReactNode
               >
                 <Icon className="w-4 h-4 flex-shrink-0" />
                 {label}
-                {disabled && <span className="ml-auto text-[10px] bg-border rounded px-1">Soon</span>}
               </div>
             </Link>
           );

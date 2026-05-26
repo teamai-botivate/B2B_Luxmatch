@@ -3,6 +3,7 @@ import { handle } from 'hono/vercel';
 
 import { catalogRoutes } from '@/lib/api/catalog';
 import { cloudinaryRoutes } from '@/lib/api/cloudinary';
+import { embeddingsRoutes } from '@/lib/api/embeddings';
 import { searchRoutes } from '@/lib/api/search';
 import { shopRoutes } from '@/lib/api/shop';
 import { tryOnAssetRoutes } from '@/lib/api/tryon-assets';
@@ -24,6 +25,7 @@ app.route('/shop', shopRoutes);
 app.route('/cloudinary', cloudinaryRoutes);
 app.route('/search', searchRoutes);
 app.route('/tryon-assets', tryOnAssetRoutes);
+app.route('/embeddings', embeddingsRoutes);
 app.route('/', catalogRoutes);
 
 export const GET = handle(app);
