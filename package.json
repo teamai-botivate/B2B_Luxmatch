@@ -12,10 +12,18 @@
     "typecheck": "pnpm -r run typecheck",
     "lint": "pnpm -r run lint",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml}\"",
-    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml}\""
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml}\"",
+    "provision-shop": "tsx scripts/provision-shop.ts",
+    "reindex": "tsx --env-file=apps/web/.env.local scripts/reindex.ts"
   },
   "devDependencies": {
+    "@luxematch/db": "workspace:*",
+    "@luxematch/embeddings": "workspace:*",
+    "@luxematch/qdrant": "workspace:*",
+    "@luxematch/tenant": "workspace:*",
+    "@types/node": "^22.10.5",
     "prettier": "^3.3.3",
+    "tsx": "^4.19.2",
     "typescript": "^5.6.3"
   }
 }

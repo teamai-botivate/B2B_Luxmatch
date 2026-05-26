@@ -1,14 +1,26 @@
 import { z } from 'zod';
 
 const ServerEnvSchema = z.object({
+  // Shop tenancy — set per-device at install time by scripts/provision-shop.ts
+  SHOP_JEWELLER_ID: z.string().uuid('SHOP_JEWELLER_ID must be a UUID'),
+  LM_PIN_COOKIE_SECRET: z
+    .string()
+    .min(32, 'LM_PIN_COOKIE_SECRET must be at least 32 chars'),
+  LM_PIN_COOKIE_TTL_SECONDS: z.coerce.number().int().positive().default(14_400),
+  // Read on the server too so the Supabase server client can use it without
+  // a separate client-env import path.
+  NEXT_PUBLIC_SUPABASE_URL: z.string().url('NEXT_PUBLIC_SUPABASE_URL must be a valid URL'),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1, 'SUPABASE_SERVICE_ROLE_KEY is required'),
   CLOUDINARY_API_KEY: z.string().min(1, 'CLOUDINARY_API_KEY is required'),
   CLOUDINARY_API_SECRET: z.string().min(1, 'CLOUDINARY_API_SECRET is required'),
   CLOUDINARY_CLOUD_NAME: z.string().min(1, 'CLOUDINARY_CLOUD_NAME is required'),
-  GEMINI_API_KEY: z.string().min(1, 'GEMINI_API_KEY is required'),
   QDRANT_URL: z.string().url('QDRANT_URL must be a valid URL'),
   QDRANT_API_KEY: z.string().min(1, 'QDRANT_API_KEY is required'),
   QDRANT_COLLECTION: z.string().min(1).default('luxematch_products'),
+  // OpenCLIP embedder service (apps/embedder). Same model as Jewellery_AI:
+  // ViT-B-32 / laion2b_s34b_b79k / 512-d.
+  EMBEDDER_URL: z.string().url('EMBEDDER_URL must be a valid URL'),
+  EMBEDDER_API_KEY: z.string().optional(),
 });
 
 const ClientEnvSchema = z.object({

@@ -8,6 +8,7 @@ import { Search, Heart, GitCompare, Menu, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSavedItems } from "@/contexts/SavedItemsContext";
 import { useCompare } from "@/contexts/CompareContext";
+import { useShop } from "@/hooks/use-shop";
 import MobileNav from "./MobileNav";
 
 const navLinks = [
@@ -24,6 +25,7 @@ export default function AppHeader() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { savedItems } = useSavedItems();
   const { compareItems } = useCompare();
+  const shop = useShop();
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 10);
@@ -50,6 +52,22 @@ export default function AppHeader() {
         }`}
         data-testid="app-header"
       >
+        {/* Shop welcome strip — pulled from /api/shop. Falls back to a
+            generic line when the shop API is unreachable so the layout
+            stays stable. */}
+        <div
+          className="bg-[#FAF8F5] text-[#6b5a2c] text-xs tracking-wider px-4 md:px-6 lg:px-12 py-1.5 text-center"
+          data-testid="shop-welcome-strip"
+        >
+          {shop ? (
+            <>
+              Welcome to <span className="font-semibold text-[#8a6f30]">{shop.store_name}</span>
+              {shop.city ? <span className="text-muted-foreground"> · {shop.city}</span> : null}
+            </>
+          ) : (
+            <span className="text-muted-foreground">Welcome to LuxeMatch</span>
+          )}
+        </div>
         <div className="max-w-[1400px] mx-auto px-4 md:px-6 lg:px-12 h-16 flex items-center justify-between">
           {/* Logo */}
           <Link href="/" data-testid="logo-link">

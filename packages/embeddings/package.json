@@ -13,6 +13,9 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "echo \"[@luxematch/embeddings] lint placeholder\""
   },
+  "dependencies": {
+    "@luxematch/config": "workspace:*"
+  },
   "devDependencies": {
     "typescript": "^5.7.2"
   }

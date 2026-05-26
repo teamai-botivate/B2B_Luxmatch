@@ -13,7 +13,11 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "echo \"[@luxematch/cloudinary] lint placeholder\""
   },
+  "dependencies": {
+    "@luxematch/config": "workspace:*"
+  },
   "devDependencies": {
+    "@types/node": "^22.10.5",
     "typescript": "^5.7.2"
   }
 }

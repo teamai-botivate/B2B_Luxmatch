@@ -13,6 +13,11 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "echo \"[@luxematch/qdrant] lint placeholder\""
   },
+  "dependencies": {
+    "@luxematch/config": "workspace:*",
+    "@luxematch/embeddings": "workspace:*",
+    "@qdrant/js-client-rest": "^1.13.0"
+  },
   "devDependencies": {
     "typescript": "^5.7.2"
   }

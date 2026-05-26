@@ -13,6 +13,11 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "echo \"[@luxematch/db] lint placeholder\""
   },
+  "dependencies": {
+    "@luxematch/config": "workspace:*",
+    "@luxematch/types": "workspace:*",
+    "@supabase/supabase-js": "^2.45.4"
+  },
   "devDependencies": {
     "typescript": "^5.7.2"
   }

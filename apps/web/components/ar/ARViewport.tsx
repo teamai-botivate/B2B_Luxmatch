@@ -1,49 +1,175 @@
 'use client';
 
-import { Camera } from "lucide-react";
-import { motion } from "motion/react";
+import type {
+  Calibration,
+  EngineStatus,
+  JewelleryType,
+} from '@luxematch/ar-engine';
+import { Camera, CameraOff, Loader2, Sparkles } from 'lucide-react';
+import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
 
-interface ARViewportProps {
+import { useTryOnEngine } from '@/hooks/use-try-on-engine';
+
+export type ARViewportHandle = {
+  setProduct: (imageUrl: string, jewelleryType: JewelleryType, calibration?: Calibration | null) => Promise<void>;
+  capture: () => Promise<Blob | null>;
+  start: () => Promise<void>;
+  stop: () => void;
+};
+
+type Props = {
   className?: string;
+  onStatusChange?: (s: EngineStatus) => void;
+  /** Auto-start the camera on mount. Defaults to true. */
+  autoStart?: boolean;
+};
+
+function statusToHint(s: EngineStatus): { label: string; tone: 'neutral' | 'warn' | 'error' } {
+  switch (s) {
+    case 'idle':
+      return { label: 'Initialising…', tone: 'neutral' };
+    case 'awaiting_camera':
+      return { label: 'Allow camera access to begin', tone: 'neutral' };
+    case 'camera_denied':
+      return { label: 'Camera blocked. Update browser permissions and reload.', tone: 'error' };
+    case 'loading_models':
+      return { label: 'Loading try-on engine…', tone: 'neutral' };
+    case 'ready':
+      return { label: 'Select a piece below to try on', tone: 'neutral' };
+    case 'tracking':
+      return { label: 'Tracking ✓', tone: 'neutral' };
+    case 'no_subject':
+      return { label: 'Face the camera or show your hand', tone: 'warn' };
+    case 'error':
+      return { label: 'Something went wrong. Reload to try again.', tone: 'error' };
+  }
 }
 
-export default function ARViewport({ className = "" }: ARViewportProps) {
+const ARViewport = forwardRef<ARViewportHandle, Props>(function ARViewport(
+  { className = '', onStatusChange, autoStart = true },
+  ref,
+) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const { status, metricsSnapshot, start, stop, setProduct, captureFrame, error } = useTryOnEngine({
+    videoRef,
+    canvasRef,
+  });
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      setProduct,
+      capture: captureFrame,
+      start,
+      stop,
+    }),
+    [setProduct, captureFrame, start, stop],
+  );
+
+  useEffect(() => {
+    onStatusChange?.(status);
+  }, [status, onStatusChange]);
+
+  useEffect(() => {
+    if (!autoStart) return;
+    void start();
+    return () => stop();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const hint = statusToHint(status);
+
   return (
     <div
-      className={`relative flex flex-col items-center justify-center overflow-hidden rounded-2xl ${className}`}
-      style={{ background: "linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)" }}
+      className={`relative overflow-hidden rounded-2xl bg-black ${className}`}
       data-testid="ar-viewport"
     >
-      {/* Animated gold shimmer border */}
-      <motion.div
-        animate={{ rotate: 360 }}
-        transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-        className="absolute inset-0 rounded-2xl"
-        style={{
-          background: "conic-gradient(from 0deg, transparent 0%, rgba(201,168,76,0.3) 25%, transparent 50%, rgba(201,168,76,0.3) 75%, transparent 100%)",
-          padding: "1px",
-        }}
+      {/* Video: CSS-mirrored so the user's left looks like their left.
+          Landmarks are mirrored in JS to match — see landmarkSmoother. */}
+      <video
+        ref={videoRef}
+        autoPlay
+        muted
+        playsInline
+        className="absolute inset-0 h-full w-full object-cover"
+        style={{ transform: 'scaleX(-1)' }}
       />
-      <div className="relative z-10 flex flex-col items-center gap-6 text-center px-8">
-        <motion.div
-          animate={{ scale: [1, 1.05, 1] }}
-          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-          className="w-24 h-24 rounded-3xl flex items-center justify-center"
-          style={{ background: "rgba(201,168,76,0.15)", border: "1px solid rgba(201,168,76,0.3)" }}
-        >
-          <Camera className="w-12 h-12" style={{ color: "#C9A84C" }} />
-        </motion.div>
-        <div>
-          <h2 className="text-2xl font-medium text-white mb-2">Virtual Try-On</h2>
-          <p className="text-sm text-white/60 max-w-xs leading-relaxed">
-            Camera-based AR try-on coming soon — you'll be able to see jewellery on yourself in real time.
-          </p>
+
+      {/* AR overlay canvas — NOT mirrored (the engine mirrors landmarks
+          internally and draws into display-space pixels). */}
+      <canvas
+        ref={canvasRef}
+        className="pointer-events-none absolute inset-0 h-full w-full"
+      />
+
+      {/* HUD — DOM elements over the canvas, not drawn into it, so captures
+          stay clean. */}
+      <div className="pointer-events-none absolute inset-0 flex flex-col">
+        <div className="flex items-start justify-between p-4">
+          <div
+            className={`rounded-full px-3 py-1.5 text-xs font-medium backdrop-blur-md ${
+              hint.tone === 'error'
+                ? 'bg-red-500/80 text-white'
+                : hint.tone === 'warn'
+                  ? 'bg-amber-500/80 text-white'
+                  : 'bg-white/90 text-black'
+            }`}
+          >
+            {hint.label}
+          </div>
+
+          {(status === 'tracking' || status === 'no_subject') && (
+            <div className="rounded-full bg-black/50 px-3 py-1.5 text-[10px] font-mono text-white/80 backdrop-blur-md">
+              {metricsSnapshot.fps} FPS · {metricsSnapshot.inferenceMs}ms · conf {Math.round(metricsSnapshot.confidence * 100)}%
+            </div>
+          )}
         </div>
-        <div className="flex items-center gap-2 px-4 py-2 rounded-full" style={{ background: "rgba(201,168,76,0.1)", border: "1px solid rgba(201,168,76,0.2)" }}>
-          <div className="w-1.5 h-1.5 rounded-full bg-[#C9A84C] animate-pulse" />
-          <span className="text-xs font-medium text-[#C9A84C]">Phase 6 — Coming Soon</span>
-        </div>
+
+        <div className="flex-1" />
+
+        {status === 'loading_models' && (
+          <div className="flex items-center justify-center pb-12">
+            <div className="flex items-center gap-3 rounded-full bg-black/60 px-4 py-2 text-sm text-white backdrop-blur-md">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Loading try-on models (~50 MB)…
+            </div>
+          </div>
+        )}
+
+        {status === 'camera_denied' && (
+          <div className="flex items-center justify-center pb-12">
+            <div className="flex items-center gap-3 rounded-2xl bg-black/70 px-4 py-3 text-sm text-white backdrop-blur-md">
+              <CameraOff className="h-5 w-5 text-red-300" />
+              <div>
+                <div className="font-medium">Camera access blocked</div>
+                <div className="text-xs text-white/70">
+                  Update permissions in your browser, then reload this page.
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {(status === 'idle' || status === 'awaiting_camera') && (
+          <div className="flex items-center justify-center pb-12">
+            <div className="flex items-center gap-3 rounded-2xl bg-black/70 px-4 py-3 text-sm text-white backdrop-blur-md">
+              <Camera className="h-5 w-5" />
+              Starting camera…
+            </div>
+          </div>
+        )}
       </div>
+
+      {error && (
+        <div className="absolute bottom-4 left-4 right-4 rounded-xl bg-red-600/90 p-3 text-xs text-white backdrop-blur-md">
+          <Sparkles className="mr-1 inline h-3 w-3" />
+          {error.message}
+        </div>
+      )}
     </div>
   );
-}
+});
+
+export { ARViewport };
+export default ARViewport;
