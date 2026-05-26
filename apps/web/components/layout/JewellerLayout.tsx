@@ -25,7 +25,7 @@ function getJewellerData() {
 export default function JewellerLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [jeweller, setJeweller] = useState(getJewellerData());
+  const [jeweller, setJeweller] = useState<{ storeName: string; ownerName: string } | null>(null);
 
   useEffect(() => {
     setJeweller(getJewellerData());
