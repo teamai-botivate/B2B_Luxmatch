@@ -79,14 +79,20 @@ function b64urlToBytes(s: string): Uint8Array {
 }
 
 async function importHmacKey(secret: string): Promise<CryptoKey> {
-  return crypto.subtle.importKey(
+  const cached = hmacKeyCache.get(secret);
+  if (cached) return cached;
+  const key = await crypto.subtle.importKey(
     'raw',
     new TextEncoder().encode(secret),
     { name: 'HMAC', hash: 'SHA-256' },
     false,
     ['sign', 'verify'],
   );
+  hmacKeyCache.set(secret, key);
+  return key;
 }
+
+const hmacKeyCache = new Map<string, CryptoKey>();
 
 function timingSafeEqualBytes(a: Uint8Array, b: Uint8Array): boolean {
   if (a.length !== b.length) return false;

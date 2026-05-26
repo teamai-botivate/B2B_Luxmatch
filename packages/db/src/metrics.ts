@@ -51,29 +51,31 @@ export async function getShopMetrics(jewellerId: string): Promise<ShopMetrics> {
   const sb = getSupabaseServer();
 
   // ── Product counts ───────────────────────────────────────────────────────
-  const total = await safeCount(
-    'products total',
-    sb.from('products').select('id', { count: 'exact', head: true }).eq('jeweller_id', jewellerId),
-  );
-  const active = await safeCount(
-    'products active',
+  const [total, active, productRowsResult] = await Promise.all([
+    safeCount(
+      'products total',
+      sb.from('products').select('id', { count: 'exact', head: true }).eq('jeweller_id', jewellerId),
+    ),
+    safeCount(
+      'products active',
+      sb
+        .from('products')
+        .select('id', { count: 'exact', head: true })
+        .eq('jeweller_id', jewellerId)
+        .eq('is_active', true),
+    ),
     sb
       .from('products')
-      .select('id', { count: 'exact', head: true })
+      .select('id')
       .eq('jeweller_id', jewellerId)
       .eq('is_active', true),
-  );
+  ]);
 
   // ── "Missing" counts via two-step lookup ─────────────────────────────────
   // We pull the active product ids first, then count which ones lack
   // images / tryon-assets / embeddings. This is a few extra round trips
   // but each one is small and the queries are simple to reason about.
-  const { data: productRows } = await sb
-    .from('products')
-    .select('id')
-    .eq('jeweller_id', jewellerId)
-    .eq('is_active', true);
-  const productIds = (productRows as { id: string }[] | null ?? []).map((r) => r.id);
+  const productIds = (productRowsResult.data as { id: string }[] | null ?? []).map((r) => r.id);
 
   let missingImagesCount = 0;
   let missingTryOnCount = 0;
@@ -99,30 +101,33 @@ export async function getShopMetrics(jewellerId: string): Promise<ShopMetrics> {
   const week = daysAgoIso(7);
   const month = daysAgoIso(30);
 
-  const tryonToday = await safeCount(
-    'tryon_events today',
-    sb.from('tryon_events').select('id', { count: 'exact', head: true }).eq('jeweller_id', jewellerId).gte('created_at', today),
-  );
-  const tryonWeek = await safeCount(
-    'tryon_events week',
-    sb.from('tryon_events').select('id', { count: 'exact', head: true }).eq('jeweller_id', jewellerId).gte('created_at', week),
-  );
-  const tryonMonth = await safeCount(
-    'tryon_events month',
-    sb.from('tryon_events').select('id', { count: 'exact', head: true }).eq('jeweller_id', jewellerId).gte('created_at', month),
-  );
-  const searchToday = await safeCount(
-    'search_events today',
-    sb.from('search_events').select('id', { count: 'exact', head: true }).eq('jeweller_id', jewellerId).gte('created_at', today),
-  );
-  const searchWeek = await safeCount(
-    'search_events week',
-    sb.from('search_events').select('id', { count: 'exact', head: true }).eq('jeweller_id', jewellerId).gte('created_at', week),
-  );
-  const searchMonth = await safeCount(
-    'search_events month',
-    sb.from('search_events').select('id', { count: 'exact', head: true }).eq('jeweller_id', jewellerId).gte('created_at', month),
-  );
+  const [tryonToday, tryonWeek, tryonMonth, searchToday, searchWeek, searchMonth] =
+    await Promise.all([
+      safeCount(
+        'tryon_events today',
+        sb.from('tryon_events').select('id', { count: 'exact', head: true }).eq('jeweller_id', jewellerId).gte('created_at', today),
+      ),
+      safeCount(
+        'tryon_events week',
+        sb.from('tryon_events').select('id', { count: 'exact', head: true }).eq('jeweller_id', jewellerId).gte('created_at', week),
+      ),
+      safeCount(
+        'tryon_events month',
+        sb.from('tryon_events').select('id', { count: 'exact', head: true }).eq('jeweller_id', jewellerId).gte('created_at', month),
+      ),
+      safeCount(
+        'search_events today',
+        sb.from('search_events').select('id', { count: 'exact', head: true }).eq('jeweller_id', jewellerId).gte('created_at', today),
+      ),
+      safeCount(
+        'search_events week',
+        sb.from('search_events').select('id', { count: 'exact', head: true }).eq('jeweller_id', jewellerId).gte('created_at', week),
+      ),
+      safeCount(
+        'search_events month',
+        sb.from('search_events').select('id', { count: 'exact', head: true }).eq('jeweller_id', jewellerId).gte('created_at', month),
+      ),
+    ]);
 
   // ── Top viewed products (last 30 days) ───────────────────────────────────
   // No native group-by in supabase-js v2 client; we pull the rows for the

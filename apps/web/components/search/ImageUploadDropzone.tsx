@@ -67,7 +67,6 @@ export default function ImageUploadDropzone({
         ref={inputRef}
         type="file"
         accept="image/jpeg,image/png,image/webp"
-        capture="environment"
         className="hidden"
         onChange={handleChange}
         data-testid="input-image-upload"

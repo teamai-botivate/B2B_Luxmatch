@@ -10,6 +10,7 @@ import { useSavedItems } from "@/contexts/SavedItemsContext";
 import { useCompare } from "@/contexts/CompareContext";
 
 const navLinks = [
+  { label: "Dashboard", href: "/jeweller/dashboard" },
   { label: "Catalog", href: "/catalog" },
   { label: "Collections", href: "/collections" },
   { label: "Try-On", href: "/try-on" },
@@ -114,12 +115,6 @@ export default function MobileNav({ open, onClose }: MobileNavProps) {
                       {compareItems.size}
                     </span>
                   )}
-                </div>
-              </Link>
-              <Link href="/jeweller/dashboard">
-                <div className="flex items-center gap-2.5 px-3 py-3 rounded-xl hover:bg-accent transition-colors cursor-pointer">
-                  <LayoutDashboard className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm font-medium">Dashboard</span>
                 </div>
               </Link>
               <Link href="/try-on">

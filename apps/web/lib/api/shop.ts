@@ -23,6 +23,7 @@ import { deleteCookie, setCookie } from 'hono/cookie';
 import { z } from 'zod';
 
 import { sendData, sendError } from './envelope';
+import { clearCache, getCached } from './cache';
 import { pinGuard, tenantMiddleware } from './middleware';
 
 type Vars = { Variables: { shopJewellerId: string } };
@@ -38,7 +39,9 @@ shopRoutes.use('*', tenantMiddleware);
 // ────────────────────────────────────────────────────────────────────────────
 shopRoutes.get('/', async (c) => {
   const id = c.get('shopJewellerId');
-  const jeweller = await getJewellerPublic(id);
+  const jeweller = await getCached(`shop:public:${id}`, 60_000, () =>
+    getJewellerPublic(id),
+  );
   if (!jeweller) {
     return sendError(
       c,
@@ -74,7 +77,9 @@ shopRoutes.post('/unlock', zValidator('json', UnlockBody), async (c) => {
 
   const { pin } = c.req.valid('json');
 
-  const jeweller = await getJewellerInternal(jewellerId);
+  const jeweller = await getCached(`shop:internal:${jewellerId}`, 5 * 60_000, () =>
+    getJewellerInternal(jewellerId),
+  );
   if (!jeweller) {
     return sendError(c, 'not_found', 'Shop not provisioned', 404);
   }
@@ -141,6 +146,7 @@ shopRoutes.post(
       return sendError(c, 'bad_request', 'New PIN must differ from current', 400);
     }
     await updateJewellerPinHash(jewellerId, hashPin(newPin));
+    clearCache(`shop:internal:${jewellerId}`);
     return sendData(c, { ok: true });
   },
 );
@@ -150,7 +156,10 @@ shopRoutes.post(
 //   Dashboard counts. Per-block error tolerance lives in getShopMetrics.
 // ────────────────────────────────────────────────────────────────────────────
 shopRoutes.get('/metrics', pinGuard, async (c) => {
-  const metrics = await getShopMetrics(c.get('shopJewellerId'));
+  const jewellerId = c.get('shopJewellerId');
+  const metrics = await getCached(`shop:metrics:${jewellerId}`, 30_000, () =>
+    getShopMetrics(jewellerId),
+  );
   return sendData(c, metrics);
 });
 
@@ -159,7 +168,10 @@ shopRoutes.get('/metrics', pinGuard, async (c) => {
 //   30-day rollups for charts on /jeweller/analytics.
 // ────────────────────────────────────────────────────────────────────────────
 shopRoutes.get('/analytics', pinGuard, async (c) => {
-  const analytics = await getShopAnalytics(c.get('shopJewellerId'));
+  const jewellerId = c.get('shopJewellerId');
+  const analytics = await getCached(`shop:analytics:${jewellerId}`, 30_000, () =>
+    getShopAnalytics(jewellerId),
+  );
   return sendData(c, analytics);
 });
 
@@ -193,5 +205,7 @@ shopRoutes.patch('/', pinGuard, zValidator('json', ShopPatchBody), async (c) => 
   if (!updated) {
     return sendError(c, 'not_found', 'Shop not provisioned', 404);
   }
+  clearCache(`shop:public:${jewellerId}`);
+  clearCache(`shop:internal:${jewellerId}`);
   return sendData(c, updated);
 });

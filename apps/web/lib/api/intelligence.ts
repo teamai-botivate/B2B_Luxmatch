@@ -8,6 +8,7 @@ import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
+import { clearCache, getCached } from './cache';
 import { sendData } from './envelope';
 import { pinGuard, tenantMiddleware } from './middleware';
 
@@ -19,8 +20,17 @@ intelligenceRoutes.use('*', tenantMiddleware);
 
 intelligenceRoutes.get('/summary', async (c) => {
   const jewellerId = c.get('shopJewellerId');
-  const summary = await getDashboardSummary(jewellerId);
-  const products = await getProductDemandSnapshots(jewellerId);
+  const { summary, products } = await getCached(
+    `intelligence:summary:${jewellerId}`,
+    30_000,
+    async () => {
+      const [summary, products] = await Promise.all([
+        getDashboardSummary(jewellerId),
+        getProductDemandSnapshots(jewellerId),
+      ]);
+      return { summary, products };
+    },
+  );
   const recommendations = generateInventoryRecommendations(products);
   return sendData(c, {
     summary,
@@ -34,7 +44,11 @@ intelligenceRoutes.get('/summary', async (c) => {
 
 intelligenceRoutes.get('/recommendations', async (c) => {
   const jewellerId = c.get('shopJewellerId');
-  const products = await getProductDemandSnapshots(jewellerId);
+  const products = await getCached(
+    `intelligence:products:${jewellerId}`,
+    30_000,
+    () => getProductDemandSnapshots(jewellerId),
+  );
   return sendData(c, {
     recommendations: generateInventoryRecommendations(products),
     products,
@@ -64,6 +78,10 @@ intelligenceRoutes.post(
       occasion: body.occasion,
       notes: body.notes,
     });
+    clearCache(`intelligence:summary:${jewellerId}`);
+    clearCache(`intelligence:products:${jewellerId}`);
+    clearCache(`shop:metrics:${jewellerId}`);
+    clearCache(`shop:analytics:${jewellerId}`);
     return sendData(c, { ok: true });
   },
 );
