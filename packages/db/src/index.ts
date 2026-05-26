@@ -57,6 +57,12 @@ export {
 
 export { logSearchEvent, type SearchEventInput } from './events';
 
+export {
+  getDashboardSummary,
+  getProductDemandSnapshots,
+  type DashboardSummary,
+} from './intelligence';
+
 export { listTryOnProducts, type TryOnProduct } from './tryon';
 
 export const PACKAGE_NAME = '@luxematch/db';

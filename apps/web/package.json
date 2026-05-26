@@ -17,6 +17,7 @@
     "@luxematch/config": "workspace:*",
     "@luxematch/db": "workspace:*",
     "@luxematch/embeddings": "workspace:*",
+    "@luxematch/intelligence": "workspace:*",
     "@luxematch/qdrant": "workspace:*",
     "@luxematch/tenant": "workspace:*",
     "@luxematch/types": "workspace:*",

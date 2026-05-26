@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@luxematch/config": "workspace:*",
+    "@luxematch/intelligence": "workspace:*",
     "@luxematch/types": "workspace:*",
     "@supabase/supabase-js": "^2.45.4"
   },

@@ -4,6 +4,7 @@ import { handle } from 'hono/vercel';
 import { catalogRoutes } from '@/lib/api/catalog';
 import { cloudinaryRoutes } from '@/lib/api/cloudinary';
 import { embeddingsRoutes } from '@/lib/api/embeddings';
+import { intelligenceRoutes } from '@/lib/api/intelligence';
 import { searchRoutes } from '@/lib/api/search';
 import { shopRoutes } from '@/lib/api/shop';
 import { tryOnAssetRoutes } from '@/lib/api/tryon-assets';
@@ -23,6 +24,7 @@ app.get('/health', (c) =>
 
 app.route('/shop', shopRoutes);
 app.route('/cloudinary', cloudinaryRoutes);
+app.route('/intelligence', intelligenceRoutes);
 app.route('/search', searchRoutes);
 app.route('/tryon-assets', tryOnAssetRoutes);
 app.route('/embeddings', embeddingsRoutes);

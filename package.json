@@ -14,7 +14,9 @@
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml}\"",
     "provision-shop": "tsx scripts/provision-shop.ts",
-    "reindex": "tsx --env-file=apps/web/.env.local scripts/reindex.ts"
+    "reindex": "tsx --env-file=apps/web/.env.local scripts/reindex.ts",
+    "seed:intelligence": "tsx --env-file=apps/web/.env.local scripts/seed-intelligence.ts",
+    "rollup:intelligence": "tsx --env-file=apps/web/.env.local scripts/seasonal-rollup.ts"
   },
   "devDependencies": {
     "@luxematch/db": "workspace:*",

@@ -56,6 +56,9 @@ importers:
       '@luxematch/embeddings':
         specifier: workspace:*
         version: link:../../packages/embeddings
+      '@luxematch/intelligence':
+        specifier: workspace:*
+        version: link:../../packages/intelligence
       '@luxematch/qdrant':
         specifier: workspace:*
         version: link:../../packages/qdrant
@@ -300,6 +303,9 @@ importers:
       '@luxematch/config':
         specifier: workspace:*
         version: link:../config
+      '@luxematch/intelligence':
+        specifier: workspace:*
+        version: link:../intelligence
       '@luxematch/types':
         specifier: workspace:*
         version: link:../types

@@ -4,12 +4,13 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
-import { LayoutDashboard, Package, BarChart3, Settings, ArrowLeft, Menu } from "lucide-react";
+import { LayoutDashboard, Package, BarChart3, Settings, ArrowLeft, Menu, Lightbulb } from "lucide-react";
 
 const navItems = [
   { label: "Dashboard", href: "/jeweller/dashboard", icon: LayoutDashboard },
   { label: "Products", href: "/jeweller/products", icon: Package },
   { label: "Analytics", href: "/jeweller/analytics", icon: BarChart3 },
+  { label: "Intelligence", href: "/jeweller/intelligence", icon: Lightbulb },
   { label: "Settings", href: "/jeweller/settings", icon: Settings },
 ];
 
