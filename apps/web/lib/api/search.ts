@@ -78,6 +78,13 @@ function decodeBase64(s: string): Buffer {
   return Buffer.from(cleaned, 'base64');
 }
 
+function getShowcaseVisualSearchUrl(): string | null {
+  const raw = process.env.JEWELLERY_AI_URL ?? process.env.SHOWCASE_VISUAL_SEARCH_URL;
+  if (!raw) return null;
+  const trimmed = raw.trim().replace(/\/$/, '');
+  return trimmed.endsWith('/search') ? trimmed : `${trimmed}/search`;
+}
+
 // ────────────────────────────────────────────────────────────────────────────
 // POST /api/search/text
 // ────────────────────────────────────────────────────────────────────────────
@@ -169,6 +176,100 @@ searchRoutes.post('/image', zValidator('json', ImageBody), async (c) => {
     sessionId: session_id,
   });
   return sendData(c, { results });
+});
+
+// ────────────────────────────────────────────────────────────────────────────
+// POST /api/search/jewellery-ai
+//
+// Temporary showcase adapter for the existing Jewellery_AI Hugging Face app.
+// The original service accepts multipart form-data:
+//   POST <JEWELLERY_AI_URL>/search?top_k=20  field: file
+// and returns [{ id, image_url, score }].
+// ────────────────────────────────────────────────────────────────────────────
+
+searchRoutes.post('/jewellery-ai', async (c) => {
+  const jewellerId = c.get('shopJewellerId');
+  const t0 = Date.now();
+  const endpoint = getShowcaseVisualSearchUrl();
+
+  if (!endpoint) {
+    return sendError(
+      c,
+      'internal_error',
+      'Set JEWELLERY_AI_URL or SHOWCASE_VISUAL_SEARCH_URL to your deployed Jewellery_AI backend.',
+      500,
+    );
+  }
+
+  const form = await c.req.formData();
+  const file = form.get('file');
+  const topKRaw = form.get('top_k');
+  const topK = Math.min(Math.max(Number(topKRaw ?? 20) || 20, 1), 100);
+
+  if (!(file instanceof File)) {
+    return sendError(c, 'bad_request', 'Expected multipart field "file"', 400);
+  }
+
+  try {
+    const imageBytes = await file.arrayBuffer();
+    if (imageBytes.byteLength === 0) {
+      return sendError(c, 'bad_request', 'Uploaded image is empty', 400);
+    }
+
+    const upstream = new FormData();
+    upstream.append(
+      'file',
+      new Blob([imageBytes], { type: file.type || 'image/jpeg' }),
+      file.name || 'search-image.jpg',
+    );
+
+    const res = await fetch(`${endpoint}?top_k=${topK}`, {
+      method: 'POST',
+      body: upstream,
+    });
+
+    if (!res.ok) {
+      let detail = `Jewellery_AI returned ${res.status}`;
+      try {
+        const body = (await res.json()) as { detail?: string };
+        detail = body.detail ?? detail;
+      } catch {
+        const text = await res.text().catch(() => '');
+        if (text) detail = text;
+      }
+      return sendError(c, 'upstream_failed', detail, 502);
+    }
+
+    const rows = (await res.json()) as Array<{
+      id: string | number;
+      image_url: string;
+      score: number;
+    }>;
+
+    const results = rows
+      .filter((r) => r.image_url)
+      .map((r, index) => ({
+        id: String(r.id ?? index),
+        image_url: r.image_url,
+        score: Number(r.score ?? 0),
+      }));
+
+    void logSearchEvent({
+      jewellerId,
+      queryType: 'image',
+      resultCount: results.length,
+      latencyMs: Date.now() - t0,
+    });
+
+    return sendData(c, { results });
+  } catch (err) {
+    return sendError(
+      c,
+      'upstream_failed',
+      err instanceof Error ? err.message : String(err),
+      502,
+    );
+  }
 });
 
 // ────────────────────────────────────────────────────────────────────────────

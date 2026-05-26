@@ -6,18 +6,26 @@ import { motion, AnimatePresence } from "motion/react";
 
 interface ImageUploadDropzoneProps {
   onResults?: () => void;
+  onSearch?: (file: File) => Promise<void> | void;
+  loadingLabel?: string;
 }
 
 type State = "idle" | "dragging" | "preview" | "loading" | "done";
 
-export default function ImageUploadDropzone({ onResults }: ImageUploadDropzoneProps) {
+export default function ImageUploadDropzone({
+  onResults,
+  onSearch,
+  loadingLabel = "Searching for similar items...",
+}: ImageUploadDropzoneProps) {
   const [state, setState] = useState<State>("idle");
   const [preview, setPreview] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleFile = (file: File) => {
     if (!file.type.match(/image\/(jpeg|png|webp)/)) return;
     const url = URL.createObjectURL(file);
+    setSelectedFile(file);
     setPreview(url);
     setState("preview");
   };
@@ -34,23 +42,36 @@ export default function ImageUploadDropzone({ onResults }: ImageUploadDropzonePr
     if (file) handleFile(file);
   };
 
-  const handleSearch = () => {
+  const handleSearch = async () => {
+    if (!selectedFile) return;
     setState("loading");
-    setTimeout(() => {
+    try {
+      await onSearch?.(selectedFile);
       setState("done");
       onResults?.();
-    }, 1500);
+    } catch {
+      setState("preview");
+    }
   };
 
   const reset = () => {
     setPreview(null);
+    setSelectedFile(null);
     setState("idle");
     if (inputRef.current) inputRef.current.value = "";
   };
 
   return (
     <div className="w-full" data-testid="image-upload-dropzone">
-      <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleChange} data-testid="input-image-upload" />
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        capture="environment"
+        className="hidden"
+        onChange={handleChange}
+        data-testid="input-image-upload"
+      />
 
       <AnimatePresence mode="wait">
         {state === "idle" || state === "dragging" ? (
@@ -90,7 +111,7 @@ export default function ImageUploadDropzone({ onResults }: ImageUploadDropzonePr
         ) : state === "loading" ? (
           <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center gap-4 p-10 rounded-2xl border border-border bg-muted/30">
             <Loader2 className="w-8 h-8 text-primary animate-spin" />
-            <p className="text-sm text-muted-foreground">Searching for similar items...</p>
+            <p className="text-sm text-muted-foreground">{loadingLabel}</p>
           </motion.div>
         ) : (
           <motion.div key="done" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="relative rounded-2xl overflow-hidden border-2 border-primary">

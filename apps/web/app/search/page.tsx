@@ -4,6 +4,8 @@ import CustomerLayout from "@/components/layout/CustomerLayout";
 
 import { useState, useMemo } from "react";
 import { motion } from "motion/react";
+import Link from "next/link";
+import { Camera } from "lucide-react";
 import SearchBar from "@/components/search/SearchBar";
 import ProductGrid from "@/components/product/ProductGrid";
 import { POPULAR_SEARCHES, searchProducts } from "@/lib/mock-data";
@@ -19,6 +21,15 @@ export default function SearchPage() {
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="max-w-2xl mx-auto mb-10">
           <h1 className="text-3xl font-medium tracking-tight mb-6 text-center">Search Jewellery</h1>
           <SearchBar onSearch={setQuery} autoFocus className="w-full" />
+          <div className="mt-4 flex justify-center">
+            <Link
+              href="/search/image"
+              className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/5 px-4 py-2 text-sm font-medium text-primary transition hover:bg-primary/10"
+            >
+              <Camera className="h-4 w-4" />
+              Search by photo
+            </Link>
+          </div>
         </motion.div>
 
         {!query ? (

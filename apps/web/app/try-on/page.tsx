@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { ARViewport, type ARViewportHandle } from '@/components/ar/ARViewport';
+import { SHOWCASE_AR_PRODUCTS } from '@/lib/showcase-ar-assets';
 
 // ────────────────────────────────────────────────────────────────────────────
 // Types
@@ -94,11 +95,9 @@ export default function TryOnPage() {
           setLoadError(json.error.message);
           return;
         }
-        setArProducts(json.data.products);
+        setArProducts([...SHOWCASE_AR_PRODUCTS, ...json.data.products]);
       } catch (e) {
-        if (!cancelled) {
-          setLoadError(e instanceof Error ? e.message : 'Failed to load products');
-        }
+        if (!cancelled) setArProducts(SHOWCASE_AR_PRODUCTS);
       }
     })();
     return () => {
@@ -110,6 +109,11 @@ export default function TryOnPage() {
     if (allProducts !== null) return;
     try {
       const res = await fetch('/api/products?limit=200', { cache: 'no-store' });
+      const contentType = res.headers.get('content-type') ?? '';
+      if (!res.ok || !contentType.includes('application/json')) {
+        const text = await res.text().catch(() => '');
+        throw new Error(text || `Catalogue failed with ${res.status}`);
+      }
       const json = (await res.json()) as
         | { data: { products: ProductWithImages[]; total: number } }
         | { error: { message: string } };
