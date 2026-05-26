@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
 import { motion, AnimatePresence } from "motion/react";
-import { X, Sparkles, Heart, GitCompare, ChevronRight } from "lucide-react";
+import { X, Sparkles, Heart, GitCompare, ChevronRight, LayoutDashboard } from "lucide-react";
 import { useSavedItems } from "@/contexts/SavedItemsContext";
 import { useCompare } from "@/contexts/CompareContext";
 
@@ -114,6 +114,12 @@ export default function MobileNav({ open, onClose }: MobileNavProps) {
                       {compareItems.size}
                     </span>
                   )}
+                </div>
+              </Link>
+              <Link href="/jeweller/dashboard">
+                <div className="flex items-center gap-2.5 px-3 py-3 rounded-xl hover:bg-accent transition-colors cursor-pointer">
+                  <LayoutDashboard className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">Dashboard</span>
                 </div>
               </Link>
               <Link href="/try-on">
