@@ -9,7 +9,6 @@
     "paths": {
       "@/*": ["./*"]
     },
-    "baseUrl": ".",
     "verbatimModuleSyntax": false
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
