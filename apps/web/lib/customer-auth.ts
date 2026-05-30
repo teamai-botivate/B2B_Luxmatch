@@ -1,4 +1,6 @@
-'use server';
+// Server-side only utility — used by Hono API routes (Node runtime).
+// Not a React Server Action; 'use server' removed because it rejects
+// non-async exports (constants, types).
 
 export const CUSTOMER_COOKIE_NAME = 'lm_customer';
 export const CUSTOMER_COOKIE_TTL  = 7 * 24 * 60 * 60; // 7 days in seconds

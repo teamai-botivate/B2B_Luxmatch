@@ -3,12 +3,13 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Heart, GitCompare, Camera, Award } from "lucide-react";
+import { Heart, GitCompare, Camera, Award, ShoppingBag } from "lucide-react";
 import { motion } from "motion/react";
 import { Product } from "@/lib/mock-data";
 import { formatINR } from "@/lib/format";
 import { useSavedItems } from "@/contexts/SavedItemsContext";
 import { useCompare } from "@/contexts/CompareContext";
+import { useCart } from "@/hooks/use-cart";
 
 interface ProductCardProps {
   product: Product;
@@ -17,11 +18,28 @@ interface ProductCardProps {
 
 export default function ProductCard({ product, index = 0 }: ProductCardProps) {
   const [hovered, setHovered] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [added, setAdded] = useState(false);
   const router = useRouter();
   const { isSaved, toggleSave } = useSavedItems();
   const { isCompared, toggleCompare } = useCompare();
+  const { addToCart } = useCart();
   const saved = isSaved(product.id);
   const compared = isCompared(product.id);
+
+  async function handleAddToCart(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setAdding(true);
+    const ok = await addToCart(product.id);
+    setAdding(false);
+    if (ok) {
+      setAdded(true);
+      setTimeout(() => setAdded(false), 2000);
+    } else {
+      router.push('/login');
+    }
+  }
 
   return (
     <motion.div
@@ -75,14 +93,24 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
 
           {/* Quick Actions */}
           <div className={`absolute inset-x-3 bottom-3 flex gap-2 transition-all duration-300 ${hovered ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"}`}>
+            {/* Add to Cart — primary quick action */}
+            <button
+              onClick={(e) => { void handleAddToCart(e); }}
+              disabled={adding}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-[#C9A84C] text-white text-xs font-semibold hover:bg-[#b8973e] transition-colors disabled:opacity-70"
+              aria-label="Add to cart"
+              data-testid={`button-cart-${product.id}`}
+            >
+              <ShoppingBag className="w-3.5 h-3.5" />
+              {added ? "Added ✓" : adding ? "…" : "Add to Cart"}
+            </button>
             <button
               onClick={(e) => { e.preventDefault(); toggleSave(product.id); }}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-white/90 backdrop-blur-sm text-xs font-medium hover:bg-white transition-colors"
+              className={`flex items-center justify-center p-2 rounded-xl backdrop-blur-sm text-xs font-medium transition-colors ${saved ? "bg-primary/20 text-primary" : "bg-white/90 hover:bg-white"}`}
               aria-label={saved ? "Remove from saved" : "Save item"}
               data-testid={`button-save-${product.id}`}
             >
               <Heart className={`w-3.5 h-3.5 ${saved ? "fill-[#C9A84C] text-[#C9A84C]" : "text-foreground"}`} />
-              {saved ? "Saved" : "Save"}
             </button>
             <button
               onClick={(e) => { e.preventDefault(); toggleCompare(product.id); }}
@@ -95,11 +123,11 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
             {product.hasTryOn && (
               <button
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/try-on"); }}
-                className="flex items-center justify-center p-2 rounded-xl bg-primary/90 backdrop-blur-sm hover:bg-primary transition-colors"
+                className="flex items-center justify-center p-2 rounded-xl bg-black/70 backdrop-blur-sm hover:bg-black/80 transition-colors"
                 aria-label="Try on"
                 data-testid={`button-try-on-${product.id}`}
               >
-                <Camera className="w-3.5 h-3.5 text-primary-foreground" />
+                <Camera className="w-3.5 h-3.5 text-white" />
               </button>
             )}
           </div>

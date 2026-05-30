@@ -32,8 +32,18 @@ app.route('/search', searchRoutes);
 app.route('/tryon-assets', tryOnAssetRoutes);
 app.route('/embeddings', embeddingsRoutes);
 // E-commerce routes
+// authCustomerRoutes handles: /send-otp /verify-otp /me /logout /profile
 app.route('/customer', authCustomerRoutes);
+// cartRoutes handles: GET/POST/PATCH/DELETE /api/customer/cart
 app.route('/customer/cart', cartRoutes);
+// customerOrderRoutes handles orders, addresses, branches, checkout.
+// Mounted at /customer/orders so GET /api/customer/orders → route '/'
+// GET /api/customer/orders/:id → route '/:id'
+// GET /api/customer/addresses → route /addresses (kept for compatibility)
+// POST /api/customer/checkout  → route /checkout (kept for compatibility)
+app.route('/customer/orders', customerOrderRoutes);
+// Keep legacy paths for addresses, branches, checkout so existing pages
+// that call /api/customer/addresses etc. still work:
 app.route('/customer', customerOrderRoutes);
 app.route('/', catalogRoutes);
 

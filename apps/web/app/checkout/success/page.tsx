@@ -4,10 +4,11 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { CheckCircle2, Package, ShoppingBag } from 'lucide-react';
 import { motion } from 'motion/react';
+import { Suspense } from 'react';
 import CustomerLayout from '@/components/layout/CustomerLayout';
 import { Button } from '@/components/ui/button';
 
-export default function CheckoutSuccessPage() {
+function SuccessContent() {
   const params = useSearchParams();
   const orderNumber = params.get('order') ?? 'ATJ-XXXXXX';
 
@@ -42,5 +43,13 @@ export default function CheckoutSuccessPage() {
         </motion.div>
       </div>
     </CustomerLayout>
+  );
+}
+
+export default function CheckoutSuccessPage() {
+  return (
+    <Suspense fallback={<CustomerLayout><div className="flex min-h-screen items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" /></div></CustomerLayout>}>
+      <SuccessContent />
+    </Suspense>
   );
 }
