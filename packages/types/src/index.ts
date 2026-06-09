@@ -200,6 +200,7 @@ export const ApiErrorSchema = z.object({
     'forbidden',
     'rate_limited',
     'upstream_failed',
+    'upstream_warming_up', // transient: a sleeping upstream (HF Space) is cold-booting; retry shortly
     'internal_error',
   ]),
   message: z.string(),

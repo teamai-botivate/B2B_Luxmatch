@@ -11,7 +11,7 @@ import { Product } from "@/lib/mock-data";
 import { useShop } from "@/hooks/use-shop";
 import { useSavedItems } from "@/contexts/SavedItemsContext";
 import { useCompare } from "@/contexts/CompareContext";
-import { useCart } from "@/hooks/use-cart";
+import { useAddToCart } from "@/hooks/use-cart";
 import { trackEvent } from "@/lib/analytics";
 
 interface ProductDetailPanelProps {
@@ -22,7 +22,7 @@ export default function ProductDetailPanel({ product }: ProductDetailPanelProps)
   const router = useRouter();
   const { isSaved, toggleSave } = useSavedItems();
   const { isCompared, toggleCompare } = useCompare();
-  const { addToCart } = useCart();
+  const addToCart = useAddToCart();
   const shop = useShop();
   const [adding, setAdding] = useState(false);
   const [added, setAdded] = useState(false);

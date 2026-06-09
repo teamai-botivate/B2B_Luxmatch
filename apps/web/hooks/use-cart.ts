@@ -22,6 +22,32 @@ export function useCartCount() {
   return count;
 }
 
+/**
+ * Lightweight cart-write hook for list contexts (ProductCard, detail panel).
+ * Unlike useCart(), it does NOT fetch the cart on mount — so a page rendering
+ * N product cards fires zero GETs instead of N. On a successful add it does a
+ * single GET to refresh the shared count badge, then returns.
+ */
+export function useAddToCart() {
+  return useCallback(async (productId: string, quantity = 1): Promise<boolean> => {
+    const res = await fetch('/api/customer/cart', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ product_id: productId, quantity }),
+    });
+    if (!res.ok) return false;
+    // Refresh just the count so the header badge updates.
+    try {
+      const r = await fetch('/api/customer/cart', { cache: 'no-store' });
+      if (r.ok) {
+        const json = (await r.json()) as { data: { count: number } };
+        notifyCartChange(json.data.count);
+      }
+    } catch {}
+    return true;
+  }, []);
+}
+
 export function useCart() {
   const [items, setItems] = useState<CartItem[]>([]);
   const [total, setTotal] = useState(0);

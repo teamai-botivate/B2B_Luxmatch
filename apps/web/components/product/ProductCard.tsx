@@ -9,7 +9,7 @@ import { Product } from "@/lib/mock-data";
 import { formatINR } from "@/lib/format";
 import { useSavedItems } from "@/contexts/SavedItemsContext";
 import { useCompare } from "@/contexts/CompareContext";
-import { useCart } from "@/hooks/use-cart";
+import { useAddToCart } from "@/hooks/use-cart";
 import { trackEvent } from "@/lib/analytics";
 
 interface ProductCardProps {
@@ -24,7 +24,7 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
   const router = useRouter();
   const { isSaved, toggleSave } = useSavedItems();
   const { isCompared, toggleCompare } = useCompare();
-  const { addToCart } = useCart();
+  const addToCart = useAddToCart();
   const saved = isSaved(product.id);
   const compared = isCompared(product.id);
 

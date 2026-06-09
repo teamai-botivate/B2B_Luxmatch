@@ -223,12 +223,55 @@ searchRoutes.post('/jewellery-ai', async (c) => {
       file.name || 'search-image.jpg',
     );
 
-    const res = await fetch(`${endpoint}?top_k=${topK}`, {
-      method: 'POST',
-      body: upstream,
-    });
+    // The Jewellery_AI HF Space sleeps when idle and takes ~30-90s to cold-boot.
+    // While booting, the gateway returns 502/503 and requests hang. So: cap each
+    // attempt with a timeout and retry once after a short wait — by the second
+    // attempt the Space is usually awake. A hung boot now fails in ~ATTEMPT_TIMEOUT
+    // instead of blocking for two minutes.
+    const ATTEMPT_TIMEOUT_MS = 45_000;
+    const fetchUpstream = async () => {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), ATTEMPT_TIMEOUT_MS);
+      try {
+        return await fetch(`${endpoint}?top_k=${topK}`, {
+          method: 'POST',
+          body: upstream,
+          signal: ctrl.signal,
+        });
+      } finally {
+        clearTimeout(timer);
+      }
+    };
+
+    let res: Response;
+    try {
+      res = await fetchUpstream();
+      // 502/503 mid-boot → wait and retry once.
+      if (res.status === 502 || res.status === 503) {
+        await new Promise((r) => setTimeout(r, 4_000));
+        res = await fetchUpstream();
+      }
+    } catch (e) {
+      // Timeout / network abort on the first attempt → the Space is waking.
+      // Tell the client it's a transient "warming up" condition (503) so the
+      // UI can prompt a retry rather than showing a hard failure.
+      return sendError(
+        c,
+        'upstream_warming_up',
+        'Visual search is warming up (the model service was asleep). Please try again in a few seconds.',
+        503,
+      );
+    }
 
     if (!res.ok) {
+      if (res.status === 502 || res.status === 503) {
+        return sendError(
+          c,
+          'upstream_warming_up',
+          'Visual search is warming up (the model service was asleep). Please try again in a few seconds.',
+          503,
+        );
+      }
       let detail = `Jewellery_AI returned ${res.status}`;
       try {
         const body = (await res.json()) as { detail?: string };
