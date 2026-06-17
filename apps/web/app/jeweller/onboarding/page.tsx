@@ -14,7 +14,7 @@ export default function OnboardingPage() {
           <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mt-2">Jeweller Portal</p>
           <h1 className="text-3xl font-medium tracking-tight mt-3">Set Up Your Store</h1>
           <p className="text-muted-foreground mt-2 text-sm max-w-sm mx-auto">
-            Join India's premium jewellery discovery platform. Reach thousands of customers looking for exactly what you create.
+            Join India&apos;s premium jewellery discovery platform. Reach thousands of customers looking for exactly what you create.
           </p>
         </div>
         <OnboardingWizard />

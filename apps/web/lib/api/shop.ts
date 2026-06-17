@@ -1,5 +1,6 @@
 import { getServerEnv } from '@luxematch/config';
 import {
+  countRecentPinFailures,
   getJewellerInternal,
   getJewellerPublic,
   getJewellerSettings,
@@ -11,11 +12,10 @@ import {
 } from '@luxematch/db';
 import {
   PIN_COOKIE_NAME,
+  PIN_FAILURE_LIMIT,
+  PIN_FAILURE_WINDOW_MS,
   PinSchema,
-  clearPinFailures,
-  isPinLocked,
   issuePinCookie,
-  registerPinFailure,
 } from '@luxematch/tenant';
 import { hashPin, verifyPin } from '@luxematch/tenant/server';
 import { zValidator } from '@hono/zod-validator';
@@ -72,16 +72,16 @@ shopRoutes.post('/unlock', zValidator('json', UnlockBody), async (c) => {
     c.req.header('x-real-ip') ||
     'unknown';
 
-  // Rate-limit per (jeweller, IP): 5 failures / 60s. A shared device on one
-  // network gets one bucket; an attacker hammering from one IP is throttled.
-  const lockKey = `unlock:${jewellerId}:${ip}`;
-
-  const lockState = isPinLocked(lockKey);
-  if (lockState.locked) {
+  // Durable rate limit per (jeweller, IP): PIN_FAILURE_LIMIT failures /
+  // PIN_FAILURE_WINDOW_MS, counted from pin_audit_events so it survives
+  // deploy/restart and is shared across instances. A successful unlock resets
+  // the count (countRecentPinFailures stops at the most recent success).
+  const recentFailures = await countRecentPinFailures(jewellerId, ip, PIN_FAILURE_WINDOW_MS);
+  if (recentFailures >= PIN_FAILURE_LIMIT) {
     return sendError(
       c,
       'rate_limited',
-      `Too many failed attempts. Try again in ${Math.ceil(lockState.retryAfterMs / 1000)}s.`,
+      `Too many failed attempts. Try again in ${Math.ceil(PIN_FAILURE_WINDOW_MS / 1000)}s.`,
       429,
     );
   }
@@ -97,23 +97,24 @@ shopRoutes.post('/unlock', zValidator('json', UnlockBody), async (c) => {
 
   const ok = verifyPin(pin, jeweller.pin_hash);
 
-  // Audit every attempt (fire-and-forget) with the originating IP.
-  void logPinAudit({ jewellerId, attemptIp: ip, success: ok });
+  // Audit every attempt with the originating IP. Awaited (not fire-and-forget)
+  // so the failure that just happened is counted by the next request's gate.
+  await logPinAudit({ jewellerId, attemptIp: ip, success: ok });
 
   if (!ok) {
-    const r = registerPinFailure(lockKey);
-    if (r.locked) {
+    // This failure is now persisted; recompute so the Nth failure itself is
+    // rejected with 429 rather than only the N+1th.
+    const failures = await countRecentPinFailures(jewellerId, ip, PIN_FAILURE_WINDOW_MS);
+    if (failures >= PIN_FAILURE_LIMIT) {
       return sendError(
         c,
         'rate_limited',
-        `Too many failed attempts. Try again in ${Math.ceil(r.retryAfterMs / 1000)}s.`,
+        `Too many failed attempts. Try again in ${Math.ceil(PIN_FAILURE_WINDOW_MS / 1000)}s.`,
         429,
       );
     }
     return sendError(c, 'unauthorized', 'Incorrect PIN', 401);
   }
-
-  clearPinFailures(lockKey);
 
   const cookie = await issuePinCookie(jewellerId, {
     secret: env.LM_PIN_COOKIE_SECRET,

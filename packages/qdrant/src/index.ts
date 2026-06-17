@@ -165,7 +165,7 @@ type QdrantCondition =
   | { key: string; match: { any: (string | number)[] } }
   | { key: string; range: { gte?: number; lte?: number } };
 
-function buildMust(filter: SearchFilter): QdrantCondition[] {
+export function buildSearchMustFilter(filter: SearchFilter): QdrantCondition[] {
   const must: QdrantCondition[] = [
     { key: 'jeweller_id', match: { value: filter.jewellerId } },
   ];
@@ -211,7 +211,7 @@ export async function searchByVector(opts: {
     vector: opts.vector,
     limit,
     with_payload: true,
-    filter: { must: buildMust(opts.filter) as unknown as never },
+    filter: { must: buildSearchMustFilter(opts.filter) as unknown as never },
   });
 
   return result.map((hit) => {

@@ -137,3 +137,44 @@ export async function logPinAudit(input: PinAuditInput): Promise<void> {
     console.error('[pin_audit_events] log failed', err);
   }
 }
+
+/**
+ * Durable PIN rate limit: count consecutive failed unlock attempts for a
+ * (jeweller, IP) bucket inside `windowMs`. Reads from pin_audit_events (already
+ * written on every attempt) so the limit survives deploys/restarts and is
+ * shared across instances — unlike the in-memory Map in @luxematch/tenant.
+ *
+ * "Consecutive" matters: we only count failures since the most recent SUCCESS
+ * in the window, so a successful unlock clears the bucket without a separate
+ * delete. Returns 0 on any error (fail-open) — never block a legitimate unlock
+ * because the audit table is unreachable.
+ */
+export async function countRecentPinFailures(
+  jewellerId: string,
+  attemptIp: string,
+  windowMs: number,
+  now = Date.now(),
+): Promise<number> {
+  try {
+    const sb = getSupabaseServer();
+    const since = new Date(now - windowMs).toISOString();
+    const { data } = await sb
+      .from('pin_audit_events')
+      .select('success, created_at')
+      .eq('jeweller_id', jewellerId)
+      .eq('attempt_ip', attemptIp)
+      .gte('created_at', since)
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    let failures = 0;
+    for (const row of (data ?? []) as Array<{ success: boolean }>) {
+      if (row.success) break; // stop at the most recent successful unlock
+      failures += 1;
+    }
+    return failures;
+  } catch (err) {
+    console.error('[pin_audit_events] count failed', err);
+    return 0;
+  }
+}

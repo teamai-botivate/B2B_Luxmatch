@@ -80,7 +80,7 @@ export default function JewellerEntryPage() {
             transition={{ delay: 0.2 }}
             className="text-lg text-white/60 max-w-2xl leading-relaxed"
           >
-            Join India's premier AI-powered jewellery discovery platform. Reach thousands of potential customers with AR try-on, visual search, and personalised recommendations.
+            Join India&apos;s premier AI-powered jewellery discovery platform. Reach thousands of potential customers with AR try-on, visual search, and personalised recommendations.
           </motion.p>
           <motion.div
             {...fadeUp}
@@ -230,7 +230,7 @@ export default function JewellerEntryPage() {
               className="rounded-full px-10 py-3 text-sm font-semibold bg-primary text-primary-foreground hover:opacity-90"
               data-testid="button-final-cta"
             >
-              Create Your Store — It's Free
+              Create Your Store — It&apos;s Free
             </Button>
           </motion.div>
         </div>

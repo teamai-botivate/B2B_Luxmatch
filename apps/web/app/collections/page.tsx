@@ -136,7 +136,7 @@ export default function CollectionsPage() {
             <div>
               <h3 className="text-xl font-medium text-white">Not sure which collection suits you?</h3>
               <p className="text-white/60 text-sm mt-1 max-w-md leading-relaxed">
-                Take our 7-step style quiz — we'll match you to the perfect collection based on your occasion, aesthetic, and budget.
+                Take our 7-step style quiz — we&apos;ll match you to the perfect collection based on your occasion, aesthetic, and budget.
               </p>
             </div>
           </div>

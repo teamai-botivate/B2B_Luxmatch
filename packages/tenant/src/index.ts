@@ -170,8 +170,12 @@ export async function verifyPinCookie(
 // ────────────────────────────────────────────────────────────────────────────
 // In-memory PIN failure tracker (per process)
 //
-// Soft rate limit for /api/shop/unlock. Not shared across instances. Phase 12
-// hardens this with persistent pin_audit_events.
+// LEGACY soft rate limit. The authoritative limit for /api/shop/unlock is now
+// durable: countRecentPinFailures() in @luxematch/db reads pin_audit_events, so
+// it survives deploys/restarts and is shared across instances. These pure,
+// Edge-safe helpers remain for unit-testability and as an optional in-process
+// fast-path; the unlock route no longer depends on them. PIN_FAILURE_LIMIT /
+// PIN_FAILURE_WINDOW_MS are the shared tuning constants for both layers.
 // ────────────────────────────────────────────────────────────────────────────
 
 type FailureRecord = { count: number; firstFailureMs: number };

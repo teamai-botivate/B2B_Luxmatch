@@ -136,7 +136,7 @@ export default function LoginPage() {
           </div>
 
           <p className="mt-6 text-center text-xs text-muted-foreground">
-            By continuing you agree to AT Jewellers' terms of service.
+            By continuing you agree to AT Jewellers&apos; terms of service.
           </p>
         </div>
       </div>

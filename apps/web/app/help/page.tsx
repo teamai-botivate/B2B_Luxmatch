@@ -47,7 +47,7 @@ export default function HelpPage() {
         {/* Camera Permissions */}
         <section className="mb-12">
           <h2 className="text-xl font-medium mb-5">Camera Permissions</h2>
-          <p className="text-sm text-muted-foreground mb-6">LuxeMatch's Virtual Try-On feature needs camera access. Here's how to enable it:</p>
+          <p className="text-sm text-muted-foreground mb-6">LuxeMatch&apos;s Virtual Try-On feature needs camera access. Here&apos;s how to enable it:</p>
           <div className="space-y-4">
             {CAMERA_STEPS.map(({ browser, steps }) => (
               <div key={browser} className="rounded-2xl border border-border p-5">

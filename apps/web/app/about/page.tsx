@@ -19,7 +19,7 @@ export default function AboutPage() {
             </div>
             <h1 className="text-4xl md:text-5xl font-medium tracking-tight mb-4">Jewellery Discovery,<br />Reimagined</h1>
             <p className="text-lg text-muted-foreground leading-relaxed">
-              LuxeMatch connects you with India's finest jewellery — certified, curated, and designed to be discovered through the power of AI and augmented reality.
+              LuxeMatch connects you with India&apos;s finest jewellery — certified, curated, and designed to be discovered through the power of AI and augmented reality.
             </p>
           </motion.div>
         </div>

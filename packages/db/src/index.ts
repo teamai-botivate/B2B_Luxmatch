@@ -61,6 +61,7 @@ export {
   logProductView,
   logTryonEvent,
   logPinAudit,
+  countRecentPinFailures,
   type SearchEventInput,
   type AnalyticsEventInput,
   type ProductViewInput,
