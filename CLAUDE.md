@@ -25,8 +25,10 @@ All core phases (-1 through 12) plus the e-commerce layer (E1–E3) are landed o
 - **Supabase Realtime** — `useMultiDeviceSync` and `useRealtimeCatalog` hooks subscribe to product/sales/tryon events so the catalog and dashboard stay live across devices without manual refresh.
 - **Cart optimization + Space warm-up handling** — `useAddToCart` hook adds to cart without a mount-time cart fetch (no N+1 GETs from product cards); `/api/search/jewellery-ai` has a 45s upstream timeout + one retry on 502/503 and returns a `upstream_warming_up` 503 while the Jewellery_AI HF Space cold-boots (~30–90s).
 - **Production blocker pass** — P1/P2/P3 ops work is committed locally on `production`: unscoped cart/address helpers are jeweller-scoped, demo OTP is hidden in production, migration seeding loads env, saved/compare use `sessionStorage`, home uses real products/collections, festival windows are year-relative, PIN limits are durable via `pin_audit_events`, tenancy guard tests exist, and Supabase Security Advisor warnings are addressed by `0003_security_advisor.sql`.
+- **Email OTP login verified end-to-end** — custom SMTP is configured in the Supabase dashboard (Auth → Emails → SMTP, currently a personal Gmail App Password for dev) so `signInWithOtp` actually delivers. Supabase email OTP is **8 digits**; the verify route + login input were fixed to accept 6–8 (was hardcoded to 6, which made login impossible). `send-otp` now logs the underlying Supabase error on failure.
+- **Storefront renders real `product_images`** — saved/compare/CompareTray hydrate stored product UUIDs via a new tenant-scoped `GET /api/products/by-ids`; collections list/detail and occasions pull real API data; `productImageUrl()`/`PLACEHOLDER_IMAGE_URL` give a safe fallback. NOTE: the underlying rows are still Unsplash seed images (see image-flow + Known gaps) — the wiring is done, real photos are not yet uploaded.
 
-NEXT: push/deploy the local `production` commits, apply `0003_security_advisor.sql` in Supabase, configure production `SMTP_*` for order confirmations, and link/display the already indexed real Cloudinary product images. Do **not** touch try-on/AR assets yet; that work is explicitly deferred. AWS migration parked until instructed. See "Known gaps" below for remaining production blockers.
+NEXT: push/deploy the local `production` commits, apply `0003_security_advisor.sql` in Supabase, switch dev Gmail SMTP to a transactional provider (Resend/Brevo) + set production `SMTP_*` for order confirmations, and upload real product photos via the jeweller Cloudinary flow (the storefront already displays whatever is in `product_images`). Do **not** touch try-on/AR assets yet; that work is explicitly deferred. AWS migration parked until instructed. See "Known gaps" below for remaining production blockers.
 
 ## Commands
 
@@ -214,7 +216,11 @@ PATCH  /api/shop/orders/:id             PIN — update status (confirmed/packed/
 
 # Customer auth + e-commerce (all scoped to SHOP_JEWELLER_ID)
 POST   /api/customer/send-otp           public — Supabase Auth email OTP initiation
+                                        (logs the real Supabase reason on failure)
 POST   /api/customer/verify-otp         public — Supabase Auth OTP check, sets lm_customer cookie (7d)
+                                        ⚠️ accepts 6–8 digit codes — Supabase email OTP
+                                        defaults to 8 digits; validator is /^\d{6,8}$/ and
+                                        the login input maxLength is 8 (do NOT revert to 6)
 GET    /api/customer/me                 customer-gated — profile
 POST   /api/customer/logout             customer-gated — clears lm_customer cookie
 POST   /api/customer/profile            customer-gated — update name/email
@@ -255,7 +261,7 @@ Cart state: `useCart()` (full fetch, used on /cart and /checkout), `useAddToCart
 
 This is the canonical flow for every product image — both regular product photos and transparent AR-ready PNGs. **The flow is the same in dev and in production; only the vendor endpoints change.**
 
-The real Cloudinary product images have already been indexed for search. Do not run `pnpm reindex` unless product image rows or Cloudinary URLs change. Current image work is linking/displaying the real `product_images.url` / `is_primary` assets in storefront surfaces. Try-on/AR asset work is deferred; do not touch `/try-on`, `product_tryon_assets`, or `showcase-ar-assets` for the current product-photo pass.
+⚠️ **Real product images are NOT in the database yet** (verified against live Supabase + Cloudinary, June 2026). For `SHOP_JEWELLER_ID` all 12 products have `product_images` rows but every URL is an **Unsplash seed placeholder** (`seed/*` public_ids from `seed.sql`). The Cloudinary account (`dyrc4bo4m`) has **no assets under `luxematch/<jewellerId>/products/`**; its only real assets are **Jewellery_AI's `jewellery_search/<hex>` collection**, which is a *different* system (shared account) with no tags/metadata and no reliable identifier linking it to LuxeMatch products — so it **cannot be auto-imported**. (An earlier note here claimed images were "already indexed for search"; that is incorrect for this tenant.) The storefront image *wiring* is complete (queries serve `product_images.url`, `is_primary` first, jeweller-scoped, with a placeholder fallback), so real photos display the moment they are uploaded via the jeweller Cloudinary flow (`POST /api/cloudinary/sign-upload` → `addProductImage`). Do not run `pnpm reindex` unless product image rows or Cloudinary URLs change. Try-on/AR asset work is deferred; do not touch `/try-on`, `product_tryon_assets`, or `showcase-ar-assets` for the current product-photo pass.
 
 ```
 Jeweller uploads image
@@ -434,9 +440,9 @@ Tracked here so they aren't rediscovered. Roughly in priority order:
 1. **Secret rotation still required if not already completed** — old Supabase service-role, Cloudinary secret, and Qdrant keys were exposed in repo history / sibling scripts. `scripts/run-migration.mjs` is now env-loaded, but leaked dashboard secrets still need rotation.
 2. **Push/deploy local production commits** — local `production` contains the P1/P2/P3 ops, Stage 3 email OTP, and Supabase Security Advisor work. Push and deploy before treating production as current.
 3. **Apply Supabase Security Advisor migration** — run `supabase/migrations/0003_security_advisor.sql` in the Supabase SQL editor, then rerun the dashboard linter. It adds explicit `service_role` policies and fixed function `search_path`; it does not grant anon/authenticated table access.
-4. **Customer OTP delivery** — uses Supabase Auth email OTP. Production requires Supabase Auth custom SMTP to stay configured; phone remains stored on the shop-scoped `customers` row for orders and contact.
-5. **Order confirmation email env** — checkout can send confirmation emails through optional `SMTP_*` env vars; configure these in Render/local production env for non-auth order emails.
-6. **Real product images** — Cloudinary images have already been indexed for search. Remaining storefront work is linking/displaying real `product_images.url` / primary-image data. Do not touch try-on/AR assets yet.
+4. **Customer OTP email is on a personal Gmail (dev only)** — Supabase Auth custom SMTP works end-to-end now, but it's wired to a personal Gmail App Password (host `smtp.gmail.com`). Gmail caps ~500/day, may land in spam, and isn't a real sender identity. Switch to a transactional provider (Resend/Brevo) with a verified domain before real customers. The OTP is 8 digits (Supabase default) — the app accepts 6–8; don't re-narrow it.
+5. **Order confirmation email env** — checkout sends confirmation emails through the optional `SMTP_*` env vars (nodemailer, separate from Supabase Auth's own SMTP). Set these in Render/local production env, ideally the same transactional provider as #4.
+6. **Real product images not uploaded** — every `product_images` row for the demo shop is an Unsplash seed placeholder; no real Cloudinary product assets exist under `luxematch/<jewellerId>/products/` (the only real assets are Jewellery_AI's unmappable `jewellery_search/*`). Storefront display is wired and tenant-safe; the remaining task is uploading real photos via the jeweller Cloudinary flow, not code. Do not touch try-on/AR assets yet.
 7. **Embedder not deployed** — `/api/search/text|image|hybrid` and per-product re-embedding are dead on the deployed site, which breaks text search (`/search`) and the style quiz in production; indexing is manual from a local machine. Visual search (`/search/image`) works via the Jewellery_AI HF Space proxy but searches Jewellery_AI's own catalog, NOT this shop's tenancy-scoped inventory. Decide hosting: own HF Space, the Render service already defined in render.yaml, or add `/embed/*` endpoints to the Jewellery_AI Space.
 8. **`luxematch-web` on Render free plan** — idle spin-down = cold-start blank kiosk.
 9. **Hardcoded `LUXE10` discount** in checkout; no discount table.
@@ -469,7 +475,9 @@ Tracked here so they aren't rediscovered. Roughly in priority order:
 | P3 ops | Durable PIN rate limit + tenancy vitest guards | ✅ local `production` |
 | Stage 3 | Supabase Auth email OTP + optional SMTP order confirmation email | ✅ local `production` |
 | Security Advisor | RLS policy migration + function search_path fixes | ✅ local `production`; apply `0003` remotely |
+| Email OTP live | Custom SMTP (dev Gmail) verified end-to-end; OTP accepts 6–8 digits | ✅ local `production`; swap to transactional SMTP for prod |
+| Storefront images | Real `product_images` wired across all surfaces (`/api/products/by-ids`, fallbacks); try-on untouched | ✅ linkage done — real photos not yet uploaded |
 | — | Push/deploy local `production` commits | ⬜ next |
-| — | Real Cloudinary product image storefront linkage (try-on untouched) | ⬜ next |
+| — | Upload real product photos via jeweller Cloudinary flow | ⬜ next |
 | — | Cleanup: discount table, stale docs, empty `@luxematch/ui` | ⬜ next |
 | AWS | S3 + CloudFront + EC2 migration | ⬜ parked — do when instructed |
