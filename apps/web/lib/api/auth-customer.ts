@@ -55,7 +55,17 @@ authCustomerRoutes.post('/send-otp', zValidator('json', SendOtpBody), async (c) 
     },
   });
 
-  if (error) return sendError(c, 'bad_request', error.message, 400);
+  if (error) {
+    // Surface the underlying Supabase Auth reason in server logs — the client
+    // only sees a generic message. Common causes: email signups disabled,
+    // no SMTP configured in the Supabase dashboard, or auth rate limiting.
+    console.error('[send-otp] supabase signInWithOtp failed', {
+      status: (error as { status?: number }).status,
+      code: (error as { code?: string }).code,
+      message: error.message,
+    });
+    return sendError(c, 'bad_request', error.message, 400);
+  }
 
   return sendData(c, {
     sent: true,
