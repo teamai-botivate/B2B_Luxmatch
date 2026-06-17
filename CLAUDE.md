@@ -8,9 +8,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What LuxeMatch is
 
-A **shop-installed** AI jewellery platform with a full e-commerce layer. One install serves one jeweller's inventory on a device in their physical store. Customers browse, search by photo, try jewellery on in 2D AR, add to cart, log in via phone OTP, and place orders for delivery or click-and-collect. Staff unlock a back-office on the **same device** with a PIN to manage inventory, see analytics, and act on AI-generated stocking recommendations. The cloud (Supabase, Qdrant, Cloudinary, the Python embedder) is **shared across all shops**; tenancy is enforced by `jeweller_id` on every row, payload, and folder.
+A **shop-installed** AI jewellery platform with a full e-commerce layer. One install serves one jeweller's inventory on a device in their physical store. Customers browse, search by photo, try jewellery on in 2D AR, add to cart, log in with Supabase Auth email OTP, and place orders for delivery or click-and-collect. Phone remains the shop-scoped customer/order identity. Staff unlock a back-office on the **same device** with a PIN to manage inventory, see analytics, and act on AI-generated stocking recommendations. The cloud (Supabase, Qdrant, Cloudinary, the Python embedder) is **shared across all shops**; tenancy is enforced by `jeweller_id` on every row, payload, and folder.
 
-A public multi-jeweller mode ("MODE B" in `plan.txt` — site works without `SHOP_JEWELLER_ID`, jeweller-selector routing) is **aspirational and not built**. Everything assumes `SHOP_JEWELLER_ID` is set; `getShopJewellerId()` throws without it. The `/store/[jeweller-slug]` page exists but is wired to mock data only.
+A public multi-jeweller mode ("MODE B" in `plan.txt` — site works without `SHOP_JEWELLER_ID`, jeweller-selector routing) is **aspirational and not built**. Everything assumes `SHOP_JEWELLER_ID` is set; `getShopJewellerId()` throws without it. The dead `/store/[jeweller-slug]` page was removed.
 
 `plan.txt` is the canonical execution plan for the core platform phases. `SETUP.md` covers the e-commerce layer setup steps. `README.md`, `docs/architecture.md`, and `docs/api-contracts.md` are **out of date** (they still mention Vercel, Gemini embeddings, and a pre-migration schema shape) — prefer `plan.txt`, this file, and the code.
 
@@ -19,13 +19,14 @@ A public multi-jeweller mode ("MODE B" in `plan.txt` — site works without `SHO
 All core phases (-1 through 12) plus the e-commerce layer (E1–E3) are landed on `production`:
 
 - **Phase 9.5 (inventory intelligence)** — live. Heuristic recommendations on `/jeweller/dashboard` and `/jeweller/intelligence`.
-- **E-commerce layer** — live. Customer email OTP auth through Supabase Auth (phone remains the shop-scoped customer/order identity), cart, checkout, orders, multi-branch support. Supabase migration `0002_ecommerce.sql`.
+- **E-commerce layer** — live. Customer email OTP auth through Supabase Auth (phone remains the shop-scoped customer/order identity), cart, checkout, orders, multi-branch support. Supabase migrations `0002_ecommerce.sql` and `0003_security_advisor.sql`.
 - **Phase 9 (style quiz)** — live. Builds a text query from quiz answers → `/api/search/text`.
 - **Phase 10–12** — analytics events, smoke tests, vitest, Render deployment config, CORS lockdown, PIN hardening (rate limit, audit log, idle-lock).
 - **Supabase Realtime** — `useMultiDeviceSync` and `useRealtimeCatalog` hooks subscribe to product/sales/tryon events so the catalog and dashboard stay live across devices without manual refresh.
-- **Cart optimization + Space warm-up handling** (latest) — `useAddToCart` hook adds to cart without a mount-time cart fetch (no N+1 GETs from product cards); `/api/search/jewellery-ai` has a 45s upstream timeout + one retry on 502/503 and returns a `upstream_warming_up` 503 while the Jewellery_AI HF Space cold-boots (~30–90s).
+- **Cart optimization + Space warm-up handling** — `useAddToCart` hook adds to cart without a mount-time cart fetch (no N+1 GETs from product cards); `/api/search/jewellery-ai` has a 45s upstream timeout + one retry on 502/503 and returns a `upstream_warming_up` 503 while the Jewellery_AI HF Space cold-boots (~30–90s).
+- **Production blocker pass** — P1/P2/P3 ops work is committed locally on `production`: unscoped cart/address helpers are jeweller-scoped, demo OTP is hidden in production, migration seeding loads env, saved/compare use `sessionStorage`, home uses real products/collections, festival windows are year-relative, PIN limits are durable via `pin_audit_events`, tenancy guard tests exist, and Supabase Security Advisor warnings are addressed by `0003_security_advisor.sql`.
 
-NEXT: UI/UX refinement pass, then real DB/storage connection + real asset upload. AWS migration parked until instructed. See "Known gaps" below for production blockers.
+NEXT: push/deploy the local `production` commits, apply `0003_security_advisor.sql` in Supabase, configure production `SMTP_*` for order confirmations, and link/display the already indexed real Cloudinary product images. Do **not** touch try-on/AR assets yet; that work is explicitly deferred. AWS migration parked until instructed. See "Known gaps" below for remaining production blockers.
 
 ## Commands
 
@@ -54,9 +55,9 @@ pnpm smoke-test           # ping Supabase + Qdrant + embedder + Cloudinary + PIN
 pnpm test                 # vitest — pure-logic unit tests (tests/*.test.ts)
 ```
 
-`check-env`, `smoke-test`, `reindex`, `seed:intelligence`, and `rollup:intelligence` all load `apps/web/.env.local` via `tsx --env-file`. `smoke-test` exits 1 if any service is unreachable; run it before deploying. `test` runs vitest against `tests/` (currently the security-critical `@luxematch/tenant` PIN/cookie/rate-limit logic). New CLI scripts that need Supabase/Qdrant access should follow the same `tsx --env-file=apps/web/.env.local` pattern.
+`check-env`, `smoke-test`, `reindex`, `seed:intelligence`, and `rollup:intelligence` all load `apps/web/.env.local` via `tsx --env-file`. `smoke-test` exits 1 if any service is unreachable; run it before deploying. `test` runs vitest against `tests/` (security-critical `@luxematch/tenant` PIN/cookie/rate-limit logic plus tenancy guard assertions for DB/Qdrant helpers). New CLI scripts that need Supabase/Qdrant access should follow the same `tsx --env-file=apps/web/.env.local` pattern.
 
-> ⚠️ `node scripts/run-migration.mjs` does NOT apply migrations despite its name — it seeds demo e-commerce data (branches, customers, orders) and **contains a hardcoded Supabase URL + service-role key** (security issue; rotate the key and convert the script to env loading). Apply migrations via the Supabase dashboard SQL editor instead.
+`node scripts/run-migration.mjs` does NOT apply migrations despite its name — it seeds demo e-commerce data (branches, customers, orders) and now loads Supabase env from `apps/web/.env.local`. Prefer `pnpm seed:ecommerce`. Apply migrations via the Supabase dashboard SQL editor instead.
 
 Three processes for full end-to-end:
 
@@ -110,8 +111,11 @@ supabase/
   migrations/
     0001_init.sql        # Core schema (products, jewellers, events,
                          # pin_audit_events, inventory_signals, etc.)
-    0002_ecommerce.sql   # E-commerce layer (customers, OTPs, cart, orders,
-                         # order_items, order_status_history, branches)
+    0002_ecommerce.sql   # E-commerce layer (customers, legacy OTPs, cart,
+                         # orders, order_items, order_status_history, branches)
+    0003_security_advisor.sql
+                         # Explicit service_role RLS policies + fixed function
+                         # search_path for Supabase Security Advisor warnings
   seed.sql               # Demo jeweller + 12 products + 3 try-on assets (PIN 123456)
 
 scripts/
@@ -121,7 +125,7 @@ scripts/
   seasonal-rollup.ts     # inventory_signals weekly rollup
   check-env.ts           # env presence gate
   smoke-test.ts          # external-service reachability gate
-  run-migration.mjs      # ⚠️ demo-data seeder with hardcoded keys — see Commands
+  run-migration.mjs      # demo-data seeder; env-loaded — see Commands
 
 apps/web/public/All_jewelleries/   # ~46 temporary transparent PNGs for AR demo
                                    # (replaced by Cloudinary uploads via Phase 7 tool)
@@ -239,11 +243,10 @@ Most customer pages hit real APIs (catalog, product detail, try-on, cart, checko
 - **`/search/image` → `/api/search/jewellery-ai`** — LuxeMatch uses Jewellery_AI's search system for visual search. Works in production via the HF Space, but returns Jewellery_AI's own indexed catalog, not this shop's inventory.
 - **`/search` (text) → `/api/search/text`** and **`/style-quiz` → `/api/search/text|hybrid`** — embedder-dependent, so broken on the deployed site until the embedder is deployed.
 
-Exceptions that still use mock/local data:
+Exceptions / limitations that still matter:
 
-- **`/` (home)** — renders `MOCK_PRODUCTS` from `lib/mock-data`. The first screen customers see is fake inventory; wiring it to `/api/products` (`is_featured`) is pending UI/UX work.
-- **`/compare` and `/saved`** — client-only via `CompareContext` / `SavedItemsContext`, backed by **`localStorage`** keys `luxematch_compare` / `luxematch_saved` (max 4 compare items). No Supabase `saved_items` table exists.
-- **`/store/[jeweller-slug]`** — mock-data only (vestige of unbuilt MODE B).
+- **`/` (home)** — uses real `/api/products` featured results and `/api/collections`.
+- **`/compare` and `/saved`** — client-only via `CompareContext` / `SavedItemsContext`, backed by **`sessionStorage`** keys `luxematch_compare` / `luxematch_saved` (max 4 compare items). This is intentional kiosk behavior so state resets between browser sessions/customers. No Supabase `saved_items` table exists.
 - **`/checkout/success`** — UI-only, reads `?order=<orderNumber>` from the URL. Checkout sends an order confirmation email when the optional `SMTP_*` env vars are configured.
 
 Cart state: `useCart()` (full fetch, used on /cart and /checkout), `useAddToCart()` (POST-only, used by ProductCard/ProductDetailPanel), `useCartCount()` (global listener) — all in `apps/web/hooks/use-cart.ts`.
@@ -251,6 +254,8 @@ Cart state: `useCart()` (full fetch, used on /cart and /checkout), `useAddToCart
 ## Image storage + vector search data flow
 
 This is the canonical flow for every product image — both regular product photos and transparent AR-ready PNGs. **The flow is the same in dev and in production; only the vendor endpoints change.**
+
+The real Cloudinary product images have already been indexed for search. Do not run `pnpm reindex` unless product image rows or Cloudinary URLs change. Current image work is linking/displaying the real `product_images.url` / `is_primary` assets in storefront surfaces. Try-on/AR asset work is deferred; do not touch `/try-on`, `product_tryon_assets`, or `showcase-ar-assets` for the current product-photo pass.
 
 ```
 Jeweller uploads image
@@ -376,7 +381,7 @@ This applies to the e-commerce layer too: every `customers`, `cart_items`, `orde
 - `product_sales` (from "mark sold" in the jeweller products list — most important; demandScore weights sales 8×, tryons 2.5×, views 0.25×)
 - `product_views`, `tryon_events`
 - `products.stock_count`, `price_min`/`price_max`
-- `INDIAN_SEASONAL_WINDOWS` — ⚠️ **hardcoded 2026 dates** (wedding Oct–Dec, festive Sep–Nov, gift Jul–Aug). These expire after 2026 and need to become year-relative.
+- `INDIAN_SEASONAL_WINDOWS` — year-relative windows (wedding Oct–Dec, festive Sep–Nov, gift Jul–Aug).
 
 **It is heuristic, not ML.** Sparse demo data correctly degrades to low-confidence guidance (high confidence needs ≥12 products and ≥80 signals). Extend the scoring logic in `packages/intelligence/src/index.ts`. `pnpm seed:intelligence` generates demo history; `pnpm rollup:intelligence` maintains `inventory_signals`.
 
@@ -406,7 +411,7 @@ New tables in `0002_ecommerce.sql`:
 - `cart_items` — per-customer, per-jeweller shopping cart (unique `(customer_id, product_id)`)
 - `orders` / `order_items` / `order_status_history` — placed orders with delivery/C&C type, status (placed/confirmed/packed/shipped/delivered/cancelled), payment snapshot fields
 
-Apply with: Supabase dashboard → SQL Editor → paste `supabase/migrations/0002_ecommerce.sql` → Run.
+Apply with: Supabase dashboard → SQL Editor → paste/run `supabase/migrations/0002_ecommerce.sql`, then `supabase/migrations/0003_security_advisor.sql`.
 
 ## Common pitfalls
 
@@ -419,25 +424,25 @@ Apply with: Supabase dashboard → SQL Editor → paste `supabase/migrations/000
 - **Product edit page uses UUID, not slug** — `/jeweller/products/[id]` passes the UUID to `/api/products/by-id/:id`, not to the slug route.
 - **`pnpm build` needs `SHOP_JEWELLER_ID` in env** — ISR/SSR pages call DB helpers at build time. Provision `.env.local` before building.
 - **Cart and orders are per-customer per-jeweller** — the same phone number is a different `customers` row at each jeweller. Never join customers across jewellers.
-- **Saved/compare use `localStorage`, not sessionStorage** — they persist across customers on a shared kiosk. If you touch idle-reset or these contexts, decide intentionally: either move to sessionStorage or clear the keys on idle reset.
-- **Showcase AR products are always prepended** — `/try-on` merges 44 hardcoded entries from `lib/showcase-ar-assets.ts` with the real `/api/tryon/products` results. Remove them when real assets land.
+- **Saved/compare intentionally use `sessionStorage`** — kiosk state resets between browser sessions/customers. Do not move back to `localStorage` without a deliberate product decision.
+- **Showcase AR products are always prepended** — `/try-on` merges 44 hardcoded entries from `lib/showcase-ar-assets.ts` with the real `/api/tryon/products` results. Try-on/AR real assets are deferred; do not change this path during the product-photo work.
 
 ## Known gaps / production blockers
 
 Tracked here so they aren't rediscovered. Roughly in priority order:
 
-1. **Exposed credentials in git** — `scripts/run-migration.mjs` hardcodes the Supabase URL + service-role key. The sibling `../Jewellery_AI` repo hardcodes the Cloudinary API secret (account `dyrc4bo4m` is **shared with LuxeMatch**) and a Qdrant Cloud API key in `backend/full_cleanup.py` / `backend/cleanup_cloudinary.py`. Rotate all of them; convert the scripts to env loading.
-2. **Customer OTP delivery** — uses Supabase Auth email OTP. Production requires Supabase Auth custom SMTP to stay configured; phone remains stored on the shop-scoped `customers` row for orders and contact.
-4. **Embedder not deployed** — `/api/search/text|image|hybrid` and per-product re-embedding are dead on the deployed site, which breaks text search (`/search`) and the style quiz in production; indexing is manual via `pnpm reindex` from a local machine. Visual search (`/search/image`) works via the Jewellery_AI HF Space proxy but searches Jewellery_AI's own catalog, NOT this shop's tenancy-scoped inventory. Decide hosting: own HF Space, the Render service already defined in render.yaml, or add `/embed/*` endpoints to the Jewellery_AI Space.
-5. **Order confirmation email env** — checkout can send confirmation emails through optional `SMTP_*` env vars; configure these in Render for production.
-6. **Home page is mock data**; `/store/[jeweller-slug]` is mock-only dead code (MODE B not built).
-7. **localStorage saved/compare** breaks reset-between-customers kiosk semantics.
+1. **Secret rotation still required if not already completed** — old Supabase service-role, Cloudinary secret, and Qdrant keys were exposed in repo history / sibling scripts. `scripts/run-migration.mjs` is now env-loaded, but leaked dashboard secrets still need rotation.
+2. **Push/deploy local production commits** — local `production` contains the P1/P2/P3 ops, Stage 3 email OTP, and Supabase Security Advisor work. Push and deploy before treating production as current.
+3. **Apply Supabase Security Advisor migration** — run `supabase/migrations/0003_security_advisor.sql` in the Supabase SQL editor, then rerun the dashboard linter. It adds explicit `service_role` policies and fixed function `search_path`; it does not grant anon/authenticated table access.
+4. **Customer OTP delivery** — uses Supabase Auth email OTP. Production requires Supabase Auth custom SMTP to stay configured; phone remains stored on the shop-scoped `customers` row for orders and contact.
+5. **Order confirmation email env** — checkout can send confirmation emails through optional `SMTP_*` env vars; configure these in Render/local production env for non-auth order emails.
+6. **Real product images** — Cloudinary images have already been indexed for search. Remaining storefront work is linking/displaying real `product_images.url` / primary-image data. Do not touch try-on/AR assets yet.
+7. **Embedder not deployed** — `/api/search/text|image|hybrid` and per-product re-embedding are dead on the deployed site, which breaks text search (`/search`) and the style quiz in production; indexing is manual from a local machine. Visual search (`/search/image`) works via the Jewellery_AI HF Space proxy but searches Jewellery_AI's own catalog, NOT this shop's tenancy-scoped inventory. Decide hosting: own HF Space, the Render service already defined in render.yaml, or add `/embed/*` endpoints to the Jewellery_AI Space.
 8. **`luxematch-web` on Render free plan** — idle spin-down = cold-start blank kiosk.
-9. **In-memory PIN rate limiter** — resets on deploy, not multi-instance safe.
-10. **Hardcoded `LUXE10` discount** in checkout; no discount table.
-11. **2026-only festival windows** in `@luxematch/intelligence`.
-12. **Test coverage** — vitest only covers `@luxematch/tenant`; the tenancy invariant in db/qdrant helpers has no automated guard.
-13. **Stale docs** — `docs/architecture.md`, `docs/api-contracts.md`, `README.md` (Gemini/Vercel/old schema). `apps/Readme.md` is empty.
+9. **Hardcoded `LUXE10` discount** in checkout; no discount table.
+10. **Broader test coverage** — tenancy guard tests exist now, but checkout/order email flows and full customer auth flows still need integration coverage.
+11. **Stale docs** — `docs/architecture.md`, `docs/api-contracts.md`, `README.md` (Gemini/Vercel/old schema). `apps/Readme.md` is empty.
+12. **Empty `@luxematch/ui` package** — placeholder only; either populate it or remove it once the frontend settles.
 
 ## Phase status
 
@@ -459,7 +464,12 @@ Tracked here so they aren't rediscovered. Roughly in priority order:
 | 10 | Analytics events + trackEvent + smoke tests + vitest + real /api/health | ✅ |
 | 11 | Deployment config — render.yaml (web + embedder), CORS lockdown, docs/deployment.md, .env.production.example, health w/ shop id | ✅ |
 | 12 | Auth-readiness + PIN hardening (audit log, per-IP rate limit, lock button, idle-lock, docs/auth-readiness.md) | ✅ |
-| — | UI/UX refinement pass | ⬜ in progress |
-| — | Production blockers (see "Known gaps" above) | ⬜ next |
-| — | Real DB + storage connection, real asset upload | ⬜ next |
+| P1 | Security blocker pass: demo OTP gated, cart/address helpers jeweller-scoped, migration seeder env-loaded | ✅ local `production` |
+| P2 | Kiosk correctness: sessionStorage saved/compare, real home APIs, dead store route removed, year-relative seasons | ✅ local `production` |
+| P3 ops | Durable PIN rate limit + tenancy vitest guards | ✅ local `production` |
+| Stage 3 | Supabase Auth email OTP + optional SMTP order confirmation email | ✅ local `production` |
+| Security Advisor | RLS policy migration + function search_path fixes | ✅ local `production`; apply `0003` remotely |
+| — | Push/deploy local `production` commits | ⬜ next |
+| — | Real Cloudinary product image storefront linkage (try-on untouched) | ⬜ next |
+| — | Cleanup: discount table, stale docs, empty `@luxematch/ui` | ⬜ next |
 | AWS | S3 + CloudFront + EC2 migration | ⬜ parked — do when instructed |
