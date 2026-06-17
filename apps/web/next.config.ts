@@ -14,6 +14,12 @@ const nextConfig: NextConfig = {
     '@luxematch/types',
     '@luxematch/ui',
   ],
+  images: {
+    remotePatterns: [
+      { protocol: 'https', hostname: 'res.cloudinary.com' },
+      { protocol: 'https', hostname: 'images.unsplash.com' },
+    ],
+  },
 };
 
 export default nextConfig;
