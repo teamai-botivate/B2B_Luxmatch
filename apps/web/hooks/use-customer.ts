@@ -5,6 +5,7 @@ import { useEffect, useState, useCallback } from 'react';
 export type CustomerSession = {
   customerId: string;
   phone: string;
+  email: string;
   name: string | null;
 };
 

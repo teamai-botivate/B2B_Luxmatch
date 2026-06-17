@@ -8,6 +8,7 @@ export const CUSTOMER_COOKIE_TTL  = 7 * 24 * 60 * 60; // 7 days in seconds
 export type CustomerCookiePayload = {
   customerId: string;
   phone: string;
+  email: string;
   name: string | null;
 };
 

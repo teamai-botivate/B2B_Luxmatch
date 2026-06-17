@@ -27,6 +27,7 @@ export type CustomerAddressRow = {
 export async function getOrCreateCustomer(
   jewellerId: string,
   phone: string,
+  email?: string,
 ): Promise<CustomerRow> {
   const sb = getSupabaseServer();
   const { data: existing } = await sb
@@ -35,11 +36,22 @@ export async function getOrCreateCustomer(
     .eq('jeweller_id', jewellerId)
     .eq('phone', phone)
     .maybeSingle();
-  if (existing) return existing as CustomerRow;
+  if (existing) {
+    const row = existing as CustomerRow;
+    if (email && row.email !== email) {
+      await sb
+        .from('customers')
+        .update({ email })
+        .eq('jeweller_id', jewellerId)
+        .eq('id', row.id);
+      return { ...row, email };
+    }
+    return row;
+  }
 
   const { data: created, error } = await sb
     .from('customers')
-    .insert({ jeweller_id: jewellerId, phone })
+    .insert({ jeweller_id: jewellerId, phone, email: email ?? null })
     .select()
     .single();
   if (error) throw new Error(`Failed to create customer: ${error.message}`);

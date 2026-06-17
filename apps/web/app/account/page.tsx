@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { LogOut, Package, Phone, User } from 'lucide-react';
+import { LogOut, Mail, Package, Phone, User } from 'lucide-react';
 import CustomerLayout from '@/components/layout/CustomerLayout';
 import { Button } from '@/components/ui/button';
 import { useCustomer } from '@/hooks/use-customer';
@@ -39,6 +39,10 @@ export default function AccountPage() {
             </div>
             <div>
               <p className="font-semibold text-lg">{customer.name ?? 'Customer'}</p>
+              <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                <Mail className="h-3.5 w-3.5" />
+                {customer.email}
+              </div>
               <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
                 <Phone className="h-3.5 w-3.5" />
                 {customer.phone}

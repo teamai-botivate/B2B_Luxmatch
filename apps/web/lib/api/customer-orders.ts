@@ -4,6 +4,7 @@ import {
   getBranches,
   getCustomerAddresses,
   getCustomerOrders,
+  getJewellerPublic,
   getOrderWithItems,
   placeOrder,
   upsertCustomerAddress,
@@ -13,6 +14,7 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 
 import { CUSTOMER_COOKIE_NAME, verifyCustomerCookie } from '../customer-auth';
+import { sendOrderConfirmationEmail } from '../email/order-confirmation';
 import { sendData, sendError } from './envelope';
 import { tenantMiddleware } from './middleware';
 
@@ -145,6 +147,21 @@ customerOrderRoutes.post('/checkout', zValidator('json', CheckoutBody), async (c
 
   // Clear cart after successful order
   await clearCart(jewellerId, customerId);
+
+  try {
+    const shop = await getJewellerPublic(jewellerId);
+    const origin = new URL(c.req.url).origin;
+    await sendOrderConfirmationEmail({
+      to: session.payload.email,
+      customerName: session.payload.name,
+      shopName: shop?.store_name ?? 'LuxeMatch',
+      order,
+      items: cartItems,
+      orderUrl: `${origin}/orders/${order.id}`,
+    });
+  } catch (err) {
+    console.error('[email] order confirmation failed', err);
+  }
 
   return sendData(c, { orderId: order.id, orderNumber: order.order_number, status: order.status });
 });

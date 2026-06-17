@@ -19,7 +19,7 @@ A public multi-jeweller mode ("MODE B" in `plan.txt` — site works without `SHO
 All core phases (-1 through 12) plus the e-commerce layer (E1–E3) are landed on `production`:
 
 - **Phase 9.5 (inventory intelligence)** — live. Heuristic recommendations on `/jeweller/dashboard` and `/jeweller/intelligence`.
-- **E-commerce layer** — live. Customer phone OTP auth, cart, checkout, orders, multi-branch support. Supabase migration `0002_ecommerce.sql`.
+- **E-commerce layer** — live. Customer email OTP auth through Supabase Auth (phone remains the shop-scoped customer/order identity), cart, checkout, orders, multi-branch support. Supabase migration `0002_ecommerce.sql`.
 - **Phase 9 (style quiz)** — live. Builds a text query from quiz answers → `/api/search/text`.
 - **Phase 10–12** — analytics events, smoke tests, vitest, Render deployment config, CORS lockdown, PIN hardening (rate limit, audit log, idle-lock).
 - **Supabase Realtime** — `useMultiDeviceSync` and `useRealtimeCatalog` hooks subscribe to product/sales/tryon events so the catalog and dashboard stay live across devices without manual refresh.
@@ -209,10 +209,8 @@ GET    /api/shop/orders/:id             PIN — single order with items + status
 PATCH  /api/shop/orders/:id             PIN — update status (confirmed/packed/shipped/delivered/cancelled)
 
 # Customer auth + e-commerce (all scoped to SHOP_JEWELLER_ID)
-POST   /api/customer/send-otp           public — phone OTP initiation
-                                        ⚠️ returns demo_otp in the response — DEV ONLY,
-                                        must be removed/gated before real customers
-POST   /api/customer/verify-otp         public — OTP check, sets lm_customer cookie (7d)
+POST   /api/customer/send-otp           public — Supabase Auth email OTP initiation
+POST   /api/customer/verify-otp         public — Supabase Auth OTP check, sets lm_customer cookie (7d)
 GET    /api/customer/me                 customer-gated — profile
 POST   /api/customer/logout             customer-gated — clears lm_customer cookie
 POST   /api/customer/profile            customer-gated — update name/email
@@ -246,7 +244,7 @@ Exceptions that still use mock/local data:
 - **`/` (home)** — renders `MOCK_PRODUCTS` from `lib/mock-data`. The first screen customers see is fake inventory; wiring it to `/api/products` (`is_featured`) is pending UI/UX work.
 - **`/compare` and `/saved`** — client-only via `CompareContext` / `SavedItemsContext`, backed by **`localStorage`** keys `luxematch_compare` / `luxematch_saved` (max 4 compare items). No Supabase `saved_items` table exists.
 - **`/store/[jeweller-slug]`** — mock-data only (vestige of unbuilt MODE B).
-- **`/checkout/success`** — UI-only, reads `?order=<orderNumber>` from the URL; no API call and **no confirmation email/SMS is sent anywhere**.
+- **`/checkout/success`** — UI-only, reads `?order=<orderNumber>` from the URL. Checkout sends an order confirmation email when the optional `SMTP_*` env vars are configured.
 
 Cart state: `useCart()` (full fetch, used on /cart and /checkout), `useAddToCart()` (POST-only, used by ProductCard/ProductDetailPanel), `useCartCount()` (global listener) — all in `apps/web/hooks/use-cart.ts`.
 
@@ -403,7 +401,7 @@ Both hooks use `getSupabaseBrowser()` (from `apps/web/lib/supabase-browser.ts`) 
 New tables in `0002_ecommerce.sql`:
 - `branches` — physical shop locations for a jeweller (click-and-collect)
 - `customers` — phone-identified per jeweller (same phone = different customer across shops; unique `(jeweller_id, phone)`)
-- `customer_otps` — time-limited one-time passwords for phone login
+- `customer_otps` — legacy time-limited one-time passwords table from the old phone OTP flow; current customer login uses Supabase Auth email OTP.
 - `customer_addresses` — saved delivery addresses per customer
 - `cart_items` — per-customer, per-jeweller shopping cart (unique `(customer_id, product_id)`)
 - `orders` / `order_items` / `order_status_history` — placed orders with delivery/C&C type, status (placed/confirmed/packed/shipped/delivered/cancelled), payment snapshot fields
@@ -429,9 +427,9 @@ Apply with: Supabase dashboard → SQL Editor → paste `supabase/migrations/000
 Tracked here so they aren't rediscovered. Roughly in priority order:
 
 1. **Exposed credentials in git** — `scripts/run-migration.mjs` hardcodes the Supabase URL + service-role key. The sibling `../Jewellery_AI` repo hardcodes the Cloudinary API secret (account `dyrc4bo4m` is **shared with LuxeMatch**) and a Qdrant Cloud API key in `backend/full_cleanup.py` / `backend/cleanup_cloudinary.py`. Rotate all of them; convert the scripts to env loading.
-2. **`demo_otp` returned by `/api/customer/send-otp`** — anyone can log in as any phone. Gated behind `NODE_ENV !== 'production'`, but production currently has no real SMS provider wired up, so customers cannot receive login OTPs. Needs SMS provider integration (MSG91, Twilio, etc.)
+2. **Customer OTP delivery** — uses Supabase Auth email OTP. Production requires Supabase Auth custom SMTP to stay configured; phone remains stored on the shop-scoped `customers` row for orders and contact.
 4. **Embedder not deployed** — `/api/search/text|image|hybrid` and per-product re-embedding are dead on the deployed site, which breaks text search (`/search`) and the style quiz in production; indexing is manual via `pnpm reindex` from a local machine. Visual search (`/search/image`) works via the Jewellery_AI HF Space proxy but searches Jewellery_AI's own catalog, NOT this shop's tenancy-scoped inventory. Decide hosting: own HF Space, the Render service already defined in render.yaml, or add `/embed/*` endpoints to the Jewellery_AI Space.
-5. **No order confirmation** — no email/SMS anywhere after checkout; success page is URL-param-only.
+5. **Order confirmation email env** — checkout can send confirmation emails through optional `SMTP_*` env vars; configure these in Render for production.
 6. **Home page is mock data**; `/store/[jeweller-slug]` is mock-only dead code (MODE B not built).
 7. **localStorage saved/compare** breaks reset-between-customers kiosk semantics.
 8. **`luxematch-web` on Render free plan** — idle spin-down = cold-start blank kiosk.

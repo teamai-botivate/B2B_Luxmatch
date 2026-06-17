@@ -10,6 +10,7 @@ function stubServerEnv(): void {
   vi.stubEnv('LM_PIN_COOKIE_SECRET', 'a-test-secret-that-is-at-least-32-chars-long');
   vi.stubEnv('LM_PIN_COOKIE_TTL_SECONDS', '14400');
   vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://example.supabase.co');
+  vi.stubEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY', 'anon-key');
   vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', 'service-role-key');
   vi.stubEnv('CLOUDINARY_API_KEY', 'cloudinary-key');
   vi.stubEnv('CLOUDINARY_API_SECRET', 'cloudinary-secret');

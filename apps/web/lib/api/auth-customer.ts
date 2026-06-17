@@ -1,10 +1,9 @@
 import { getServerEnv } from '@luxematch/config';
 import {
-  createOtp,
   getOrCreateCustomer,
   updateCustomerName,
-  verifyOtp,
 } from '@luxematch/db';
+import { createClient } from '@supabase/supabase-js';
 import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
 import { deleteCookie, setCookie } from 'hono/cookie';
@@ -24,32 +23,49 @@ type Vars = { Variables: { shopJewellerId: string } };
 export const authCustomerRoutes = new Hono<Vars>();
 authCustomerRoutes.use('*', tenantMiddleware);
 
-function generateOtp(): string {
-  return String(Math.floor(100000 + Math.random() * 900000));
+function getSupabaseAuthClient() {
+  const env = getServerEnv();
+  return createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
 }
 
-// POST /api/customer/send-otp   { phone }
-const SendOtpBody = z.object({ phone: z.string().min(10).max(15) });
+// POST /api/customer/send-otp   { email, phone }
+const SendOtpBody = z.object({
+  email: z.string().email(),
+  phone: z.string().min(10).max(15),
+  name: z.string().min(1).max(120).optional(),
+});
 authCustomerRoutes.post('/send-otp', zValidator('json', SendOtpBody), async (c) => {
   const jewellerId = c.get('shopJewellerId');
-  const { phone } = c.req.valid('json');
-  const otp = generateOtp();
-  await createOtp(jewellerId, phone, otp);
-  // The OTP must never leave the server in production — anyone could log in
-  // as any phone number. Outside production it is returned so the demo UI
-  // can display it (no SMS provider is wired up yet).
-  const isProduction = getServerEnv().NODE_ENV === 'production';
+  const { email, phone, name } = c.req.valid('json');
+  const supabase = getSupabaseAuthClient();
+
+  const { error } = await supabase.auth.signInWithOtp({
+    email,
+    options: {
+      shouldCreateUser: true,
+      data: {
+        // Metadata is convenience-only. Tenancy is enforced by the app DB
+        // customer row and signed lm_customer cookie, not by JWT metadata.
+        phone,
+        name,
+        jeweller_id: jewellerId,
+      },
+    },
+  });
+
+  if (error) return sendError(c, 'bad_request', error.message, 400);
+
   return sendData(c, {
     sent: true,
-    ...(isProduction ? {} : { demo_otp: otp }),
-    message: isProduction
-      ? `OTP sent to ${phone}`
-      : `OTP sent to ${phone} (demo: shown below)`,
+    message: `OTP sent to ${email}`,
   });
 });
 
-// POST /api/customer/verify-otp  { phone, otp }
+// POST /api/customer/verify-otp  { email, phone, otp }
 const VerifyOtpBody = z.object({
+  email: z.string().email(),
   phone: z.string().min(10).max(15),
   otp: z.string().length(6),
   name: z.string().min(1).max(120).optional(),
@@ -57,18 +73,23 @@ const VerifyOtpBody = z.object({
 authCustomerRoutes.post('/verify-otp', zValidator('json', VerifyOtpBody), async (c) => {
   const jewellerId = c.get('shopJewellerId');
   const env = getServerEnv();
-  const { phone, otp, name } = c.req.valid('json');
+  const { email, phone, otp, name } = c.req.valid('json');
+  const supabase = getSupabaseAuthClient();
 
-  const valid = await verifyOtp(jewellerId, phone, otp);
-  if (!valid) return sendError(c, 'unauthorized', 'Incorrect or expired OTP', 401);
+  const { error } = await supabase.auth.verifyOtp({
+    email,
+    token: otp,
+    type: 'email',
+  });
+  if (error) return sendError(c, 'unauthorized', 'Incorrect or expired OTP', 401);
 
-  const customer = await getOrCreateCustomer(jewellerId, phone);
+  const customer = await getOrCreateCustomer(jewellerId, phone, email);
   if (name && !customer.name) {
     await updateCustomerName(jewellerId, customer.id, name);
   }
 
   const cookie = await signCustomerCookie(
-    { customerId: customer.id, phone, name: name ?? customer.name },
+    { customerId: customer.id, phone, email, name: name ?? customer.name },
     env.LM_PIN_COOKIE_SECRET,
   );
 
@@ -80,7 +101,7 @@ authCustomerRoutes.post('/verify-otp', zValidator('json', VerifyOtpBody), async 
     secure: process.env.NODE_ENV === 'production',
   });
 
-  return sendData(c, { customerId: customer.id, phone, name: name ?? customer.name });
+  return sendData(c, { customerId: customer.id, phone, email, name: name ?? customer.name });
 });
 
 // GET /api/customer/me

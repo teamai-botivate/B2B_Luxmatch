@@ -10,6 +10,7 @@ const ServerEnvSchema = z.object({
   // Read on the server too so the Supabase server client can use it without
   // a separate client-env import path.
   NEXT_PUBLIC_SUPABASE_URL: z.string().url('NEXT_PUBLIC_SUPABASE_URL must be a valid URL'),
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1, 'NEXT_PUBLIC_SUPABASE_ANON_KEY is required'),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1, 'SUPABASE_SERVICE_ROLE_KEY is required'),
   CLOUDINARY_API_KEY: z.string().min(1, 'CLOUDINARY_API_KEY is required'),
   CLOUDINARY_API_SECRET: z.string().min(1, 'CLOUDINARY_API_SECRET is required'),
@@ -21,6 +22,15 @@ const ServerEnvSchema = z.object({
   // ViT-B-32 / laion2b_s34b_b79k / 512-d.
   EMBEDDER_URL: z.string().url('EMBEDDER_URL must be a valid URL'),
   EMBEDDER_API_KEY: z.string().optional(),
+  // Optional transactional email sender for non-auth messages such as order
+  // confirmations. Supabase Auth OTP emails use the SMTP settings configured
+  // in the Supabase dashboard, not these env vars.
+  SMTP_HOST: z.string().min(1).optional(),
+  SMTP_PORT: z.coerce.number().int().positive().optional(),
+  SMTP_USER: z.string().min(1).optional(),
+  SMTP_PASS: z.string().min(1).optional(),
+  SMTP_FROM_EMAIL: z.string().email().optional(),
+  SMTP_FROM_NAME: z.string().min(1).optional(),
   // CORS allow-list (comma-separated origins). When unset, the API allows the
   // same-origin browser app only (dev convenience). In production set this to
   // the deployed web origin(s), e.g. "https://shop.luxematch.in".
