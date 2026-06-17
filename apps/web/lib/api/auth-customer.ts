@@ -35,11 +35,16 @@ authCustomerRoutes.post('/send-otp', zValidator('json', SendOtpBody), async (c) 
   const { phone } = c.req.valid('json');
   const otp = generateOtp();
   await createOtp(jewellerId, phone, otp);
-  // Demo mode: return OTP in response so the UI can show it
+  // The OTP must never leave the server in production — anyone could log in
+  // as any phone number. Outside production it is returned so the demo UI
+  // can display it (no SMS provider is wired up yet).
+  const isProduction = getServerEnv().NODE_ENV === 'production';
   return sendData(c, {
     sent: true,
-    demo_otp: otp, // remove this field in production
-    message: `OTP sent to ${phone} (demo: shown below)`,
+    ...(isProduction ? {} : { demo_otp: otp }),
+    message: isProduction
+      ? `OTP sent to ${phone}`
+      : `OTP sent to ${phone} (demo: shown below)`,
   });
 });
 

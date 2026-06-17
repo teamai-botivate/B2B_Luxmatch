@@ -31,7 +31,7 @@ export default function LoginPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: phone.startsWith('+') ? phone : `+91${phone}` }),
       });
-      const json = (await res.json()) as { data?: { demo_otp: string } };
+      const json = (await res.json()) as { data?: { demo_otp?: string } };
       if (json.data?.demo_otp) setDemoOtp(json.data.demo_otp);
       setStep('otp');
     } catch {
@@ -106,10 +106,14 @@ export default function LoginPage() {
               </div>
             ) : (
               <div className="space-y-4">
-                <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3">
-                  <p className="text-xs font-medium text-amber-800">Demo mode — OTP for {phone}:</p>
-                  <p className="mt-1 text-2xl font-bold tracking-[0.3em] text-amber-900">{demoOtp}</p>
-                </div>
+                {demoOtp ? (
+                  <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3">
+                    <p className="text-xs font-medium text-amber-800">Demo mode — OTP for {phone}:</p>
+                    <p className="mt-1 text-2xl font-bold tracking-[0.3em] text-amber-900">{demoOtp}</p>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">We&apos;ve sent a 6-digit OTP to {phone}.</p>
+                )}
                 <div>
                   <label className="mb-1.5 block text-sm font-medium">Enter OTP</label>
                   <Input
