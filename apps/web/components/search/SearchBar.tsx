@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useEffect, useRef } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Search, X } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import { MOCK_PRODUCTS, POPULAR_SEARCHES } from "@/lib/mock-data";
+import { POPULAR_SEARCHES } from "@/lib/mock-data";
 
 interface SearchBarProps {
   onSearch?: (query: string) => void;
@@ -27,13 +27,23 @@ export default function SearchBar({ onSearch, autoFocus, className = "" }: Searc
   useEffect(() => {
     clearTimeout(timerRef.current);
     if (query.length < 1) { setSuggestions([]); return; }
-    timerRef.current = setTimeout(() => {
-      const q = query.toLowerCase();
-      const names = MOCK_PRODUCTS
-        .filter(p => p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q))
-        .slice(0, 6)
-        .map(p => p.name);
-      const pops = POPULAR_SEARCHES.filter(s => s.toLowerCase().includes(q)).slice(0, 2);
+    timerRef.current = setTimeout(async () => {
+      const q = query.trim();
+      const pops = POPULAR_SEARCHES.filter(s => s.toLowerCase().includes(q.toLowerCase())).slice(0, 2);
+      // Real tenant-scoped product-name suggestions via Postgres FTS. Needs >=2
+      // chars; below that we still show matching popular searches.
+      let names: string[] = [];
+      if (q.length >= 2) {
+        try {
+          const res = await fetch(`/api/search/suggest?q=${encodeURIComponent(q)}`, { cache: "no-store" });
+          if (res.ok) {
+            const json = (await res.json()) as { data?: { suggestions: { name: string }[] } };
+            names = (json.data?.suggestions ?? []).map(s => s.name).slice(0, 6);
+          }
+        } catch {
+          names = [];
+        }
+      }
       setSuggestions([...new Set([...names, ...pops])].slice(0, 8));
     }, 300);
     return () => clearTimeout(timerRef.current);

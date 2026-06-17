@@ -1,15 +1,38 @@
 'use client';
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { X, GitCompare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCompare } from "@/contexts/CompareContext";
-import { MOCK_PRODUCTS } from "@/lib/mock-data";
+import type { Product } from "@/lib/mock-data";
+import { adaptProduct, fetchCategories, fetchProductsByIds, productImageUrl } from "@/lib/catalog-adapter";
 
 export default function CompareTray() {
   const { compareItems, clearCompare, toggleCompare } = useCompare();
-  const items = MOCK_PRODUCTS.filter(p => compareItems.has(p.id));
+  const [items, setItems] = useState<Product[]>([]);
+
+  // Hydrate compare thumbnails from the tenant-scoped catalog API so they show
+  // real product_images instead of mock data.
+  const ids = Array.from(compareItems).join(",");
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const idList = ids ? ids.split(",") : [];
+      if (idList.length === 0) {
+        if (!cancelled) setItems([]);
+        return;
+      }
+      const [categories, fetched] = await Promise.all([
+        fetchCategories(),
+        fetchProductsByIds(idList),
+      ]);
+      if (cancelled) return;
+      setItems(fetched.map((p) => adaptProduct(p, categories)));
+    })();
+    return () => { cancelled = true; };
+  }, [ids]);
 
   return (
     <AnimatePresence>
@@ -31,7 +54,7 @@ export default function CompareTray() {
                 {items.map(p => (
                   <div key={p.id} className="relative flex-shrink-0">
                     <img
-                      src={p.images[0]?.url}
+                      src={productImageUrl(p.images)}
                       alt={p.name}
                       className="w-12 h-12 rounded-xl object-cover border border-border"
                     />

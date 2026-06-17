@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Heart, GitCompare, Camera, Award, ShoppingBag } from "lucide-react";
 import { motion } from "motion/react";
 import { Product } from "@/lib/mock-data";
+import { productImageUrl } from "@/lib/catalog-adapter";
 import { formatINR } from "@/lib/format";
 import { useSavedItems } from "@/contexts/SavedItemsContext";
 import { useCompare } from "@/contexts/CompareContext";
@@ -60,7 +61,7 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
           onMouseLeave={() => setHovered(false)}
         >
           <img
-            src={product.images[0]?.url}
+            src={productImageUrl(product.images)}
             alt={product.images[0]?.alt ?? product.name}
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
             loading="lazy"

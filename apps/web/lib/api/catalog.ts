@@ -7,6 +7,7 @@ import {
   getCollections,
   getProductById,
   getProductBySlug,
+  getProductsByIds,
   listProducts,
   listTryOnProducts,
   recordProductSale,
@@ -72,6 +73,26 @@ catalogRoutes.get('/products/manage', pinGuard, async (c) => {
     limit: 200,
   });
   return sendData(c, { products, total });
+});
+
+// ────────────────────────────────────────────────────────────────────────────
+// GET /api/products/by-ids?ids=<uuid,uuid,...>
+//   Bulk hydrate products by id (tenant-scoped). Used by saved / compare pages
+//   that persist product UUIDs in sessionStorage and need the real catalog rows
+//   (with product_images) to render. Declared before the :slug route so the
+//   literal path wins over the dynamic segment.
+// ────────────────────────────────────────────────────────────────────────────
+const byIdsQuery = z.object({ ids: z.string().optional() });
+catalogRoutes.get('/products/by-ids', zValidator('query', byIdsQuery), async (c) => {
+  const jewellerId = c.get('shopJewellerId');
+  const ids = (c.req.valid('query').ids ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter((s) => z.string().uuid().safeParse(s).success)
+    .slice(0, 100);
+  if (ids.length === 0) return sendData(c, { products: [] });
+  const products = await getProductsByIds(jewellerId, ids);
+  return sendData(c, { products });
 });
 
 // ────────────────────────────────────────────────────────────────────────────

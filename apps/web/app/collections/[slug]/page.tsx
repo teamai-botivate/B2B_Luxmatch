@@ -4,26 +4,77 @@ import CustomerLayout from "@/components/layout/CustomerLayout";
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { ChevronRight, Sparkles, ArrowRight } from "lucide-react";
 import ProductGrid from "@/components/product/ProductGrid";
 import { Button } from "@/components/ui/button";
-import { MOCK_COLLECTIONS, MOCK_PRODUCTS } from "@/lib/mock-data";
+import type { Product } from "@/lib/mock-data";
+import {
+  adaptProduct,
+  fetchCategories,
+  type ApiCollection,
+  type ApiProduct,
+} from "@/lib/catalog-adapter";
 import NotFoundView from "@/components/ui/NotFoundView";
 
 export default function CollectionDetailPage() {
   const params = useParams();
   const slug = params?.slug as string;
-  const collection = MOCK_COLLECTIONS.find(c => c.slug === slug);
-  if (!collection) return <NotFoundView />;
+  const [collection, setCollection] = useState<ApiCollection | null>(null);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
 
-  const products = MOCK_PRODUCTS.slice(0, 8);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      const [categories, res] = await Promise.all([
+        fetchCategories(),
+        fetch(`/api/collections/${encodeURIComponent(slug)}`, { cache: "no-store" }),
+      ]);
+      if (cancelled) return;
+      if (!res.ok) {
+        setNotFound(true);
+        setLoading(false);
+        return;
+      }
+      const json = (await res.json()) as {
+        data?: { collection: ApiCollection; products: ApiProduct[] };
+      };
+      if (!json.data) {
+        setNotFound(true);
+        setLoading(false);
+        return;
+      }
+      setCollection(json.data.collection);
+      setProducts(json.data.products.map((p) => adaptProduct(p, categories)));
+      setLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [slug]);
+
+  if (notFound) return <NotFoundView />;
+  if (!collection) {
+    return (
+      <CustomerLayout>
+        <div className="min-h-screen pt-16">
+          <div className="max-w-[1400px] mx-auto px-4 md:px-6 lg:px-12 py-10">
+            <ProductGrid products={[]} loading />
+          </div>
+        </div>
+      </CustomerLayout>
+    );
+  }
 
   return (
     <CustomerLayout>
     <div className="min-h-screen pt-16" data-testid="collection-detail-page">
       <div className="relative overflow-hidden" style={{ height: 280 }}>
-        <img src={collection.imageUrl} alt={collection.name} className="w-full h-full object-cover" />
+        {collection.image_url && (
+          <img src={collection.image_url} alt={collection.name} className="w-full h-full object-cover" />
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-black/10" />
         <div className="absolute bottom-0 left-0 right-0 max-w-[1400px] mx-auto px-4 md:px-6 lg:px-12 pb-8">
           <nav className="flex items-center gap-1.5 text-xs text-white/60 mb-3">
@@ -34,11 +85,11 @@ export default function CollectionDetailPage() {
             <span className="text-white">{collection.name}</span>
           </nav>
           <motion.h1 initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="text-3xl md:text-4xl font-medium text-white">{collection.name}</motion.h1>
-          <p className="text-white/70 mt-2 max-w-md">{collection.description}</p>
+          <p className="text-white/70 mt-2 max-w-md">{collection.description ?? ""}</p>
         </div>
       </div>
       <div className="max-w-[1400px] mx-auto px-4 md:px-6 lg:px-12 py-10">
-        <ProductGrid products={products} />
+        <ProductGrid products={products} loading={loading} />
 
         {/* View all CTA */}
         <div className="flex flex-col items-center gap-3 mt-10 mb-4">

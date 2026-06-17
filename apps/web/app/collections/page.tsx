@@ -4,10 +4,11 @@ import CustomerLayout from "@/components/layout/CustomerLayout";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { MOCK_COLLECTIONS } from "@/lib/mock-data";
+import { fetchCollections, type ApiCollection } from "@/lib/catalog-adapter";
 
 const stagger = {
   animate: { transition: { staggerChildren: 0.07 } },
@@ -19,7 +20,17 @@ const fadeUp = {
 
 export default function CollectionsPage() {
   const router = useRouter();
-  const [featured, ...rest] = MOCK_COLLECTIONS;
+  const [collections, setCollections] = useState<ApiCollection[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchCollections().then((cols) => {
+      if (!cancelled) setCollections(cols);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  const [featured, ...rest] = collections;
 
   return (
     <CustomerLayout>
@@ -51,11 +62,13 @@ export default function CollectionsPage() {
             style={{ height: "clamp(240px, 40vw, 420px)" }}
             data-testid={`card-collection-${featured.id}`}
           >
-            <img
-              src={featured.imageUrl}
-              alt={featured.name}
-              className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-            />
+            {featured.image_url && (
+              <img
+                src={featured.image_url}
+                alt={featured.name}
+                className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+              />
+            )}
             {/* Gradient overlay */}
             <div className="absolute inset-0 bg-gradient-to-r from-black/65 via-black/30 to-transparent" />
             {/* Hover tint */}
@@ -67,11 +80,8 @@ export default function CollectionsPage() {
                   Featured Collection
                 </span>
                 <h2 className="text-2xl md:text-4xl font-medium text-white mb-2">{featured.name}</h2>
-                <p className="text-white/70 text-sm md:text-base leading-relaxed mb-4 max-w-sm">{featured.description}</p>
+                <p className="text-white/70 text-sm md:text-base leading-relaxed mb-4 max-w-sm">{featured.description ?? ""}</p>
                 <div className="flex items-center gap-3">
-                  <span className="inline-flex items-center gap-1.5 text-xs font-semibold bg-white/10 border border-white/20 text-white rounded-full px-3 py-1.5 backdrop-blur-sm">
-                    {featured.productCount} pieces
-                  </span>
                   <span className="inline-flex items-center gap-1.5 text-xs font-semibold bg-primary text-primary-foreground rounded-full px-4 py-1.5 opacity-0 group-hover:opacity-100 transition-all duration-300 -translate-x-2 group-hover:translate-x-0">
                     Explore <ArrowRight className="w-3 h-3" />
                   </span>
@@ -97,11 +107,13 @@ export default function CollectionsPage() {
               style={{ aspectRatio: "4/3" }}
               data-testid={`card-collection-${col.id}`}
             >
-              <img
-                src={col.imageUrl}
-                alt={col.name}
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-              />
+              {col.image_url && (
+                <img
+                  src={col.image_url}
+                  alt={col.name}
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+              )}
               {/* Base gradient */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
               {/* Hover overlay */}
@@ -110,9 +122,8 @@ export default function CollectionsPage() {
               {/* Content */}
               <div className="absolute bottom-0 left-0 right-0 p-5">
                 <p className="font-semibold text-white text-lg leading-tight">{col.name}</p>
-                <p className="text-white/65 text-sm mt-1 line-clamp-2">{col.description}</p>
-                <div className="flex items-center justify-between mt-3">
-                  <span className="text-xs text-white/50">{col.productCount} pieces</span>
+                <p className="text-white/65 text-sm mt-1 line-clamp-2">{col.description ?? ""}</p>
+                <div className="flex items-center justify-end mt-3">
                   <span className="inline-flex items-center gap-1 text-xs font-semibold text-primary bg-primary/15 border border-primary/25 rounded-full px-3 py-1 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-1 group-hover:translate-y-0">
                     Explore <ArrowRight className="w-2.5 h-2.5" />
                   </span>

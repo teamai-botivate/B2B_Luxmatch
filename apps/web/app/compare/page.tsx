@@ -4,31 +4,53 @@ import CustomerLayout from "@/components/layout/CustomerLayout";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { X, Package, Plus, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCompare } from "@/contexts/CompareContext";
 import { trackEvent } from "@/lib/analytics";
-import { MOCK_PRODUCTS } from "@/lib/mock-data";
+import type { Product } from "@/lib/mock-data";
+import { adaptProduct, fetchCategories, fetchProductsByIds, productImageUrl } from "@/lib/catalog-adapter";
 import { formatINR } from "@/lib/format";
 import EmptyState from "@/components/ui/EmptyState";
 
 const ROWS = [
-  { label: "Price", key: "price", render: (p: (typeof MOCK_PRODUCTS)[0]) => formatINR(p.price) },
-  { label: "Category", key: "category", render: (p: (typeof MOCK_PRODUCTS)[0]) => p.category },
-  { label: "Metal", key: "metal", render: (p: (typeof MOCK_PRODUCTS)[0]) => p.metal },
-  { label: "Purity", key: "purity", render: (p: (typeof MOCK_PRODUCTS)[0]) => p.purity },
-  { label: "Weight", key: "weight", render: (p: (typeof MOCK_PRODUCTS)[0]) => p.weight },
-  { label: "Gemstones", key: "gemstones", render: (p: (typeof MOCK_PRODUCTS)[0]) => p.gemstones ?? "—" },
-  { label: "Occasions", key: "occasions", render: (p: (typeof MOCK_PRODUCTS)[0]) => p.occasions.join(", ") },
-  { label: "Virtual Try-On", key: "hasTryOn", render: (p: (typeof MOCK_PRODUCTS)[0]) => p.hasTryOn ? "Yes" : "No" },
+  { label: "Price", key: "price", render: (p: Product) => formatINR(p.price) },
+  { label: "Category", key: "category", render: (p: Product) => p.category },
+  { label: "Metal", key: "metal", render: (p: Product) => p.metal },
+  { label: "Purity", key: "purity", render: (p: Product) => p.purity },
+  { label: "Weight", key: "weight", render: (p: Product) => p.weight },
+  { label: "Gemstones", key: "gemstones", render: (p: Product) => p.gemstones ?? "—" },
+  { label: "Occasions", key: "occasions", render: (p: Product) => p.occasions.join(", ") },
+  { label: "Virtual Try-On", key: "hasTryOn", render: (p: Product) => p.hasTryOn ? "Yes" : "No" },
 ];
 
 export default function ComparePage() {
   const router = useRouter();
   const { compareItems, toggleCompare, clearCompare, canAddMore } = useCompare();
-  const products = MOCK_PRODUCTS.filter(p => compareItems.has(p.id));
+  const [products, setProducts] = useState<Product[]>([]);
+
+  // Compare IDs are real product UUIDs; hydrate from the tenant-scoped catalog
+  // API so the table (and header images) reflect real product_images + specs.
+  const ids = Array.from(compareItems).join(",");
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const idList = ids ? ids.split(",") : [];
+      if (idList.length === 0) {
+        if (!cancelled) setProducts([]);
+        return;
+      }
+      const [categories, fetched] = await Promise.all([
+        fetchCategories(),
+        fetchProductsByIds(idList),
+      ]);
+      if (cancelled) return;
+      setProducts(fetched.map((p) => adaptProduct(p, categories)));
+    })();
+    return () => { cancelled = true; };
+  }, [ids]);
 
   // Fire once when the compare view is opened with items present.
   useEffect(() => {
@@ -86,7 +108,7 @@ export default function ComparePage() {
                       </button>
                       <Link href={`/catalog/${p.slug}`}>
                         <div className="overflow-hidden rounded-2xl bg-muted mb-2 cursor-pointer" style={{ aspectRatio: "3/4" }}>
-                          <img src={p.images[0]?.url} alt={p.name} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
+                          <img src={productImageUrl(p.images)} alt={p.name} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
                         </div>
                       </Link>
                       <p className="text-sm font-semibold text-center leading-snug">{p.name}</p>

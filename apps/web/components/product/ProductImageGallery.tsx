@@ -4,6 +4,7 @@ import { useState } from "react";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { ProductImage } from "@/lib/mock-data";
+import { PLACEHOLDER_IMAGE_URL } from "@/lib/catalog-adapter";
 
 interface ProductImageGalleryProps {
   images: ProductImage[];
@@ -29,7 +30,7 @@ export default function ProductImageGallery({ images, productName }: ProductImag
           <AnimatePresence mode="wait">
             <motion.img
               key={activeIndex}
-              src={images[activeIndex]?.url}
+              src={images[activeIndex]?.url ?? PLACEHOLDER_IMAGE_URL}
               alt={images[activeIndex]?.alt ?? productName}
               className="w-full h-full object-cover"
               initial={{ opacity: 0 }}
@@ -82,7 +83,7 @@ export default function ProductImageGallery({ images, productName }: ProductImag
               <X className="w-5 h-5 text-white" />
             </button>
             <img
-              src={images[activeIndex]?.url}
+              src={images[activeIndex]?.url ?? PLACEHOLDER_IMAGE_URL}
               alt={images[activeIndex]?.alt ?? productName}
               className="max-w-full max-h-[90vh] object-contain rounded-2xl"
               onClick={(e) => e.stopPropagation()}

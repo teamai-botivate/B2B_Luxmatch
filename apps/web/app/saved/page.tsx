@@ -2,19 +2,45 @@
 
 import CustomerLayout from "@/components/layout/CustomerLayout";
 
-import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import { Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ProductGrid from "@/components/product/ProductGrid";
 import EmptyState from "@/components/ui/EmptyState";
 import { useSavedItems } from "@/contexts/SavedItemsContext";
-import { MOCK_PRODUCTS } from "@/lib/mock-data";
+import type { Product } from "@/lib/mock-data";
+import { adaptProduct, fetchCategories, fetchProductsByIds } from "@/lib/catalog-adapter";
 
 export default function SavedPage() {
   const router = useRouter();
   const { savedItems, clearSaved } = useSavedItems();
-  const saved = MOCK_PRODUCTS.filter(p => savedItems.has(p.id));
+  const [saved, setSaved] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Saved IDs are real product UUIDs (set by ProductCard). Hydrate them from the
+  // tenant-scoped catalog API so cards show real product_images, not mock data.
+  const ids = Array.from(savedItems).join(",");
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      const idList = ids ? ids.split(",") : [];
+      if (idList.length === 0) {
+        if (!cancelled) { setSaved([]); setLoading(false); }
+        return;
+      }
+      const [categories, products] = await Promise.all([
+        fetchCategories(),
+        fetchProductsByIds(idList),
+      ]);
+      if (cancelled) return;
+      setSaved(products.map((p) => adaptProduct(p, categories)));
+      setLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [ids]);
 
   return (
     <CustomerLayout>
@@ -32,7 +58,7 @@ export default function SavedPage() {
           )}
         </motion.div>
 
-        {saved.length === 0 ? (
+        {!loading && saved.length === 0 ? (
           <EmptyState
             icon={Heart}
             title="No saved items yet"
@@ -40,7 +66,7 @@ export default function SavedPage() {
             action={{ label: "Browse Catalog", onClick: () => router.push("/catalog") }}
           />
         ) : (
-          <ProductGrid products={saved} />
+          <ProductGrid products={saved} loading={loading} />
         )}
       </div>
     </div>

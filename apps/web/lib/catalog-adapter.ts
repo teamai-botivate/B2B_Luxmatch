@@ -3,7 +3,26 @@
  * all existing components (ProductCard, ProductDetailPanel, ProductGrid) keep
  * working without changes.  The real UUID id is preserved so the cart works.
  */
-import type { Category, Occasion, Product } from '@/lib/mock-data';
+import type { Category, Occasion, Product, ProductImage } from '@/lib/mock-data';
+
+/**
+ * Inline SVG placeholder shown when a product has no image yet (e.g. a real
+ * product created before its Cloudinary photo is uploaded). Keeps the grid from
+ * rendering a broken <img>. Real product_images.url always takes precedence.
+ */
+export const PLACEHOLDER_IMAGE_URL =
+  "data:image/svg+xml;utf8," +
+  encodeURIComponent(
+    `<svg xmlns='http://www.w3.org/2000/svg' width='600' height='800'>` +
+      `<rect width='100%' height='100%' fill='#F5F0EB'/>` +
+      `<text x='50%' y='50%' fill='#B8A98C' font-family='sans-serif' font-size='28'` +
+      ` text-anchor='middle' dominant-baseline='middle'>No image</text></svg>`,
+  );
+
+/** Primary image URL for a product, with a safe placeholder fallback. */
+export function productImageUrl(images: Pick<ProductImage, 'url'>[] | undefined): string {
+  return images?.[0]?.url ?? PLACEHOLDER_IMAGE_URL;
+}
 
 export type ApiCategory = { id: string; name: string; slug: string | null };
 
@@ -126,6 +145,21 @@ export async function fetchCollections(): Promise<ApiCollection[]> {
     if (!res.ok) return [];
     const json = (await res.json()) as { data?: ApiCollection[] };
     return json.data ?? [];
+  } catch {
+    return [];
+  }
+}
+
+export async function fetchProductsByIds(ids: string[]): Promise<ApiProduct[]> {
+  const clean = ids.filter(Boolean);
+  if (clean.length === 0) return [];
+  try {
+    const res = await fetch(`/api/products/by-ids?ids=${encodeURIComponent(clean.join(','))}`, {
+      cache: 'no-store',
+    });
+    if (!res.ok) return [];
+    const json = (await res.json()) as { data?: { products: ApiProduct[] } };
+    return json.data?.products ?? [];
   } catch {
     return [];
   }
