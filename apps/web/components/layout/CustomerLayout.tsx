@@ -8,7 +8,7 @@ export default function CustomerLayout({ children }: { children: ReactNode }) {
   return (
     <>
       <AppHeader />
-      <div className="pt-16">{children}</div>
+      <div className="pt-[88px]">{children}</div>
       <Footer />
     </>
   );

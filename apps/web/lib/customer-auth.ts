@@ -14,6 +14,33 @@ export type CustomerCookiePayload = {
 
 const enc = new TextEncoder();
 
+/**
+ * Extract and URL-decode the lm_customer cookie from a request.
+ *
+ * Hono's setCookie() runs the value through encodeURIComponent, so the stored
+ * cookie escapes the base64 payload's `=`, `/`, `+` as `%3D`, `%2F`, `%2B`.
+ * Reading the raw Cookie header therefore yields an encoded string that
+ * verifyCustomerCookie() can't parse — it must be decoded first, or every
+ * customer request looks logged-out (401 → redirect to /login).
+ */
+export function readCustomerCookie(
+  c: { req: { header: (k: string) => string | undefined } },
+): string | undefined {
+  const raw = c.req.header('cookie')
+    ?.split(';')
+    .find(s => s.trim().startsWith(CUSTOMER_COOKIE_NAME + '='))
+    ?.split('=')
+    .slice(1)
+    .join('=')
+    .trim();
+  if (!raw) return undefined;
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return raw;
+  }
+}
+
 async function importKey(secret: string) {
   return crypto.subtle.importKey(
     'raw', enc.encode(secret + ':customer'),

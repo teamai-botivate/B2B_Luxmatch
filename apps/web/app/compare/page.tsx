@@ -63,7 +63,7 @@ export default function ComparePage() {
   if (products.length === 0) {
     return (
       <CustomerLayout>
-      <div className="min-h-screen pt-16 flex items-center justify-center" data-testid="compare-page-empty">
+      <div className="min-h-screen flex items-center justify-center" data-testid="compare-page-empty">
         <EmptyState
           icon={Package}
           title="Nothing to compare yet"
@@ -77,7 +77,7 @@ export default function ComparePage() {
 
   return (
     <CustomerLayout>
-    <div className="min-h-screen pt-16" data-testid="compare-page">
+    <div className="min-h-screen" data-testid="compare-page">
       <div className="max-w-[1400px] mx-auto px-4 md:px-6 lg:px-12 py-8">
         <div className="flex items-center justify-between mb-6">
           <div>

@@ -44,7 +44,7 @@ export default function SavedPage() {
 
   return (
     <CustomerLayout>
-    <div className="min-h-screen pt-16" data-testid="saved-page">
+    <div className="min-h-screen" data-testid="saved-page">
       <div className="max-w-[1400px] mx-auto px-4 md:px-6 lg:px-12 py-8">
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between mb-8">
           <div>

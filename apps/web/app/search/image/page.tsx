@@ -45,7 +45,7 @@ export default function ImageSearchPage() {
 
   return (
     <CustomerLayout>
-      <div className="min-h-screen pt-16" data-testid="image-search-page">
+      <div className="min-h-screen" data-testid="image-search-page">
         <div className="mx-auto max-w-[1400px] px-4 py-10 md:px-6 lg:px-12">
           <motion.div
             initial={{ opacity: 0, y: 12 }}

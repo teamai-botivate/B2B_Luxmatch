@@ -59,7 +59,7 @@ export default function CollectionDetailPage() {
   if (!collection) {
     return (
       <CustomerLayout>
-        <div className="min-h-screen pt-16">
+        <div className="min-h-screen">
           <div className="max-w-[1400px] mx-auto px-4 md:px-6 lg:px-12 py-10">
             <ProductGrid products={[]} loading />
           </div>
@@ -70,7 +70,7 @@ export default function CollectionDetailPage() {
 
   return (
     <CustomerLayout>
-    <div className="min-h-screen pt-16" data-testid="collection-detail-page">
+    <div className="min-h-screen" data-testid="collection-detail-page">
       <div className="relative overflow-hidden" style={{ height: 280 }}>
         {collection.image_url && (
           <img src={collection.image_url} alt={collection.name} className="w-full h-full object-cover" />

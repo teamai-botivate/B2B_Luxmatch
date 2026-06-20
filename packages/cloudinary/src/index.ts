@@ -10,7 +10,7 @@ import { createHash } from 'node:crypto';
 // pass an arbitrary folder path.
 // ────────────────────────────────────────────────────────────────────────────
 
-export const CLOUDINARY_BUCKETS = ['products', 'tryon', 'logo'] as const;
+export const CLOUDINARY_BUCKETS = ['products', 'tryon', 'logo', 'avatars'] as const;
 export type CloudinaryBucket = (typeof CLOUDINARY_BUCKETS)[number];
 
 export type AllowedFormat = 'jpg' | 'jpeg' | 'png' | 'webp';
@@ -20,6 +20,8 @@ const ALLOWED_FORMATS_BY_BUCKET: Record<CloudinaryBucket, AllowedFormat[]> = {
   // Try-on assets require transparency, so jpg is rejected.
   tryon: ['png', 'webp'],
   logo: ['jpg', 'jpeg', 'png', 'webp'],
+  // Customer profile pictures.
+  avatars: ['jpg', 'jpeg', 'png', 'webp'],
 };
 
 export function getAllowedFormats(bucket: CloudinaryBucket): AllowedFormat[] {

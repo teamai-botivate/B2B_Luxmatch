@@ -1,6 +1,6 @@
-# CLAUDE.md
+# AGENTS.md
 
-Guidance for Claude Code when working in this repo.
+Guidance for Codex when working in this repo.
 
 ## Branch policy (read first)
 
@@ -24,13 +24,10 @@ All core phases (-1→12) + e-commerce (E1–E3) are landed on `production`. Hig
 - **Prod-blocker pass (P1–P3)** — cart/address helpers jeweller-scoped, demo OTP hidden in prod, migration seeder env-loaded, saved/compare on `sessionStorage`, home on real APIs, year-relative festival windows, durable PIN limits via `pin_audit_events`, tenancy guard tests.
 - **Email OTP verified end-to-end** — custom SMTP set in the Supabase dashboard (dev: a personal Gmail App Password). Supabase email OTP is **8 digits**; verify route + login input accept **6–8** (`/^\d{6,8}$/`, input maxLength 8) — was hardcoded to 6, which made login impossible. `send-otp` logs and returns the real Supabase error on failure, including 429 rate limiting, so the login page can show the actual reason instead of a generic failure.
 - **Storefront renders real `product_images`** — saved/compare/CompareTray hydrate stored UUIDs via tenant-scoped `GET /api/products/by-ids`; collections/occasions use real APIs; `productImageUrl()`/`PLACEHOLDER_IMAGE_URL` fallback. The 12 demo products point at Cloudinary assets under `luxematch/<SHOP_JEWELLER_ID>/products/`, imported from `jewellery_search/*` via `pnpm import:cloudinary-product-images` (sequential map — see gap #6).
-- **Customer UI refresh in progress** — storefront now leans pearl/gold/velvet with a darker hero, metallic CTA treatment, tighter geometry, fixed featured-piece notification on home, raised login form, and duplicate trust-strip/footer CTA cleanup. Cart, checkout, and account pages were brought onto this system (away from the old `rounded-2xl`/`rounded-full`/`bg-card` look) — pearl `#fffdf8` cards, `#e4d8c6` borders, 6–12px radii, `metal-sheen` CTAs, lucide icons over emoji. Keep future customer-facing edits aligned with that direction instead of returning to cream-everywhere, large rounded SaaS cards, or duplicate CTA/trust strips.
-- **Customer cookie decode fix** — Hono's `setCookie` URL-encodes values, so the `lm_customer` base64 payload's `=`/`/`/`+` get escaped; the manual cookie parsers must `decodeURIComponent` before `verifyCustomerCookie` or **every** customer request reads as logged-out (this broke add-to-cart → bounced to `/login`). Shared `readCustomerCookie()` in `apps/web/lib/customer-auth.ts` is the one correct parser — use it; don't re-introduce raw inline splits.
-- **Sign In / Sign Up (password-primary)** — `/login` (sign-in) and `/signup` share `components/auth/CustomerAuthForm.tsx` (`mode` prop). **Password is the primary credential; OTP runs exactly once, during sign-up, to verify the email.** Sign-up: name + email + phone + password + confirm-password (client-side match check + min 6) → one-time email OTP (`/send-otp` via `signInWithOtp`) → `/verify-otp` confirms the code AND sets the password via `supabase.auth.updateUser({password})` on the just-verified session. Sign-in: email + password → `POST /api/customer/signin` (`signInWithPassword`) → resolves the shop-scoped customer by email (`getCustomerByEmail`) → `lm_customer` cookie. No name field on sign-in (removed — it was a relic of the auto-create OTP flow). Requires Supabase email confirmations/SMTP (already configured). Password policy min 6 (Supabase default). Both honour `?next=`; pages wrap the form in `<Suspense>`. UI uses the velvet display-case panel + serif (`font-display`) headings + gold hairline within the pearl/gold/velvet system.
-- **Customer dashboard** — `/account` is a real dashboard: editable name, stats (orders/saved/addresses), recent orders, saved addresses, sticky quick-links, and a **profile picture** (see Customer profile pictures below).
-- **Customer profile pictures (DP)** — file in Cloudinary `luxematch/<jewellerId>/avatars/` (new `avatars` bucket), URL+public_id in `customers.avatar_url`/`avatar_public_id` (migration `0004_customer_avatar.sql`, **not yet applied** — gap #3). Customer-gated flow: `POST /api/customer/avatar/sign` → direct Cloudinary upload → `POST /api/customer/avatar`; `DELETE` clears it. `/me` now reads name+avatar fresh from the DB so post-login changes show without re-issuing the cookie.
+- **Customer UI refresh in progress** — storefront now leans pearl/gold/velvet with a darker hero, metallic CTA treatment, tighter geometry, fixed featured-piece notification on home, raised login form, and duplicate trust-strip/footer CTA cleanup. Keep future customer-facing edits aligned with that direction instead of returning to cream-everywhere, large rounded SaaS cards, or duplicate CTA/trust strips.
+- **Sign In / Sign Up (password-primary)** — `/login` (sign-in) and `/signup` share `components/auth/CustomerAuthForm.tsx` (`mode` prop). **Password is the primary credential; OTP runs exactly once, during sign-up, to verify the email.** Sign-up: name + email + phone + password + confirm-password (client-side match check + min 6) → one-time email OTP (`/send-otp` via `signInWithOtp`) → `/verify-otp` confirms the code AND sets the password via `supabase.auth.updateUser({password})` on the just-verified session. Sign-in: email + password → `POST /api/customer/signin` (`signInWithPassword`) → resolves the shop-scoped customer by email (`getCustomerByEmail`) → `lm_customer` cookie. No name field on sign-in (removed — it was a relic of the auto-create OTP flow). Requires Supabase email confirmations/SMTP (already configured). Password policy min 6 (Supabase default). Both honour `?next=`; pages wrap the form in `<Suspense>`. UI uses the velvet display-case panel + serif (`font-display`) headings + gold hairline within the pearl/gold/velvet system. Passwords live in Supabase Auth — no DB migration needed.
 
-**NEXT:** push/deploy local `production` commits; apply `0003_security_advisor.sql` + `0004_customer_avatar.sql` in Supabase; swap dev Gmail SMTP for a transactional provider (Resend/Brevo) + set prod `SMTP_*`; upload real per-product photos. Do **not** touch try-on/AR assets — deferred. AWS migration parked.
+**NEXT:** push/deploy local `production` commits; apply `0003_security_advisor.sql` in Supabase; swap dev Gmail SMTP for a transactional provider (Resend/Brevo) + set prod `SMTP_*`; upload real per-product photos. Do **not** touch try-on/AR assets — deferred. AWS migration parked.
 
 ## Commands
 
@@ -67,7 +64,7 @@ apps/web/        Next.js 15 App Router + Hono BFF
 apps/embedder/   Python FastAPI — OpenCLIP ViT-B-32, 512-d
 packages/
   ar-engine/     MediaPipe + Three.js (ported from jewellery-ar-service); renderer.ts + preview.ts both delegate to overlayMath.ts; 2D PNG + 3D GLB/GLTF
-  cloudinary/    signed upload + per-jeweller folder enforcement (only vendor-specific SDK); buckets: products, tryon, logo, avatars
+  cloudinary/    signed upload + per-jeweller folder enforcement (only vendor-specific SDK)
   config/        zod env; server env throws at module load if missing
   db/            Supabase client + tenant-scoped helpers (products, jewellers, media, metrics, analytics, tryon, events, intelligence, customers, cart, ecommerce, branches)
   embeddings/    thin TS client for apps/embedder
@@ -76,7 +73,7 @@ packages/
   tenant/        SHOP_JEWELLER_ID + PIN cookie (Edge-safe) + /server (Node scrypt)
   types/         cross-package zod schemas
   ui/            EMPTY placeholder — real UI lives in apps/web/components
-supabase/migrations/  0001_init.sql · 0002_ecommerce.sql · 0003_security_advisor.sql · 0004_customer_avatar.sql ; seed.sql (demo jeweller + 12 products + 3 tryon assets, PIN 123456)
+supabase/migrations/  0001_init.sql · 0002_ecommerce.sql · 0003_security_advisor.sql ; seed.sql (demo jeweller + 12 products + 3 tryon assets, PIN 123456)
 scripts/         provision-shop · reindex · seed-intelligence · seasonal-rollup · check-env · smoke-test · run-migration.mjs (env-loaded demo seeder)
 apps/web/public/All_jewelleries/   ~46 temp transparent AR PNGs
 apps/web/lib/showcase-ar-assets.ts 44 hardcoded showcase products prepended to /api/tryon/products
@@ -128,9 +125,6 @@ POST /api/customer/verify-otp        public — confirms sign-up OTP, sets the p
                                      (Supabase email OTP defaults to 8) — do NOT revert to 6
 POST /api/customer/signin            public — PRIMARY sign-in: signInWithPassword + getCustomerByEmail → lm_customer
 GET  /api/customer/me ; POST /api/customer/logout|profile   customer-gated
-                                     (/me reads name+avatar fresh from DB)
-POST /api/customer/avatar/sign       customer-gated — signed Cloudinary upload (avatars bucket)
-POST|DELETE /api/customer/avatar     customer-gated — save/clear profile picture URL+public_id
 
 # Customer orders (dual-mounted at /api/customer/orders AND /api/customer; frontend uses /orders)
 GET  /api/customer/orders[/:id] ; /orders/addresses        customer-gated
@@ -143,7 +137,7 @@ GET|POST /api/customer/cart ; PATCH|DELETE /api/customer/cart/:productId ; DELET
 
 ## Frontend data status
 
-Most customer pages hit real APIs (catalog, detail, try-on, cart, checkout, orders, login/signup, account dashboard + profile picture, collections, occasions, home featured + collections, saved/compare via by-ids).
+Most customer pages hit real APIs (catalog, detail, try-on, cart, checkout, orders, login, collections, occasions, home featured + collections, saved/compare via by-ids).
 
 - **`/search/image` → `/api/search/jewellery-ai`** — works in prod but returns Jewellery_AI's catalog, not this shop's.
 - **`/search` text + `/style-quiz`** → embedder-dependent → broken on the deployed site until the embedder ships.
@@ -226,7 +220,7 @@ Applies to e-commerce too: `customers`/`cart_items`/`orders`/`branches` all carr
 
 ## E-commerce data model (0002)
 
-`branches` (click-and-collect locations) · `customers` (per-jeweller, unique `(jeweller_id, phone)`; `avatar_url`/`avatar_public_id` added in `0004`) · `customer_otps` (**legacy** phone-OTP table; login now uses email + password via Supabase Auth, with a one-time email OTP at sign-up) · `customer_addresses` · `cart_items` (unique `(customer_id, product_id)`) · `orders`/`order_items`/`order_status_history` (status placed→…→delivered/cancelled, payment snapshot). Apply via Supabase SQL editor: run `0002_ecommerce.sql`, then `0003_security_advisor.sql`, then `0004_customer_avatar.sql`.
+`branches` (click-and-collect locations) · `customers` (per-jeweller, unique `(jeweller_id, phone)`) · `customer_otps` (**legacy** phone-OTP table; login now uses email + password via Supabase Auth, with a one-time email OTP at sign-up) · `customer_addresses` · `cart_items` (unique `(customer_id, product_id)`) · `orders`/`order_items`/`order_status_history` (status placed→…→delivered/cancelled, payment snapshot). Apply via Supabase SQL editor: run `0002_ecommerce.sql` then `0003_security_advisor.sql`.
 
 ## Common pitfalls
 
@@ -242,13 +236,12 @@ Applies to e-commerce too: `customers`/`cart_items`/`orders`/`branches` all carr
 - **Cart/orders per-customer per-jeweller** — never join customers across jewellers.
 - **Saved/compare on `sessionStorage`** (intentional kiosk reset) — don't move back to localStorage without a product decision.
 - **Showcase AR products prepended** — `/try-on` merges 44 hardcoded `lib/showcase-ar-assets.ts` entries with `/api/tryon/products`; real AR assets deferred, don't change this path.
-- **`lm_customer` cookie is URL-encoded by Hono** — read it via `readCustomerCookie()` (decodes), never a raw inline split, or `verifyCustomerCookie` fails and the customer reads as logged-out.
 
 ## Known gaps / production blockers (priority order)
 
 1. **Secret rotation** — old Supabase service-role, Cloudinary secret, Qdrant keys were exposed in git history / sibling scripts. `run-migration.mjs` is env-loaded now, but leaked dashboard secrets still need rotating.
 2. **Push/deploy local `production` commits** — P1–P3, email OTP, Security Advisor work is committed locally only.
-3. **Apply pending migrations** in Supabase SQL editor: `0003_security_advisor.sql` (explicit `service_role` policies + fixed function `search_path`; no anon/authenticated grants — rerun the linter after) and `0004_customer_avatar.sql` (customer DP columns — until applied, avatar save/delete error on the unknown column; `/me` degrades to `avatar_url=null`).
+3. **Apply `0003_security_advisor.sql`** in Supabase SQL editor, then rerun the linter (adds explicit `service_role` policies + fixed function `search_path`; no anon/authenticated grants).
 4. **OTP email on a personal Gmail (dev only)** — works E2E but Gmail caps ~500/day, spam risk, not a real sender. Switch to Resend/Brevo + verified domain before real customers. OTP is 8 digits; app accepts 6–8, don't re-narrow.
 5. **Order confirmation email** — checkout sends via optional `SMTP_*` (nodemailer, separate from Supabase Auth SMTP); set in prod env, ideally same provider as #4.
 6. **Product image mapping quality** — real Cloudinary images imported + displayed, but `jewellery_search/*` sources had no metadata so the 12 products were mapped sequentially. Upload per-product photos via the jeweller flow, or add an explicit mapping layer + rerun the importer. Don't touch try-on/AR.
@@ -261,6 +254,6 @@ Applies to e-commerce too: `customers`/`cart_items`/`orders`/`branches` all carr
 
 ## Phase status
 
-Done (✅): -1/0.5/1 scaffold+tenancy · 2 design system · 3 schema+catalog · 4 Cloudinary uploads · 5 OpenCLIP+Qdrant · 6 AR engine · 7 try-on calibration · 8 dashboard+CRUD+analytics · 9.5 intelligence · E1 customer auth/cart/checkout/orders/branches · E2 catalog→checkout wiring · E3 jeweller order mgmt · 9 style quiz · 10 analytics+smoke+vitest+health · 11 deploy config+CORS · 12 PIN hardening · P1 security · P2 kiosk correctness · P3 durable PIN limit+tenancy tests · Stage 3 email OTP+order email · Security Advisor migration · Email OTP live (custom SMTP, 6–8 digit) · Storefront real `product_images` + 12 Cloudinary photos imported · customer cookie-decode fix + sign-in/sign-up + account dashboard + profile pictures (Cloudinary `avatars` + migration `0004`) + cart/checkout/account redesign.
+Done (✅): -1/0.5/1 scaffold+tenancy · 2 design system · 3 schema+catalog · 4 Cloudinary uploads · 5 OpenCLIP+Qdrant · 6 AR engine · 7 try-on calibration · 8 dashboard+CRUD+analytics · 9.5 intelligence · E1 customer auth/cart/checkout/orders/branches · E2 catalog→checkout wiring · E3 jeweller order mgmt · 9 style quiz · 10 analytics+smoke+vitest+health · 11 deploy config+CORS · 12 PIN hardening · P1 security · P2 kiosk correctness · P3 durable PIN limit+tenancy tests · Stage 3 email OTP+order email · Security Advisor migration · Email OTP live (custom SMTP, 6–8 digit) · Storefront real `product_images` + 12 Cloudinary photos imported.
 
-Next (⬜): push/deploy local `production` · apply `0004_customer_avatar.sql` · upload real per-product photos · cleanup (discount table, stale docs, empty `@luxematch/ui`). Parked: AWS S3+CloudFront+EC2 migration.
+Next (⬜): push/deploy local `production` · upload real per-product photos · cleanup (discount table, stale docs, empty `@luxematch/ui`). Parked: AWS S3+CloudFront+EC2 migration.

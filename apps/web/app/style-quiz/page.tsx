@@ -200,7 +200,7 @@ export default function StyleQuizPage() {
   if (loading) {
     return (
       <CustomerLayout>
-        <div className="flex min-h-screen flex-col items-center justify-center gap-6 pt-16">
+        <div className="flex min-h-screen flex-col items-center justify-center gap-6">
           <Loader2 className="h-10 w-10 animate-spin text-primary" />
           <p className="text-sm text-muted-foreground">Finding your perfect pieces…</p>
         </div>
@@ -211,7 +211,7 @@ export default function StyleQuizPage() {
   if (done) {
     return (
       <CustomerLayout>
-        <div className="min-h-screen pt-16" data-testid="quiz-results">
+        <div className="min-h-screen" data-testid="quiz-results">
           <div className="mx-auto max-w-[1400px] px-4 py-10 md:px-6 lg:px-12">
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="mb-10 text-center">
               <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
@@ -279,7 +279,7 @@ export default function StyleQuizPage() {
 
   return (
     <CustomerLayout>
-      <div className="min-h-screen pt-16" data-testid="style-quiz-page">
+      <div className="min-h-screen" data-testid="style-quiz-page">
         <div className="mx-auto max-w-lg px-4 py-10">
           <div className="mb-8">
             <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">

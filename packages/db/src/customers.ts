@@ -6,6 +6,8 @@ export type CustomerRow = {
   phone: string;
   name: string | null;
   email: string | null;
+  avatar_url: string | null;
+  avatar_public_id: string | null;
   created_at: string;
 };
 
@@ -69,6 +71,25 @@ export async function getCustomerById(jewellerId: string, customerId: string): P
   return data as CustomerRow | null;
 }
 
+/**
+ * Look up a customer by email within a jeweller. Used by password sign-in, where
+ * we authenticate against Supabase Auth (global) and then resolve the shop-scoped
+ * customer row. `phone` is the unique key, so emails could in theory collide;
+ * we take the earliest-created row to stay deterministic.
+ */
+export async function getCustomerByEmail(jewellerId: string, email: string): Promise<CustomerRow | null> {
+  const sb = getSupabaseServer();
+  const { data } = await sb
+    .from('customers')
+    .select('*')
+    .eq('jeweller_id', jewellerId)
+    .eq('email', email)
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  return data as CustomerRow | null;
+}
+
 export async function updateCustomerName(
   jewellerId: string,
   customerId: string,
@@ -79,6 +100,38 @@ export async function updateCustomerName(
   const patch: Record<string, string> = { name };
   if (email) patch.email = email;
   await sb.from('customers').update(patch).eq('jeweller_id', jewellerId).eq('id', customerId);
+}
+
+/**
+ * Persists a customer's profile picture. The image file itself lives in
+ * Cloudinary (luxematch/<jewellerId>/avatars/); here we only store the secure
+ * URL + public_id so the UI can render it and the next replacement can delete
+ * the previous asset. Pass nulls to clear the avatar.
+ *
+ * Returns the previous public_id (if any) so the caller can destroy the old
+ * Cloudinary asset after a successful swap.
+ */
+export async function updateCustomerAvatar(
+  jewellerId: string,
+  customerId: string,
+  avatar: { url: string | null; publicId: string | null },
+): Promise<{ previousPublicId: string | null }> {
+  const sb = getSupabaseServer();
+  const { data: existing } = await sb
+    .from('customers')
+    .select('avatar_public_id')
+    .eq('jeweller_id', jewellerId)
+    .eq('id', customerId)
+    .maybeSingle();
+
+  const { error } = await sb
+    .from('customers')
+    .update({ avatar_url: avatar.url, avatar_public_id: avatar.publicId })
+    .eq('jeweller_id', jewellerId)
+    .eq('id', customerId);
+  if (error) throw new Error(`Failed to update avatar: ${error.message}`);
+
+  return { previousPublicId: (existing as { avatar_public_id: string | null } | null)?.avatar_public_id ?? null };
 }
 
 /**

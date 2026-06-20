@@ -58,7 +58,7 @@ export default function SearchPage() {
 
   return (
     <CustomerLayout>
-      <div className="min-h-screen pt-16" data-testid="search-page">
+      <div className="min-h-screen" data-testid="search-page">
         <div className="max-w-[1400px] mx-auto px-4 py-10 md:px-6 lg:px-12">
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="mx-auto mb-10 max-w-2xl">
             <h1 className="mb-6 text-center text-3xl font-medium tracking-tight">Search Jewellery</h1>

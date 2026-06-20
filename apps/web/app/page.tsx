@@ -5,7 +5,7 @@ import CustomerLayout from "@/components/layout/CustomerLayout";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
-import { Sparkles, ArrowRight, Shield, Award, Camera, Users } from "lucide-react";
+import { ArrowRight, Camera, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ProductCard from "@/components/product/ProductCard";
 import { MOCK_OCCASIONS } from "@/lib/mock-data";
@@ -17,15 +17,6 @@ import {
   fetchProducts,
 } from "@/lib/catalog-adapter";
 
-const trustItems = [
-  { icon: Shield, label: "BIS Hallmarked", desc: "Every piece certified" },
-  { icon: Award, label: "Certified Jewellers", desc: "Vetted & verified stores" },
-  { icon: Camera, label: "Virtual Try-On", desc: "See pieces in-store" },
-  { icon: Users, label: "Staff Assisted", desc: "Guided showroom experience" },
-];
-
-// Collections returned by the API carry no product_count; the home cards show
-// it cosmetically, so default to 0 and hide the count when unknown.
 function adaptCollection(c: {
   id: string; slug: string; name: string;
   description: string | null; image_url: string | null;
@@ -45,6 +36,7 @@ export default function HomePage() {
   const [featured, setFeatured] = useState<Product[]>([]);
   const [more, setMore] = useState<Product[]>([]);
   const [collections, setCollections] = useState<Collection[]>([]);
+  const [featuredDismissed, setFeaturedDismissed] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -57,7 +49,6 @@ export default function HomePage() {
       ]);
       if (cancelled) return;
       const featuredProducts = featuredRes.products.map((p) => adaptProduct(p, categories));
-      // Fall back to the latest products if the shop hasn't flagged any featured.
       const latest = latestRes.products.map((p) => adaptProduct(p, categories));
       const featuredList = featuredProducts.length > 0 ? featuredProducts : latest.slice(0, 8);
       const featuredIds = new Set(featuredList.map((p) => p.id));
@@ -70,262 +61,295 @@ export default function HomePage() {
     };
   }, []);
 
+  const heroProduct = featured[0];
+
   return (
     <CustomerLayout>
-    <div className="min-h-screen" data-testid="home-page">
-      {/* Hero */}
-      <section className="relative overflow-hidden" style={{ height: "80vh", minHeight: 480 }}>
-        <img
-          src="https://images.unsplash.com/photo-1599643478524-fb66f7ca2b6e?w=1600&q=85"
-          alt="Luxurious Indian jewellery"
-          className="absolute inset-0 w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-black/25 to-transparent" />
-        <div className="absolute inset-0 flex items-center">
-          <div className="max-w-[1400px] mx-auto px-4 md:px-6 lg:px-12 w-full">
-            <motion.div
-              initial={{ opacity: 0, y: 28 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7 }}
-              className="max-w-xl"
-            >
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-5 backdrop-blur-md border border-white/20" style={{ background: "rgba(255,255,255,0.1)" }}>
-                <Sparkles className="w-3.5 h-3.5 text-[#C9A84C]" />
-                <span className="text-xs font-semibold text-white">AI-Powered Jewellery Discovery</span>
-              </div>
-              <h1 className="text-5xl md:text-7xl font-medium tracking-tight leading-[1.1] text-white mb-5">
-                Find Your<br />Perfect Piece
-              </h1>
-              <p className="text-base text-white/75 mb-8 max-w-sm leading-relaxed">
-                Discover certified Indian jewellery from master craftsmen. Try on virtually with AI, save your favourites, and shop with confidence.
+      <div className="min-h-screen overflow-hidden" data-testid="home-page">
+        <section className="relative min-h-[calc(100svh-88px)] overflow-hidden bg-[#211711]">
+          <img
+            src="https://images.unsplash.com/photo-1599643478524-fb66f7ca2b6e?w=1800&q=90"
+            alt="Gold jewellery displayed in a premium showroom"
+            className="absolute inset-0 h-full w-full object-cover opacity-[0.18]"
+          />
+          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(20,14,10,0.84)_0%,rgba(20,14,10,0.58)_42%,rgba(20,14,10,0.20)_72%,rgba(20,14,10,0.44)_100%)]" />
+          <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-background/45 via-background/10 to-transparent" />
+          <div className="pointer-events-none absolute right-[-1%] top-[10%] hidden h-[76%] w-[49%] md:block">
+            <img
+              src="/All_jewelleries/necklace/N2.png"
+              alt=""
+              aria-hidden="true"
+              className="absolute right-[0%] top-[0%] h-[50%] w-auto object-contain opacity-95 drop-shadow-[0_38px_72px_rgba(0,0,0,0.55)]"
+            />
+            <img
+              src="/All_jewelleries/rings/4.png"
+              alt=""
+              aria-hidden="true"
+              className="absolute bottom-[5%] right-[36%] h-[25%] w-auto rotate-[-8deg] object-contain opacity-92 drop-shadow-[0_28px_50px_rgba(0,0,0,0.48)]"
+            />
+            <img
+              src="/All_jewelleries/bracelets/1.png"
+              alt=""
+              aria-hidden="true"
+              className="absolute bottom-[16%] right-[0%] h-[28%] w-auto rotate-[8deg] object-contain opacity-92 drop-shadow-[0_28px_50px_rgba(0,0,0,0.48)]"
+            />
+          </div>
+          <div className="pointer-events-none absolute right-[-38%] top-[10%] h-[42%] w-[92%] opacity-35 md:hidden">
+            <img
+              src="/All_jewelleries/necklace/N2.png"
+              alt=""
+              aria-hidden="true"
+              className="h-full w-full object-contain drop-shadow-[0_30px_60px_rgba(0,0,0,0.5)]"
+            />
+          </div>
+          <div className="relative mx-auto flex min-h-[calc(100svh-88px)] max-w-[1400px] items-center px-4 py-16 md:px-6 lg:px-12">
+            <div className="max-w-2xl">
+              <p className="mb-5 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.28em] text-[#e4cf8f]">
+                <Sparkles className="h-3.5 w-3.5" />
+                AI jewellery showroom
               </p>
-              <div className="flex items-center gap-3">
+              <h1 className="font-display max-w-2xl text-5xl font-normal leading-[0.98] tracking-normal text-white sm:text-6xl md:text-7xl">
+                LuxeMatch
+              </h1>
+              <p className="mt-5 max-w-md text-lg leading-7 text-white/78">
+                Browse the jeweller's live catalogue, compare certified pieces, and preview favourites with virtual try-on before checkout.
+              </p>
+              <div className="mt-8 flex flex-wrap items-center gap-3">
                 <Button
-                  className="rounded-full px-6 text-sm font-semibold hover:scale-[1.02] transition-transform"
-                  style={{ background: "#C9A84C", color: "#fff" }}
+                  className="metal-sheen rounded-full border-0 px-6 font-semibold text-[#17120b] shadow-lg shadow-black/20 transition-transform hover:scale-[1.02]"
                   onClick={() => router.push("/catalog")}
                   data-testid="button-explore-catalog"
                 >
-                  Explore Catalog
+                  Explore Catalogue
+                  <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
                 <Button
                   variant="outline"
-                  className="rounded-full px-6 text-sm font-semibold border-white/40 text-white hover:bg-white/10 hover:border-white/60"
+                  className="rounded-full border-white/35 bg-white/[0.08] px-6 font-semibold text-white backdrop-blur-md hover:bg-white/[0.14] hover:text-white"
                   onClick={() => router.push("/try-on")}
                   data-testid="button-try-on-hero"
                 >
-                  Try On Now
+                  <Camera className="mr-2 h-4 w-4" />
+                  Try On
                 </Button>
               </div>
-            </motion.div>
-          </div>
-        </div>
-      </section>
+            </div>
 
-      {/* Featured Collections */}
-      <section className="py-16 md:py-24 px-4 md:px-6 lg:px-12 max-w-[1400px] mx-auto">
-        <div className="flex items-end justify-between mb-8">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-primary mb-2">Explore</p>
-            <h2 className="text-2xl md:text-3xl font-medium tracking-tight">Curated Collections</h2>
           </div>
-          <button
-            onClick={() => router.push("/collections")}
-            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
-            data-testid="link-all-collections"
+        </section>
+
+        {heroProduct && !featuredDismissed && (
+          <motion.aside
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.18, duration: 0.45 }}
+            className="fixed bottom-5 right-5 z-40 hidden w-[350px] rounded-xl border border-black/10 bg-[#fbf8f1]/95 p-3 text-left shadow-[0_20px_60px_rgba(0,0,0,0.24)] ring-1 ring-black/5 backdrop-blur-xl md:block"
+            data-testid="hero-featured-piece"
+            aria-label="Featured piece"
           >
-            View All <ArrowRight className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* Editorial layout: large featured left + two stacked right */}
-        
-          
-          
-          
-        {collections.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 md:gap-5" style={{ height: "clamp(auto, 52vw, 560px)" }}>
-          {/* Featured — col-span-3 */}
-          {collections[0] && (
-            <motion.div
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              onClick={() => router.push(`/collections/${collections[0]!.slug}`)}
-              className="md:col-span-3 relative overflow-hidden rounded-2xl cursor-pointer group"
-              style={{ minHeight: 260, height: "100%" }}
-              data-testid={`card-collection-${collections[0]!.id}`}
-            >
-              <img
-                src={collections[0]!.imageUrl}
-                alt={collections[0]!.name}
-                className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-              <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              <div className="absolute bottom-0 left-0 right-0 p-6">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-primary/90 bg-primary/15 border border-primary/20 rounded-full px-2.5 py-1 mb-3 inline-block">Featured</span>
-                <p className="font-semibold text-white text-xl md:text-2xl">{collections[0]!.name}</p>
-                <p className="text-white/65 text-sm mt-1.5 max-w-xs leading-relaxed">{collections[0]!.description}</p>
-                <div className="flex items-center gap-2 mt-3">
-                  <span className="inline-flex items-center gap-1 text-xs font-semibold text-primary opacity-0 group-hover:opacity-100 transition-all duration-300 -translate-x-1 group-hover:translate-x-0">
-                    Explore <ArrowRight className="w-3 h-3" />
-                  </span>
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          {/* Two stacked — col-span-2 */}
-          <div className="md:col-span-2 flex flex-col gap-4 md:gap-5">
-            {collections.slice(1, 3).map((col, i) => (
-              <motion.div
-                key={col.id}
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 + i * 0.1, duration: 0.5 }}
-                onClick={() => router.push(`/collections/${col.slug}`)}
-                className="relative overflow-hidden rounded-2xl cursor-pointer group flex-1"
-                style={{ minHeight: 110 }}
-                data-testid={`card-collection-${col.id}`}
+            <div className="mb-3 flex items-center justify-between gap-3 border-b border-black/10 pb-2">
+              <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#9b762f]">Featured piece</span>
+              <button
+                type="button"
+                onClick={() => setFeaturedDismissed(true)}
+                className="flex h-7 w-7 items-center justify-center rounded-full text-[#5f574f] transition-colors hover:bg-black/5 hover:text-[#1f1a14]"
+                aria-label="Dismiss featured piece"
+                data-testid="button-dismiss-featured-piece"
               >
-                <img
-                  src={col.imageUrl}
-                  alt={col.name}
-                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/20 to-transparent" />
-                <div className="absolute inset-0 bg-black/15 opacity-0 group-hover:opacity-100 transition-opacity" />
-                <div className="absolute bottom-0 left-0 right-0 p-4">
-                  <p className="font-semibold text-white text-base">{col.name}</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-primary opacity-0 group-hover:opacity-100 transition-all duration-300 -translate-x-1 group-hover:translate-x-0">
-                      Explore <ArrowRight className="w-2.5 h-2.5" />
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={() => router.push(`/catalog/${heroProduct.slug}`)}
+              className="group flex w-full items-center gap-4 text-left"
+            >
+              <span className="h-20 w-16 shrink-0 overflow-hidden rounded-lg bg-[#e9e2d7] ring-1 ring-black/10">
+                <img src={heroProduct.images[0]?.url} alt={heroProduct.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+              </span>
+              <span className="min-w-0">
+                <span className="line-clamp-1 text-sm font-semibold text-[#1f1a14]">{heroProduct.name}</span>
+                <span className="mt-1 block text-xs text-[#6f675e]">{heroProduct.category} · {heroProduct.metal}</span>
+                <span className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-[#b68a3e]">
+                  View details <ArrowRight className="h-3 w-3" />
+                </span>
+              </span>
+            </button>
+          </motion.aside>
+        )}
+
+        <section className="mx-auto max-w-[1400px] px-4 py-14 md:px-6 md:py-20 lg:px-12">
+          <div className="mb-8 flex items-end justify-between gap-6">
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.24em] text-primary">Explore</p>
+              <h2 className="font-display text-3xl font-normal tracking-normal md:text-5xl">Curated collections</h2>
+            </div>
+            <button
+              onClick={() => router.push("/collections")}
+              className="luxury-link-underline hidden text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground sm:inline-flex"
+              data-testid="link-all-collections"
+            >
+              View all collections
+            </button>
+          </div>
+
+          {collections.length > 0 && (
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-5 md:gap-5">
+              {collections[0] && (
+                <motion.div
+                  initial={{ opacity: 0, y: 16 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: "-80px" }}
+                  transition={{ duration: 0.5 }}
+                  onClick={() => router.push(`/collections/${collections[0]!.slug}`)}
+                  className="group relative min-h-[420px] cursor-pointer overflow-hidden rounded-lg md:col-span-3"
+                  data-testid={`card-collection-${collections[0]!.id}`}
+                >
+                  <img
+                    src={collections[0]!.imageUrl}
+                    alt={collections[0]!.name}
+                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-black/42" />
+                  <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8">
+                    <span className="mb-4 inline-block text-xs font-semibold uppercase tracking-[0.24em] text-[#e4cf8f]">Featured</span>
+                    <p className="font-display text-3xl font-normal text-white md:text-4xl">{collections[0]!.name}</p>
+                    <p className="mt-3 max-w-md text-sm leading-6 text-white/70">{collections[0]!.description}</p>
+                    <span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[#e4cf8f] opacity-0 transition-all duration-300 group-hover:translate-x-1 group-hover:opacity-100">
+                      Explore <ArrowRight className="h-4 w-4" />
                     </span>
                   </div>
+                </motion.div>
+              )}
+
+              <div className="grid gap-4 md:col-span-2 md:gap-5">
+                {collections.slice(1, 3).map((col, i) => (
+                  <motion.div
+                    key={col.id}
+                    initial={{ opacity: 0, y: 16 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, margin: "-80px" }}
+                    transition={{ delay: 0.08 + i * 0.08, duration: 0.5 }}
+                    onClick={() => router.push(`/collections/${col.slug}`)}
+                    className="group relative min-h-[200px] cursor-pointer overflow-hidden rounded-lg"
+                    data-testid={`card-collection-${col.id}`}
+                  >
+                    <img
+                      src={col.imageUrl}
+                      alt={col.name}
+                      className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-black/38" />
+                    <div className="absolute bottom-0 left-0 right-0 p-5">
+                      <p className="font-display text-2xl font-normal text-white">{col.name}</p>
+                      <span className="mt-3 inline-flex items-center gap-2 text-xs font-semibold text-[#e4cf8f] opacity-0 transition-all duration-300 group-hover:translate-x-1 group-hover:opacity-100">
+                        Explore <ArrowRight className="h-3 w-3" />
+                      </span>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          )}
+        </section>
+
+        <section className="bg-[#1b1612] py-14 text-white md:py-20">
+          <div className="mx-auto max-w-[1400px] px-4 md:px-6 lg:px-12">
+            <div className="mb-8 flex items-end justify-between gap-6">
+              <div>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-[0.24em] text-[#e4cf8f]">Popular now</p>
+                <h2 className="font-display text-3xl font-normal md:text-5xl">Pieces drawing attention</h2>
+              </div>
+              <button
+                onClick={() => router.push("/catalog")}
+                className="luxury-link-underline hidden text-sm font-semibold text-white/65 transition-colors hover:text-white sm:inline-flex"
+                data-testid="link-view-all-trending"
+              >
+                View catalogue
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-4 [--foreground:40_33%_98%] [--muted-foreground:40_12%_70%] md:grid-cols-3 md:gap-6 xl:grid-cols-4">
+              {featured.slice(0, 4).map((p, i) => (
+                <ProductCard key={p.id} product={p} index={i} />
+              ))}
+            </div>
+            {featured.length === 0 && (
+              <p className="text-sm text-white/60">No featured pieces yet. Explore the full catalogue.</p>
+            )}
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-[1400px] px-4 py-14 md:px-6 md:py-20 lg:px-12">
+          <div className="mb-8">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.24em] text-primary">Occasions</p>
+            <h2 className="font-display text-3xl font-normal md:text-5xl">Shop by moment</h2>
+          </div>
+          <div className="no-scrollbar flex gap-4 overflow-x-auto pb-2 snap-x">
+            {MOCK_OCCASIONS.map((occ, i) => (
+              <motion.div
+                key={occ.id}
+                initial={{ opacity: 0, x: 16 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.04 }}
+                onClick={() => router.push(`/occasions/${occ.slug}`)}
+                className="group relative h-[230px] w-[178px] flex-shrink-0 snap-start cursor-pointer overflow-hidden rounded-lg"
+                data-testid={`card-occasion-${occ.id}`}
+              >
+                <img src={occ.imageUrl} alt={occ.name} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                <div className="absolute inset-0 bg-black/36" />
+                <div className="absolute bottom-4 left-4 right-4">
+                  <p className="font-display text-xl font-normal text-white">{occ.name}</p>
                 </div>
               </motion.div>
             ))}
           </div>
-        </div>
-        )}
-      </section>
+        </section>
 
-      {/* Trending Products */}
-      <section className="py-16 md:py-24 px-4 md:px-6 lg:px-12 max-w-[1400px] mx-auto bg-[#F5F0EB]/50 rounded-3xl">
-        <div className="flex items-end justify-between mb-8">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-primary mb-2">Popular Now</p>
-            <h2 className="text-2xl font-medium tracking-tight">Trending Now</h2>
-          </div>
-          <button onClick={() => router.push("/catalog")} className="text-sm font-medium text-muted-foreground hover:text-foreground flex items-center gap-1" data-testid="link-view-all-trending">
-            View All <ArrowRight className="w-4 h-4" />
-          </button>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
-          {featured.slice(0, 4).map((p, i) => (
-            <ProductCard key={p.id} product={p} index={i} />
-          ))}
-        </div>
-        {featured.length === 0 && (
-          <p className="text-sm text-muted-foreground">No featured pieces yet — explore the full catalog.</p>
-        )}
-      </section>
-
-      {/* Shop by Occasion */}
-      <section className="py-16 md:py-24 px-4 md:px-6 lg:px-12 max-w-[1400px] mx-auto">
-        <div className="mb-8">
-          <p className="text-xs font-semibold uppercase tracking-widest text-primary mb-2">Occasions</p>
-          <h2 className="text-2xl font-medium tracking-tight">Shop by Occasion</h2>
-        </div>
-        <div className="flex gap-4 overflow-x-auto pb-2 snap-x">
-          {MOCK_OCCASIONS.map((occ, i) => (
-            <motion.div
-              key={occ.id}
-              initial={{ opacity: 0, x: 16 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.06 }}
-              onClick={() => router.push(`/occasions/${occ.slug}`)}
-              className="flex-shrink-0 snap-start relative overflow-hidden rounded-2xl cursor-pointer group"
-              style={{ width: 160, height: 200 }}
-              data-testid={`card-occasion-${occ.id}`}
-            >
-              <img src={occ.imageUrl} alt={occ.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-              <div className="absolute bottom-3 left-3 right-3">
-                <p className="font-semibold text-white text-sm">{occ.name}</p>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </section>
-
-      {/* Try-On CTA Banner */}
-      <section className="py-8 px-4 md:px-6 lg:px-12 max-w-[1400px] mx-auto">
-        <div className="relative overflow-hidden rounded-3xl" style={{ background: "linear-gradient(135deg, #C9A84C15 0%, #C9A84C30 100%)", border: "1px solid rgba(201,168,76,0.2)" }}>
-          <div className="flex flex-col md:flex-row items-center min-h-[200px]">
-            <div className="flex-1 px-8 py-10 md:py-0">
-              <p className="text-xs font-semibold uppercase tracking-widest text-primary mb-3">Virtual Try-On</p>
-              <h2 className="text-2xl md:text-3xl font-medium tracking-tight text-foreground mb-4">
-                See How It Looks On You
+        <section className="mx-auto max-w-[1400px] px-4 pb-8 md:px-6 lg:px-12">
+          <div className="grid overflow-hidden rounded-lg bg-[#211913] text-white md:grid-cols-[1.1fr_0.9fr]">
+            <div className="px-6 py-10 md:px-10 md:py-14">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.24em] text-[#e4cf8f]">Virtual try-on</p>
+              <h2 className="font-display max-w-xl text-3xl font-normal leading-tight md:text-5xl">
+                Bring the piece closer before you decide.
               </h2>
-              <p className="text-sm text-muted-foreground mb-6 max-w-xs">
-                Try on jewellery virtually with our AI-powered AR technology. Coming soon.
+              <p className="mt-5 max-w-md text-sm leading-6 text-white/68">
+                Preview necklaces, earrings, rings, and bangles on the kiosk, then move straight to cart or staff assistance.
               </p>
               <Button
-                className="rounded-full px-6 font-semibold hover:scale-[1.02] transition-transform"
-                style={{ background: "#C9A84C", color: "#fff" }}
+                className="metal-sheen mt-8 rounded-full border-0 px-6 font-semibold text-[#17120b] transition-transform hover:scale-[1.02]"
                 onClick={() => router.push("/try-on")}
                 data-testid="button-try-virtual"
               >
-                <Sparkles className="w-4 h-4 mr-2" />
-                Try Virtual Try-On
+                <Sparkles className="mr-2 h-4 w-4" />
+                Open Try-On
               </Button>
             </div>
-            <div className="w-full md:w-64 h-48 md:h-full flex-shrink-0 overflow-hidden rounded-r-3xl">
+            <div className="min-h-[260px] overflow-hidden md:min-h-full">
               <img
-                src="https://images.unsplash.com/photo-1573408301185-9519f94f4105?w=600&q=80"
-                alt="Jewellery try-on"
-                className="w-full h-full object-cover"
+                src="https://images.unsplash.com/photo-1573408301185-9519f94f4105?w=900&q=85"
+                alt="Jewellery try-on inspiration"
+                className="h-full w-full object-cover"
               />
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* More Featured Products */}
-      {more.length > 0 && (
-      <section className="py-16 md:py-24 px-4 md:px-6 lg:px-12 max-w-[1400px] mx-auto">
-        <div className="mb-8">
-          <p className="text-xs font-semibold uppercase tracking-widest text-primary mb-2">Discover</p>
-          <h2 className="text-2xl font-medium tracking-tight">More to Explore</h2>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
-          {more.map((p, i) => (
-            <ProductCard key={p.id} product={p} index={i} />
-          ))}
-        </div>
-      </section>
-      )}
-
-      {/* Trust Signals */}
-      <section className="py-12 px-4 md:px-6 lg:px-12 max-w-[1400px] mx-auto border-t border-border">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          {trustItems.map(({ icon: Icon, label, desc }) => (
-            <div key={label} className="flex flex-col items-center text-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-accent flex items-center justify-center">
-                <Icon className="w-6 h-6 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold">{label}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>
-              </div>
+        {more.length > 0 && (
+          <section className="mx-auto max-w-[1400px] px-4 py-14 md:px-6 md:py-20 lg:px-12">
+            <div className="mb-8">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.24em] text-primary">Discover</p>
+              <h2 className="font-display text-3xl font-normal md:text-5xl">More to explore</h2>
             </div>
-          ))}
-        </div>
-      </section>
-    </div>
-    </CustomerLayout>
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-6 xl:grid-cols-4">
+              {more.map((p, i) => (
+                <ProductCard key={p.id} product={p} index={i} />
+              ))}
+            </div>
+          </section>
+        )}
 
+      </div>
+    </CustomerLayout>
   );
 }

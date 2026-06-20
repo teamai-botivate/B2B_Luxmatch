@@ -4,7 +4,7 @@ import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
-import { CUSTOMER_COOKIE_NAME, verifyCustomerCookie } from '../customer-auth';
+import { readCustomerCookie, verifyCustomerCookie } from '../customer-auth';
 import { sendData, sendError } from './envelope';
 import { tenantMiddleware } from './middleware';
 
@@ -13,13 +13,7 @@ export const cartRoutes = new Hono<Vars>();
 cartRoutes.use('*', tenantMiddleware);
 
 async function getSession(c: { req: { header: (k: string) => string | undefined } }, secret: string) {
-  const cookie = c.req.header('cookie')
-    ?.split(';')
-    .find(s => s.trim().startsWith(CUSTOMER_COOKIE_NAME + '='))
-    ?.split('=')
-    .slice(1)
-    .join('=')
-    .trim();
+  const cookie = readCustomerCookie(c);
   return verifyCustomerCookie(cookie, secret);
 }
 

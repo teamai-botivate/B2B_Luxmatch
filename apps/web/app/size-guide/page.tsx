@@ -28,7 +28,7 @@ const BANGLE_SIZES = [
 export default function SizeGuidePage() {
   return (
     <CustomerLayout>
-    <div className="min-h-screen pt-16" data-testid="size-guide-page">
+    <div className="min-h-screen" data-testid="size-guide-page">
       <div className="max-w-3xl mx-auto px-4 md:px-6 py-10">
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
           <p className="text-xs font-semibold uppercase tracking-widest text-primary mb-2">Reference</p>

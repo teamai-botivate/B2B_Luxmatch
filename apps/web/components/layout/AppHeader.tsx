@@ -60,7 +60,9 @@ export default function AppHeader() {
     <>
       <header
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          scrolled ? "bg-white/95 backdrop-blur-md shadow-sm" : "bg-white/90 backdrop-blur-sm"
+          scrolled
+            ? "border-b border-black/10 bg-[#fbf8f1]/95 shadow-sm backdrop-blur-xl"
+            : "border-b border-black/5 bg-[#fbf8f1]/[0.88] backdrop-blur-lg"
         }`}
         data-testid="app-header"
       >
@@ -68,16 +70,16 @@ export default function AppHeader() {
             generic line when the shop API is unreachable so the layout
             stays stable. */}
         <div
-          className="truncate bg-[#FAF8F5] px-3 py-1.5 text-center text-xs tracking-wider text-[#6b5a2c] md:px-6 lg:px-12"
+          className="truncate bg-[#191511] px-3 py-1.5 text-center text-xs tracking-wider text-[#e4cf8f] md:px-6 lg:px-12"
           data-testid="shop-welcome-strip"
         >
           {shop ? (
             <>
-              Welcome to <span className="font-semibold text-[#8a6f30]">{shop.store_name}</span>
-              {shop.city ? <span className="text-muted-foreground"> · {shop.city}</span> : null}
+              Welcome to <span className="font-semibold text-[#f8e7af]">{shop.store_name}</span>
+              {shop.city ? <span className="text-[#c9b98b]"> · {shop.city}</span> : null}
             </>
           ) : (
-            <span className="text-muted-foreground">Welcome to LuxeMatch</span>
+            <span className="text-[#c9b98b]">Welcome to LuxeMatch</span>
           )}
         </div>
         <div className="mx-auto flex h-16 max-w-[1400px] items-center justify-between gap-2 px-3 sm:px-4 md:px-6 lg:px-12">
@@ -95,11 +97,14 @@ export default function AppHeader() {
 
           {/* Desktop Nav */}
           <nav className="hidden md:flex items-center gap-6" data-testid="desktop-nav">
-            {navLinks.map(link => (
+            {navLinks.map(link => {
+              const active = mounted && pathname.startsWith(link.href);
+
+              return (
               <Link key={link.href} href={link.href}>
                 <span
-                  className={`text-sm font-medium transition-colors cursor-pointer ${
-                    pathname.startsWith(link.href)
+                  className={`luxury-link-underline text-sm font-medium transition-colors cursor-pointer ${
+                    active
                       ? "text-foreground"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
@@ -108,7 +113,8 @@ export default function AppHeader() {
                   {link.label}
                 </span>
               </Link>
-            ))}
+              );
+            })}
           </nav>
 
           {/* Right Actions */}
@@ -116,7 +122,7 @@ export default function AppHeader() {
             {/* Search */}
             <button
               onClick={() => router.push("/search")}
-              className="relative flex items-center gap-1.5 px-2 py-1.5 rounded-xl hover:bg-accent transition-colors group"
+              className="relative flex items-center gap-1.5 rounded-lg px-2 py-1.5 transition-colors hover:bg-black/5 group"
               data-testid="button-search"
               aria-label="Search"
             >
@@ -160,7 +166,7 @@ export default function AppHeader() {
             {/* Account */}
             <Link href={customer ? '/account' : '/login'}>
               <button
-                className="relative p-2 rounded-xl hover:bg-accent transition-colors hidden md:block"
+                className="relative hidden rounded-xl p-2 transition-colors hover:bg-black/5 md:block"
                 aria-label="Account"
               >
                 <User className="w-4 h-4 text-muted-foreground hover:text-foreground transition-colors" />
@@ -173,7 +179,7 @@ export default function AppHeader() {
             {/* Compare */}
             <Link href="/compare">
               <button
-                className="relative p-2 rounded-xl hover:bg-accent transition-colors hidden md:block"
+                className="relative hidden rounded-xl p-2 transition-colors hover:bg-black/5 md:block"
                 data-testid="button-compare"
                 aria-label="Compare items"
               >
@@ -190,7 +196,7 @@ export default function AppHeader() {
             <Button
               size="sm"
               variant="outline"
-              className="hidden md:flex items-center gap-1.5 rounded-full"
+              className="hidden items-center gap-1.5 rounded-full border-black/15 bg-white/35 md:flex"
               onClick={() => router.push("/jeweller/dashboard")}
               data-testid="button-jeweller-dashboard"
             >
@@ -200,7 +206,7 @@ export default function AppHeader() {
 
             <Button
               size="sm"
-              className="hidden md:flex items-center gap-1.5 rounded-full bg-primary text-primary-foreground hover:opacity-90 transition-all hover:scale-[1.02]"
+              className="metal-sheen hidden items-center gap-1.5 rounded-full border-0 text-[#17120b] shadow-sm transition-all hover:scale-[1.02] hover:opacity-95 md:flex"
               onClick={() => router.push("/try-on")}
               data-testid="button-try-on"
             >

@@ -13,7 +13,7 @@ import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
-import { CUSTOMER_COOKIE_NAME, verifyCustomerCookie } from '../customer-auth';
+import { readCustomerCookie, verifyCustomerCookie } from '../customer-auth';
 import { sendOrderConfirmationEmail } from '../email/order-confirmation';
 import { sendData, sendError } from './envelope';
 import { tenantMiddleware } from './middleware';
@@ -23,14 +23,7 @@ export const customerOrderRoutes = new Hono<Vars>();
 customerOrderRoutes.use('*', tenantMiddleware);
 
 async function requireSession(c: { req: { header: (k: string) => string | undefined } }, secret: string) {
-  const cookie = c.req.header('cookie')
-    ?.split(';')
-    .find(s => s.trim().startsWith(CUSTOMER_COOKIE_NAME + '='))
-    ?.split('=')
-    .slice(1)
-    .join('=')
-    .trim();
-  return verifyCustomerCookie(cookie, secret);
+  return verifyCustomerCookie(readCustomerCookie(c), secret);
 }
 
 // GET /api/customer/orders

@@ -24,7 +24,7 @@ const CAMERA_STEPS = [
 export default function HelpPage() {
   return (
     <CustomerLayout>
-    <div className="min-h-screen pt-16" data-testid="help-page">
+    <div className="min-h-screen" data-testid="help-page">
       <div className="max-w-3xl mx-auto px-4 md:px-6 py-10">
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="mb-10">
           <p className="text-xs font-semibold uppercase tracking-widest text-primary mb-2">Support</p>

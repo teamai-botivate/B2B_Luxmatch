@@ -74,7 +74,7 @@ export {
 } from './branches';
 
 export {
-  getOrCreateCustomer, getCustomerById, updateCustomerName,
+  getOrCreateCustomer, getCustomerById, getCustomerByEmail, updateCustomerName, updateCustomerAvatar,
   getCustomerAddresses, upsertCustomerAddress,
   createOtp, verifyOtp,
   type CustomerRow, type CustomerAddressRow,

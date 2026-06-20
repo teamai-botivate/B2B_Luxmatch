@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { ChevronDown, SlidersHorizontal, SortAsc } from "lucide-react";
-import { motion } from "motion/react";
 
 import CustomerLayout from "@/components/layout/CustomerLayout";
 import ProductGrid from "@/components/product/ProductGrid";
@@ -186,18 +185,25 @@ export default function CatalogPage() {
 
   return (
     <CustomerLayout>
-      <div className="min-h-screen pt-16" data-testid="catalog-page">
-        <div className="max-w-[1400px] mx-auto px-4 md:px-6 lg:px-12 py-8">
-          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
-            <p className="text-xs font-semibold uppercase tracking-widest text-primary mb-1">Browse</p>
-            <h1 className="text-3xl font-medium tracking-tight">All Jewellery</h1>
-          </motion.div>
+      <div className="min-h-screen" data-testid="catalog-page">
+        <div className="border-b border-black/10 bg-[#201812] text-white">
+          <div className="mx-auto max-w-[1400px] px-4 py-12 md:px-6 md:py-16 lg:px-12">
+            <div className="max-w-2xl">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.24em] text-[#e4cf8f]">Browse</p>
+              <h1 className="font-display text-4xl font-normal tracking-normal md:text-6xl">All jewellery</h1>
+              <p className="mt-4 text-sm leading-6 text-white/68">
+                Filter by category, metal, occasion, price, or try-on availability across this jeweller's live catalogue.
+              </p>
+            </div>
+          </div>
+        </div>
 
-          <div className="flex items-center justify-between gap-4 mb-6 pb-4 border-b border-border">
+        <div className="max-w-[1400px] mx-auto px-4 md:px-6 lg:px-12 py-8">
+          <div className="mb-6 flex items-center justify-between gap-4 border-b border-border pb-4">
             <div className="flex items-center gap-3">
               <Sheet>
                 <SheetTrigger asChild>
-                  <Button variant="outline" size="sm" className="lg:hidden flex items-center gap-2 rounded-xl" data-testid="button-open-filters">
+                  <Button variant="outline" size="sm" className="flex items-center gap-2 rounded-lg border-black/15 bg-white/45 lg:hidden" data-testid="button-open-filters">
                     <SlidersHorizontal className="w-4 h-4" />
                     Filters
                     {activeFilterCount > 0 && (
@@ -215,7 +221,7 @@ export default function CatalogPage() {
               </span>
             </div>
             <Select value={sort} onValueChange={setSort}>
-              <SelectTrigger className="w-44 rounded-xl text-sm" data-testid="select-sort">
+              <SelectTrigger className="w-44 rounded-lg border-black/15 bg-white/45 text-sm" data-testid="select-sort">
                 <SortAsc className="w-4 h-4 mr-2 text-muted-foreground flex-shrink-0" />
                 <SelectValue />
               </SelectTrigger>
@@ -229,7 +235,7 @@ export default function CatalogPage() {
           </div>
 
           <div className="flex gap-8 items-start">
-            <aside className="hidden lg:block w-56 flex-shrink-0 sticky top-24 self-start" data-testid="filters-sidebar">
+            <aside className="hidden w-60 flex-shrink-0 self-start border-r border-black/10 pr-6 lg:sticky lg:top-28 lg:block" data-testid="filters-sidebar">
               <FiltersPanel filters={filters} onChange={setFilters} categoryNames={categoryNames} />
             </aside>
 
@@ -237,7 +243,7 @@ export default function CatalogPage() {
               {loading ? (
                 <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
                   {Array.from({ length: 8 }).map((_, i) => (
-                    <div key={i} className="aspect-[3/4] rounded-2xl bg-muted animate-pulse" />
+                    <div key={i} className="aspect-[3/4] animate-pulse rounded-lg bg-muted" />
                   ))}
                 </div>
               ) : (

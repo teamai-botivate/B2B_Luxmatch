@@ -34,11 +34,11 @@ export default function CollectionsPage() {
 
   return (
     <CustomerLayout>
-    <div className="min-h-screen pt-16" data-testid="collections-page">
+    <div className="min-h-screen" data-testid="collections-page">
 
       {/* ── Page Hero ── */}
       <div className="bg-gradient-to-b from-[#F5EFE4] to-background border-b border-border">
-        <div className="max-w-[1400px] mx-auto px-4 md:px-6 lg:px-12 py-12 md:py-16">
+        <div className="max-w-[1400px] mx-auto px-4 md:px-6 lg:px-12 py-10 md:py-14">
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
             <p className="text-xs font-bold uppercase tracking-widest text-primary mb-3">Explore</p>
             <h1 className="text-3xl md:text-5xl font-medium tracking-tight mb-3">Curated Collections</h1>

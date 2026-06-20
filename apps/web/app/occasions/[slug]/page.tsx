@@ -42,7 +42,7 @@ export default function OccasionPage() {
 
   return (
     <CustomerLayout>
-    <div className="min-h-screen pt-16" data-testid="occasion-page">
+    <div className="min-h-screen" data-testid="occasion-page">
       <div className="relative overflow-hidden" style={{ height: 240 }}>
         <img src={occasionData.imageUrl} alt={occasionData.name} className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />

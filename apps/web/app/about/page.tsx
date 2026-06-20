@@ -8,9 +8,9 @@ import { Sparkles, Search, Camera, ShieldCheck } from "lucide-react";
 export default function AboutPage() {
   return (
     <CustomerLayout>
-    <div className="min-h-screen pt-16" data-testid="about-page">
+    <div className="min-h-screen" data-testid="about-page">
       {/* Hero */}
-      <div className="relative overflow-hidden py-24 px-4 md:px-6 lg:px-12 text-center" style={{ background: "linear-gradient(135deg, #FAF8F5 0%, #FBF7EE 100%)" }}>
+      <div className="relative overflow-hidden px-4 py-16 text-center md:px-6 md:py-20 lg:px-12" style={{ background: "linear-gradient(135deg, #FAF8F5 0%, #FBF7EE 100%)" }}>
         <div className="max-w-2xl mx-auto">
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary mb-6">

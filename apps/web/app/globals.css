@@ -54,30 +54,30 @@
 
 /* LIGHT MODE */
 :root {
-  --background: 40 33% 98%;
-  --foreground: 0 0% 10%;
+  --background: 36 38% 97%;
+  --foreground: 28 24% 10%;
   --card: 0 0% 100%;
-  --card-foreground: 0 0% 10%;
-  --card-border: 30 20% 92%;
-  --border: 30 20% 92%;
-  --input: 30 20% 88%;
-  --ring: 42 57% 54%;
-  --primary: 42 57% 54%;
+  --card-foreground: 28 24% 10%;
+  --card-border: 34 22% 87%;
+  --border: 34 22% 88%;
+  --input: 34 22% 84%;
+  --ring: 42 55% 50%;
+  --primary: 42 55% 49%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 30 30% 95%;
-  --secondary-foreground: 0 0% 10%;
-  --muted: 30 20% 95%;
-  --muted-foreground: 0 0% 42%;
-  --accent: 42 40% 95%;
-  --accent-foreground: 42 57% 40%;
+  --secondary: 18 21% 15%;
+  --secondary-foreground: 40 33% 98%;
+  --muted: 34 28% 92%;
+  --muted-foreground: 26 10% 39%;
+  --accent: 44 48% 90%;
+  --accent-foreground: 35 47% 25%;
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 100%;
   --popover: 0 0% 100%;
   --popover-foreground: 0 0% 10%;
   --popover-border: 30 20% 92%;
-  --sidebar: 40 33% 97%;
-  --sidebar-foreground: 0 0% 10%;
-  --sidebar-border: 30 20% 92%;
+  --sidebar: 36 38% 96%;
+  --sidebar-foreground: 28 24% 10%;
+  --sidebar-border: 34 22% 88%;
   --sidebar-primary: 42 57% 54%;
   --sidebar-primary-foreground: 0 0% 100%;
   --sidebar-accent: 42 40% 92%;
@@ -88,7 +88,7 @@
   --chart-3: 142 72% 29%;
   --chart-4: 217 91% 60%;
   --chart-5: 280 65% 60%;
-  --radius: 1rem;
+  --radius: 0.75rem;
 
   --shadow-2xs: 0 1px 1px rgba(0,0,0,0.04);
   --shadow-xs: 0 1px 2px rgba(0,0,0,0.05);
@@ -144,10 +144,39 @@
 
   body {
     @apply font-sans antialiased bg-background text-foreground;
+    background:
+      radial-gradient(circle at 18% 0%, rgba(198, 151, 59, 0.08), transparent 28rem),
+      linear-gradient(180deg, hsl(var(--background)) 0%, hsl(38 32% 95%) 100%);
+  }
+
+  ::selection {
+    background: hsl(var(--primary) / 0.22);
   }
 }
 
 @layer utilities {
+  .font-display {
+    font-family: Georgia, 'Times New Roman', serif;
+  }
+
+  .luxury-link-underline {
+    background-image: linear-gradient(currentColor, currentColor);
+    background-position: 0 100%;
+    background-repeat: no-repeat;
+    background-size: 0 1px;
+    transition: background-size 180ms ease;
+  }
+
+  .luxury-link-underline:hover {
+    background-size: 100% 1px;
+  }
+
+  .metal-sheen {
+    background:
+      linear-gradient(135deg, rgba(255,255,255,0.7), rgba(255,255,255,0) 38%),
+      linear-gradient(135deg, #c9a84c 0%, #e6cf84 45%, #a7772d 100%);
+  }
+
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
