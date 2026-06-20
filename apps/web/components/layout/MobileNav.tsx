@@ -5,9 +5,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
 import { motion, AnimatePresence } from "motion/react";
-import { X, Sparkles, Heart, GitCompare, ChevronRight } from "lucide-react";
+import { X, Sparkles, Heart, GitCompare, ChevronRight, User } from "lucide-react";
 import { useSavedItems } from "@/contexts/SavedItemsContext";
 import { useCompare } from "@/contexts/CompareContext";
+import { useCustomer } from "@/hooks/use-customer";
 
 const navLinks = [
   { label: "Dashboard", href: "/jeweller/dashboard" },
@@ -29,6 +30,7 @@ export default function MobileNav({ open, onClose }: MobileNavProps) {
   const pathname = usePathname();
   const { savedItems } = useSavedItems();
   const { compareItems } = useCompare();
+  const { customer } = useCustomer();
 
   useEffect(() => {
     if (open) document.body.style.overflow = "hidden";
@@ -91,6 +93,17 @@ export default function MobileNav({ open, onClose }: MobileNavProps) {
 
             {/* Bottom Actions */}
             <div className="px-4 py-4 border-t border-border space-y-2">
+              <Link href={customer ? '/account' : '/login'}>
+                <div className="flex items-center justify-between px-3 py-3 rounded-xl hover:bg-accent transition-colors cursor-pointer">
+                  <div className="flex items-center gap-2.5">
+                    <User className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">{customer ? 'My Account' : 'Sign In / Register'}</span>
+                  </div>
+                  {customer && (
+                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-white" />
+                  )}
+                </div>
+              </Link>
               <Link href="/saved">
                 <div className="flex items-center justify-between px-3 py-3 rounded-xl hover:bg-accent transition-colors cursor-pointer">
                   <div className="flex items-center gap-2.5">

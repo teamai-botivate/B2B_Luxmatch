@@ -166,7 +166,7 @@ export default function AppHeader() {
             {/* Account */}
             <Link href={customer ? '/account' : '/login'}>
               <button
-                className="relative hidden rounded-xl p-2 transition-colors hover:bg-black/5 md:block"
+                className="relative rounded-xl p-2 transition-colors hover:bg-black/5"
                 aria-label="Account"
               >
                 <User className="w-4 h-4 text-muted-foreground hover:text-foreground transition-colors" />
