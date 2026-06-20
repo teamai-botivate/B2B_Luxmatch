@@ -112,7 +112,7 @@ export default function HomePage() {
                 LuxeMatch
               </h1>
               <p className="mt-5 max-w-md text-lg leading-7 text-white/78">
-                Browse the jeweller's live catalogue, compare certified pieces, and preview favourites with virtual try-on before checkout.
+                Browse the jeweller&apos;s live catalogue, compare certified pieces, and preview favourites with virtual try-on before checkout.
               </p>
               <div className="mt-8 flex flex-wrap items-center gap-3">
                 <Button

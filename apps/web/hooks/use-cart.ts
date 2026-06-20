@@ -8,15 +8,37 @@ export type CartProduct = {
 };
 export type CartItem = { id: string; product_id: string; quantity: number; added_at: string; product: CartProduct };
 
+let initialized = false;
 let globalCount = 0;
 const listeners = new Set<() => void>();
-function notifyCartChange(count: number) { globalCount = count; listeners.forEach(fn => fn()); }
+function notifyCartChange(count: number) {
+  initialized = true;
+  globalCount = count;
+  listeners.forEach(fn => fn());
+}
+
+async function initCartCount() {
+  if (initialized) return;
+  initialized = true;
+  try {
+    const res = await fetch('/api/customer/cart', { cache: 'no-store' });
+    if (res.ok) {
+      const json = (await res.json()) as { data: { count: number } };
+      if (json.data && typeof json.data.count === 'number') {
+        notifyCartChange(json.data.count);
+      }
+    }
+  } catch {}
+}
 
 export function useCartCount() {
   const [count, setCount] = useState(globalCount);
   useEffect(() => {
     const fn = () => setCount(globalCount);
     listeners.add(fn);
+    if (!initialized) {
+      void initCartCount();
+    }
     return () => { listeners.delete(fn); };
   }, []);
   return count;

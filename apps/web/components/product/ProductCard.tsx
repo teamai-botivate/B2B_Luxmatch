@@ -111,14 +111,6 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
               </span>
             </button>
             <button
-              onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleSave(product.id); }}
-              className={`flex items-center justify-center rounded-lg p-2 text-xs font-medium backdrop-blur-sm transition-colors ${saved ? "bg-primary/20 text-primary" : "bg-white/90 hover:bg-white"}`}
-              aria-label={saved ? "Remove from saved" : "Save item"}
-              data-testid={`button-save-${product.id}`}
-            >
-              <Heart className={`w-3.5 h-3.5 ${saved ? "fill-[#C9A84C] text-[#C9A84C]" : "text-foreground"}`} />
-            </button>
-            <button
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleCompare(product.id); }}
               className={`flex items-center justify-center rounded-lg p-2 text-xs font-medium backdrop-blur-sm transition-colors ${compared ? "bg-primary text-primary-foreground" : "bg-white/90 hover:bg-white"}`}
               aria-label="Add to compare"

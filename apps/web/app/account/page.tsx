@@ -208,9 +208,9 @@ export default function AccountPage() {
     <CustomerLayout>
       <div className="mx-auto max-w-4xl px-4 py-12 md:px-6 md:py-16">
         {/* Header */}
-        <div className="mb-8">
-          <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-primary">My Account</p>
-          <h1 className="text-3xl font-medium tracking-tight text-foreground">
+        <div className="mb-8 text-center md:text-left">
+          <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.25em] text-[#C9A84C]">My Account</p>
+          <h1 className="font-display text-3xl font-medium tracking-tight text-[#1a1208] md:text-4xl">
             Welcome back{customer.name ? `, ${customer.name.split(' ')[0]}` : ''}
           </h1>
         </div>
@@ -219,15 +219,15 @@ export default function AccountPage() {
           {/* Main column */}
           <div className="space-y-6">
             {/* Profile card */}
-            <section className="rounded-xl border border-[#e4d8c6] bg-[#fffdf8] p-6 shadow-[0_14px_40px_rgba(31,24,18,0.08)]">
+            <section className="rounded-lg border border-[#e4d8c6] bg-[#fffdf8] p-6 shadow-[0_4px_16px_rgba(25,21,17,0.02)]">
               <div className="flex items-start gap-4">
                 <div className="shrink-0">
-                  <div className="group relative h-16 w-16 overflow-hidden rounded-xl border border-[#e5d8bd] bg-[#fbf9f5]">
+                  <div className="group relative h-16 w-16 overflow-hidden rounded-md border border-[#e4d8c6] bg-[#fbf9f5]">
                     {customer.avatarUrl ? (
                       <Image src={customer.avatarUrl} alt={customer.name ?? 'Profile picture'} fill sizes="64px" className="object-cover" />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center">
-                        <User className="h-8 w-8 text-primary" />
+                        <User className="h-8 w-8 text-[#C9A84C]" />
                       </div>
                     )}
                     <button
@@ -237,12 +237,12 @@ export default function AccountPage() {
                       aria-label="Change profile picture"
                       className="absolute inset-0 flex items-center justify-center bg-black/45 text-white opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100 disabled:opacity-100"
                     >
-                      {avatarBusy ? <Loader2 className="h-5 w-5 animate-spin" /> : <Camera className="h-5 w-5" />}
+                      {avatarBusy ? <Loader2 className="h-5 w-5 animate-spin text-[#C9A84C]" /> : <Camera className="h-5 w-5 text-white" />}
                     </button>
                   </div>
                   <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={onPickAvatar} />
                   {customer.avatarUrl && !avatarBusy && (
-                    <button onClick={() => void removeAvatar()} className="mt-1.5 flex w-full items-center justify-center gap-1 text-[11px] text-muted-foreground hover:text-red-500">
+                    <button onClick={() => void removeAvatar()} className="mt-2 flex w-full items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:text-red-500 transition-colors">
                       <Trash2 className="h-3 w-3" /> Remove
                     </button>
                   )}
@@ -256,52 +256,52 @@ export default function AccountPage() {
                         placeholder="Your name"
                         onChange={e => setNameDraft(e.target.value)}
                         onKeyDown={e => { if (e.key === 'Enter') void saveName(); if (e.key === 'Escape') setEditing(false); }}
-                        className="h-9 rounded-lg border-[#d8ccba] bg-white"
+                        className="h-9 rounded-md border-[#e4d8c6] bg-white text-xs sm:text-sm focus-visible:ring-1 focus-visible:ring-[#C9A84C] focus-visible:border-[#C9A84C]"
                       />
                       <button onClick={() => void saveName()} disabled={saving} aria-label="Save name"
-                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary hover:bg-primary/15 disabled:opacity-50">
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-[#1a1208] text-[#e4d8c6] hover:bg-[#1a1208]/90 disabled:opacity-50">
                         <Check className="h-4 w-4" />
                       </button>
                       <button onClick={() => setEditing(false)} aria-label="Cancel"
-                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-black/5 text-muted-foreground hover:bg-black/10">
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-[#1a1208]/5 text-muted-foreground hover:bg-[#1a1208]/10">
                         <X className="h-4 w-4" />
                       </button>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-2">
-                      <p className="truncate text-lg font-semibold">{customer.name ?? 'Customer'}</p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="truncate font-display text-lg font-semibold text-[#1a1208]">{customer.name ?? 'Customer'}</p>
                       <button
                         onClick={() => { setNameDraft(customer.name ?? ''); setEditing(true); }}
                         aria-label="Edit name"
-                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-black/5 hover:text-foreground"
+                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-[#1a1208]/5 hover:text-[#1a1208] transition-colors"
                       >
                         <Pencil className="h-3.5 w-3.5" />
                       </button>
                     </div>
                   )}
                   <div className="mt-2 space-y-1">
-                    <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                      <Mail className="h-3.5 w-3.5" /> <span className="truncate">{customer.email}</span>
+                    <div className="flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground">
+                      <Mail className="h-3.5 w-3.5 text-[#C9A84C]" /> <span className="truncate">{customer.email}</span>
                     </div>
-                    <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                      <Phone className="h-3.5 w-3.5" /> {customer.phone}
+                    <div className="flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground">
+                      <Phone className="h-3.5 w-3.5 text-[#C9A84C]" /> {customer.phone}
                     </div>
                   </div>
                 </div>
               </div>
 
               {avatarError && (
-                <p className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">{avatarError}</p>
+                <p className="mt-3.5 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 font-medium">{avatarError}</p>
               )}
 
               {/* Stats */}
               <div className="mt-6 grid grid-cols-3 gap-3">
                 {stats.map(s => {
                   const Inner = (
-                    <div className="rounded-lg border border-[#ece2d0] bg-[#fbf9f5] p-3 text-center transition-colors hover:border-primary/40">
-                      <s.icon className="mx-auto mb-1.5 h-4 w-4 text-primary" />
-                      <p className="text-xl font-semibold leading-none">{s.value}</p>
-                      <p className="mt-1 text-[11px] uppercase tracking-wide text-muted-foreground">{s.label}</p>
+                    <div className="rounded-md border border-[#e4d8c6] bg-[#fbf9f5] p-3 text-center transition-all hover:border-[#C9A84C] hover:shadow-[0_4px_12px_rgba(25,21,17,0.02)]">
+                      <s.icon className="mx-auto mb-1.5 h-4 w-4 text-[#C9A84C]" />
+                      <p className="text-xl font-semibold leading-none text-[#1a1208]">{s.value}</p>
+                      <p className="mt-1 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">{s.label}</p>
                     </div>
                   );
                   return s.href
@@ -312,36 +312,38 @@ export default function AccountPage() {
             </section>
 
             {/* Recent orders */}
-            <section className="rounded-xl border border-[#e4d8c6] bg-[#fffdf8] p-6 shadow-[0_14px_40px_rgba(31,24,18,0.08)]">
+            <section className="rounded-lg border border-[#e4d8c6] bg-[#fffdf8] p-6 shadow-[0_4px_16px_rgba(25,21,17,0.02)]">
               <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground">Recent Orders</h2>
+                <h2 className="font-display text-sm font-semibold uppercase tracking-wider text-[#1a1208]">Recent Orders</h2>
                 {orders.length > 0 && (
-                  <Link href="/orders" className="text-xs font-medium text-primary hover:underline">View all</Link>
+                  <Link href="/orders" className="text-xs font-bold uppercase tracking-wider text-[#C9A84C] hover:underline">View all</Link>
                 )}
               </div>
 
               {dataLoading ? (
-                <div className="py-6 text-center text-sm text-muted-foreground">Loading…</div>
+                <div className="py-6 text-center text-xs text-muted-foreground uppercase tracking-wider font-semibold">Loading…</div>
               ) : recentOrders.length === 0 ? (
                 <div className="flex flex-col items-center py-8 text-center">
                   <ShoppingBag className="mb-3 h-10 w-10 text-muted-foreground/60" />
-                  <p className="text-sm text-muted-foreground">No orders yet.</p>
-                  <Link href="/catalog"><Button variant="outline" className="mt-4 rounded-lg">Browse collection</Button></Link>
+                  <p className="text-xs text-muted-foreground">No orders yet.</p>
+                  <Link href="/catalog">
+                    <Button variant="outline" className="mt-4 rounded-md border-[#e4d8c6] text-xs hover:bg-[#1a1208]/5">Browse collection</Button>
+                  </Link>
                 </div>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-2.5">
                   {recentOrders.map(o => {
                     const st = STATUS_LABEL[o.status] ?? { label: o.status, color: 'bg-gray-100 text-gray-700' };
                     return (
                       <Link key={o.id} href={`/orders/${o.id}`}
-                        className="flex items-center justify-between rounded-lg border border-[#ece2d0] bg-[#fbf9f5] p-3 transition-colors hover:border-primary/40">
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-medium">#{o.order_number}</p>
-                          <p className="text-xs text-muted-foreground">{formatDate(o.created_at)}</p>
+                        className="flex items-center justify-between rounded-md border border-[#e4d8c6] bg-[#fbf9f5] p-3 transition-all hover:border-[#C9A84C] hover:shadow-[0_4px_12px_rgba(25,21,17,0.02)]">
+                        <div className="min-w-0 pr-2">
+                          <p className="truncate font-display text-sm font-semibold text-[#1a1208]">#{o.order_number}</p>
+                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide mt-0.5">{formatDate(o.created_at)}</p>
                         </div>
                         <div className="flex shrink-0 items-center gap-3">
-                          <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${st.color}`}>{st.label}</span>
-                          <span className="text-sm font-semibold">{formatINR(o.total)}</span>
+                          <span className={`rounded-md px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${st.color} shadow-sm border border-black/5`}>{st.label}</span>
+                          <span className="text-sm font-bold text-[#1a1208]">{formatINR(o.total)}</span>
                         </div>
                       </Link>
                     );
@@ -351,29 +353,29 @@ export default function AccountPage() {
             </section>
 
             {/* Saved addresses */}
-            <section className="rounded-xl border border-[#e4d8c6] bg-[#fffdf8] p-6 shadow-[0_14px_40px_rgba(31,24,18,0.08)]">
-              <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-foreground">Saved Addresses</h2>
+            <section className="rounded-lg border border-[#e4d8c6] bg-[#fffdf8] p-6 shadow-[0_4px_16px_rgba(25,21,17,0.02)]">
+              <h2 className="mb-4 font-display text-sm font-semibold uppercase tracking-wider text-[#1a1208]">Saved Addresses</h2>
               {dataLoading ? (
-                <div className="py-4 text-center text-sm text-muted-foreground">Loading…</div>
+                <div className="py-4 text-center text-xs text-muted-foreground uppercase tracking-wider font-semibold">Loading…</div>
               ) : addresses.length === 0 ? (
-                <p className="py-2 text-sm text-muted-foreground">
+                <p className="py-2 text-xs text-muted-foreground">
                   No saved addresses yet. They&apos;re saved automatically at checkout.
                 </p>
               ) : (
                 <div className="grid gap-3 sm:grid-cols-2">
                   {addresses.map(a => (
-                    <div key={a.id} className="rounded-lg border border-[#ece2d0] bg-[#fbf9f5] p-3">
-                      <div className="mb-1 flex items-center gap-2">
-                        <span className="text-sm font-medium">{a.label}</span>
+                    <div key={a.id} className="rounded-md border border-[#e4d8c6] bg-[#fbf9f5] p-3">
+                      <div className="mb-1.5 flex items-center gap-2">
+                        <span className="text-xs font-bold uppercase tracking-wide text-[#1a1208]">{a.label}</span>
                         {a.is_default && (
-                          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">Default</span>
+                          <span className="rounded-md bg-[#C9A84C]/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[#C9A84C] border border-[#C9A84C]/20">Default</span>
                         )}
                       </div>
-                      <p className="text-sm text-foreground">{a.name}</p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-sm font-medium text-[#1a1208]">{a.name}</p>
+                      <p className="text-xs text-muted-foreground leading-normal mt-0.5">
                         {a.line1}{a.line2 ? `, ${a.line2}` : ''}, {a.city}, {a.state} — {a.pin_code}
                       </p>
-                      <p className="mt-0.5 text-xs text-muted-foreground">{a.phone}</p>
+                      <p className="mt-1 text-[10px] font-semibold text-muted-foreground">{a.phone}</p>
                     </div>
                   ))}
                 </div>
@@ -382,21 +384,21 @@ export default function AccountPage() {
           </div>
 
           {/* Sidebar */}
-          <aside className="space-y-3 md:sticky md:top-24 md:h-fit">
-            <Link href="/orders" className="flex items-center justify-between rounded-lg border border-[#e4d8c6] bg-[#fffdf8] p-4 transition-colors hover:border-primary/50">
-              <span className="flex items-center gap-3"><Package className="h-5 w-5 text-primary" /><span className="font-medium">My Orders</span></span>
-              <span className="text-muted-foreground">›</span>
+          <aside className="space-y-2.5 md:sticky md:top-24 md:h-fit">
+            <Link href="/orders" className="flex items-center justify-between rounded-md border border-[#e4d8c6] bg-[#fffdf8] p-4 transition-colors hover:border-[#C9A84C] group shadow-sm">
+              <span className="flex items-center gap-3"><Package className="h-5 w-5 text-[#C9A84C]" /><span className="font-semibold text-xs sm:text-sm text-[#1a1208]">My Orders</span></span>
+              <span className="text-muted-foreground transition-transform group-hover:translate-x-0.5">›</span>
             </Link>
-            <Link href="/saved" className="flex items-center justify-between rounded-lg border border-[#e4d8c6] bg-[#fffdf8] p-4 transition-colors hover:border-primary/50">
-              <span className="flex items-center gap-3"><Heart className="h-5 w-5 text-primary" /><span className="font-medium">Saved Items</span></span>
-              <span className="text-muted-foreground">›</span>
+            <Link href="/saved" className="flex items-center justify-between rounded-md border border-[#e4d8c6] bg-[#fffdf8] p-4 transition-colors hover:border-[#C9A84C] group shadow-sm">
+              <span className="flex items-center gap-3"><Heart className="h-5 w-5 text-[#C9A84C]" /><span className="font-semibold text-xs sm:text-sm text-[#1a1208]">Saved Items</span></span>
+              <span className="text-muted-foreground transition-transform group-hover:translate-x-0.5">›</span>
             </Link>
-            <Link href="/cart" className="flex items-center justify-between rounded-lg border border-[#e4d8c6] bg-[#fffdf8] p-4 transition-colors hover:border-primary/50">
-              <span className="flex items-center gap-3"><ShoppingBag className="h-5 w-5 text-primary" /><span className="font-medium">My Cart</span></span>
-              <span className="text-muted-foreground">›</span>
+            <Link href="/cart" className="flex items-center justify-between rounded-md border border-[#e4d8c6] bg-[#fffdf8] p-4 transition-colors hover:border-[#C9A84C] group shadow-sm">
+              <span className="flex items-center gap-3"><ShoppingBag className="h-5 w-5 text-[#C9A84C]" /><span className="font-semibold text-xs sm:text-sm text-[#1a1208]">My Cart</span></span>
+              <span className="text-muted-foreground transition-transform group-hover:translate-x-0.5">›</span>
             </Link>
 
-            <Button variant="outline" className="mt-2 w-full rounded-lg border-red-200 text-red-600 hover:bg-red-50"
+            <Button variant="outline" className="mt-2 w-full rounded-md border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 font-semibold text-xs py-2.5 shadow-sm"
               onClick={async () => { await logout(); router.push('/'); }}>
               <LogOut className="mr-2 h-4 w-4" /> Sign Out
             </Button>

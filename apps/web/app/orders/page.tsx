@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Package, ShoppingBag } from 'lucide-react';
+import { motion } from 'motion/react';
 import CustomerLayout from '@/components/layout/CustomerLayout';
 import { Button } from '@/components/ui/button';
 import { useCustomer } from '@/hooks/use-customer';
@@ -47,41 +48,57 @@ export default function OrdersPage() {
 
   return (
     <CustomerLayout>
-      <div className="mx-auto max-w-3xl px-4 py-24 md:px-6">
-        <h1 className="mb-8 text-3xl font-medium tracking-tight">My Orders</h1>
+      <div className="mx-auto max-w-3xl px-4 py-12 md:px-6">
+        <div className="mb-8 text-center md:text-left">
+          <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.25em] text-[#C9A84C]">Order History</p>
+          <h1 className="font-display text-3xl font-medium tracking-tight text-[#1a1208] md:text-4xl">My Orders</h1>
+        </div>
 
         {orders.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <ShoppingBag className="mb-4 h-16 w-16 text-muted-foreground" />
-            <h2 className="text-xl font-medium">No orders yet</h2>
-            <p className="mt-2 text-muted-foreground">Your orders will appear here after you make a purchase.</p>
-            <Link href="/catalog"><Button className="mt-6 rounded-full">Shop Now</Button></Link>
+          <div className="flex flex-col items-center justify-center py-20 text-center rounded-lg border border-dashed border-[#e4d8c6] bg-[#fffdf8] px-4">
+            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full border border-[#e5d8bd] bg-[#fbf9f5] shadow-sm">
+              <ShoppingBag className="h-6 w-6 text-[#C9A84C]" />
+            </div>
+            <h2 className="font-display text-lg font-medium text-[#1a1208]">No orders yet</h2>
+            <p className="mt-1.5 text-xs text-muted-foreground max-w-xs">Your orders will appear here after you make a purchase.</p>
+            <Link href="/catalog">
+              <Button className="metal-sheen mt-6 rounded-md border-0 py-2 font-semibold text-[#17120b] shadow-sm hover:opacity-90">
+                Shop Now
+              </Button>
+            </Link>
           </div>
         ) : (
           <div className="space-y-4">
-            {orders.map(order => {
+            {orders.map((order, idx) => {
               const st = STATUS_LABEL[order.status] ?? { label: order.status, color: 'bg-muted text-muted-foreground' };
               return (
                 <Link key={order.id} href={`/orders/${order.id}`}>
-                  <div className="rounded-2xl border border-border bg-card p-5 hover:border-primary/50 transition-all cursor-pointer">
-                    <div className="flex items-start justify-between gap-4">
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.04, duration: 0.3 }}
+                    className="rounded-lg border border-[#e4d8c6] bg-[#fffdf8] p-5 hover:border-[#C9A84C] hover:shadow-[0_8px_24px_rgba(25,21,17,0.03)] transition-all cursor-pointer shadow-sm"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                       <div>
                         <div className="flex items-center gap-2">
-                          <Package className="h-4 w-4 text-primary" />
-                          <span className="font-semibold tracking-wider">{order.order_number}</span>
+                          <Package className="h-4 w-4 text-[#C9A84C]" />
+                          <span className="font-display font-semibold text-[#1a1208] text-[15px] sm:text-base tracking-wide">{order.order_number}</span>
                         </div>
-                        <p className="mt-1 text-xs text-muted-foreground">
+                        <p className="mt-1.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
                           {new Date(order.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
                           {' · '}
                           {order.delivery_type === 'click_and_collect' ? 'Click & Collect' : 'Home Delivery'}
                         </p>
                       </div>
-                      <div className="text-right">
-                        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${st.color}`}>{st.label}</span>
-                        <p className="mt-2 font-semibold text-primary">{formatINR(order.total)}</p>
+                      <div className="flex sm:flex-col items-center justify-between sm:items-end gap-2 border-t border-[#dfd3bf]/30 pt-3 sm:border-0 sm:pt-0">
+                        <span className={`rounded-md px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${st.color} shadow-sm border border-black/5`}>
+                          {st.label}
+                        </span>
+                        <p className="font-bold text-[#1a1208] text-[15px] sm:text-base">{formatINR(order.total)}</p>
                       </div>
                     </div>
-                  </div>
+                  </motion.div>
                 </Link>
               );
             })}
