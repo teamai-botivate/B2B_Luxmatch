@@ -101,6 +101,27 @@ export default function CollectionDetailPage() {
         </div>
       </div>
 
+      {/* Try-On CTA */}
+      <section className="py-14 bg-background">
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="max-w-[1400px] mx-auto px-4 md:px-6 lg:px-12 flex flex-col md:flex-row items-center justify-between gap-6 bg-primary/5 border border-primary/10 rounded-3xl p-8 md:p-10"
+        >
+          <div>
+            <p className="text-xs font-bold uppercase tracking-widest text-primary mb-2">Virtual Try-On</p>
+            <h3 className="text-xl font-medium mb-1">See how it looks on you</h3>
+            <p className="text-sm text-muted-foreground max-w-md">Try on any AR-enabled piece from this collection before you buy — no commitment, just confidence.</p>
+          </div>
+          <Link href="/try-on">
+            <Button className="rounded-full px-8 whitespace-nowrap bg-primary text-primary-foreground hover:opacity-90 gap-2 shrink-0">
+              Open Try-On <ArrowRight className="w-4 h-4" />
+            </Button>
+          </Link>
+        </motion.div>
+      </section>
+
       {/* Style Quiz banner */}
       <section className="bg-gradient-to-r from-[#1a1208] to-[#2a1f0a] py-14">
         <motion.div
@@ -119,27 +140,6 @@ export default function CollectionDetailPage() {
           <Link href="/style-quiz">
             <Button className="rounded-full px-8 py-3 bg-[#C9A84C] hover:bg-[#b8963e] text-black font-semibold gap-2">
               Take the Style Quiz <ArrowRight className="w-4 h-4" />
-            </Button>
-          </Link>
-        </motion.div>
-      </section>
-
-      {/* Try-On CTA */}
-      <section className="py-14 bg-background">
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="max-w-[1400px] mx-auto px-4 md:px-6 lg:px-12 flex flex-col md:flex-row items-center justify-between gap-6 bg-primary/5 border border-primary/10 rounded-3xl p-8 md:p-10"
-        >
-          <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-primary mb-2">Virtual Try-On</p>
-            <h3 className="text-xl font-medium mb-1">See how it looks on you</h3>
-            <p className="text-sm text-muted-foreground max-w-md">Try on any AR-enabled piece from this collection before you buy — no commitment, just confidence.</p>
-          </div>
-          <Link href="/try-on">
-            <Button className="rounded-full px-8 whitespace-nowrap bg-primary text-primary-foreground hover:opacity-90 gap-2 shrink-0">
-              Open Try-On <ArrowRight className="w-4 h-4" />
             </Button>
           </Link>
         </motion.div>

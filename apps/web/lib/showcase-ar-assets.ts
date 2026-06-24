@@ -1,4 +1,5 @@
 import type { TryOnProduct } from '@luxematch/db';
+import { arDemoAssetUrl, arDemoPublicId } from '@/lib/ar-demo-assets';
 
 const now = '2026-01-01T00:00:00.000Z';
 
@@ -191,3 +192,13 @@ export const SHOWCASE_AR_PRODUCTS: TryOnProduct[] = [
     assets: [asset('showcase-bracelet-2', '/All_jewelleries/bracelets/2.png', 'bangle', 1)],
   },
 ];
+
+export const CLOUDINARY_READY_SHOWCASE_AR_PRODUCTS: TryOnProduct[] = SHOWCASE_AR_PRODUCTS.map((product) => ({
+  ...product,
+  primary_image_url: product.primary_image_url ? arDemoAssetUrl(product.primary_image_url) : product.primary_image_url,
+  assets: product.assets.map((item) => ({
+    ...item,
+    cloudinary_public_id: arDemoPublicId(item.asset_url),
+    asset_url: arDemoAssetUrl(item.asset_url),
+  })),
+}));

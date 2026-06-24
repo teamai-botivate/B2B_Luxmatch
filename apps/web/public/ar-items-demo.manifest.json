@@ -1,0 +1,374 @@
+{
+  "folder": "AR-ITEMS-DEMO",
+  "baseDeliveryUrl": "https://res.cloudinary.com/dyrc4bo4m/image/upload/c_limit,w_1400,q_auto:good,f_avif/AR-ITEMS-DEMO",
+  "assets": [
+    {
+      "localPath": "/All_jewelleries/bracelets/1.png",
+      "publicId": "AR-ITEMS-DEMO/bracelets/1",
+      "deliveryUrl": "https://res.cloudinary.com/dyrc4bo4m/image/upload/c_limit,w_1400,q_auto:good,f_avif/v1781954987/AR-ITEMS-DEMO/bracelets/1.avif",
+      "width": 1280,
+      "height": 768,
+      "bytes": 622457
+    },
+    {
+      "localPath": "/All_jewelleries/bracelets/2.png",
+      "publicId": "AR-ITEMS-DEMO/bracelets/2",
+      "deliveryUrl": "https://res.cloudinary.com/dyrc4bo4m/image/upload/c_limit,w_1400,q_auto:good,f_avif/v1781954990/AR-ITEMS-DEMO/bracelets/2.avif",
+      "width": 1013,
+      "height": 231,
+      "bytes": 45432
+    },
+    {
+      "localPath": "/All_jewelleries/earrings/e1/e1-l.png",
+      "publicId": "AR-ITEMS-DEMO/earrings/e1/e1-l",
+      "deliveryUrl": "https://res.cloudinary.com/dyrc4bo4m/image/upload/c_limit,w_1400,q_auto:good,f_avif/v1781954991/AR-ITEMS-DEMO/earrings/e1/e1-l.avif",
+      "width": 157,
+      "height": 431,
+      "bytes": 20168
+    },
+    {
+      "localPath": "/All_jewelleries/earrings/e1/e1-r.png",
+      "publicId": "AR-ITEMS-DEMO/earrings/e1/e1-r",
+      "deliveryUrl": "https://res.cloudinary.com/dyrc4bo4m/image/upload/c_limit,w_1400,q_auto:good,f_avif/v1781954993/AR-ITEMS-DEMO/earrings/e1/e1-r.avif",
+      "width": 157,
+      "height": 431,
+      "bytes": 20168
+    },
+    {
+      "localPath": "/All_jewelleries/earrings/e2/e2-l.png",
+      "publicId": "AR-ITEMS-DEMO/earrings/e2/e2-l",
+      "deliveryUrl": "https://res.cloudinary.com/dyrc4bo4m/image/upload/c_limit,w_1400,q_auto:good,f_avif/v1781954994/AR-ITEMS-DEMO/earrings/e2/e2-l.avif",
+      "width": 293,
+      "height": 973,
+      "bytes": 40175
+    },
+    {
+      "localPath": "/All_jewelleries/earrings/e2/e2-r.png",
+      "publicId": "AR-ITEMS-DEMO/earrings/e2/e2-r",
+      "deliveryUrl": "https://res.cloudinary.com/dyrc4bo4m/image/upload/c_limit,w_1400,q_auto:good,f_avif/v1781954996/AR-ITEMS-DEMO/earrings/e2/e2-r.avif",
+      "width": 293,
+      "height": 973,
+      "bytes": 40175
+    },
+    {
+      "localPath": "/All_jewelleries/earrings/e3/e3-l.png",
+      "publicId": "AR-ITEMS-DEMO/earrings/e3/e3-l",
+      "deliveryUrl": "https://res.cloudinary.com/dyrc4bo4m/image/upload/c_limit,w_1400,q_auto:good,f_avif/v1781954999/AR-ITEMS-DEMO/earrings/e3/e3-l.avif",
+      "width": 512,
+      "height": 1228,
+      "bytes": 80121
+    },
+    {
+      "localPath": "/All_jewelleries/earrings/e3/e3-r.png",
+      "publicId": "AR-ITEMS-DEMO/earrings/e3/e3-r",
+      "deliveryUrl": "https://res.cloudinary.com/dyrc4bo4m/image/upload/c_limit,w_1400,q_auto:good,f_avif/v1781955002/AR-ITEMS-DEMO/earrings/e3/e3-r.avif",
+      "width": 512,
+      "height": 1228,
+      "bytes": 80121
+    },
+    {
+      "localPath": "/All_jewelleries/earrings/e4/e4-l.png",
+      "publicId": "AR-ITEMS-DEMO/earrings/e4/e4-l",
+      "deliveryUrl": "https://res.cloudinary.com/dyrc4bo4m/image/upload/c_limit,w_1400,q_auto:good,f_avif/v1781955004/AR-ITEMS-DEMO/earrings/e4/e4-l.avif",
+      "width": 800,
+      "height": 3104,
+      "bytes": 126883
+    },
+    {
+      "localPath": "/All_jewelleries/earrings/e4/e4-r.png",
+      "publicId": "AR-ITEMS-DEMO/earrings/e4/e4-r",
+      "deliveryUrl": "https://res.cloudinary.com/dyrc4bo4m/image/upload/c_limit,w_1400,q_auto:good,f_avif/v1781955008/AR-ITEMS-DEMO/earrings/e4/e4-r.avif",
+      "width": 800,
+      "height": 3104,
+      "bytes": 126883
+    },
+    {
+      "localPath": "/All_jewelleries/earrings/e5/e5-r.png",
+      "publicId": "AR-ITEMS-DEMO/earrings/e5/e5-r",
+      "deliveryUrl": "https://res.cloudinary.com/dyrc4bo4m/image/upload/c_limit,w_1400,q_auto:good,f_avif/v1781955015/AR-ITEMS-DEMO/earrings/e5/e5-r.avif",
+      "width": 1400,
+      "height": 1374,
+      "bytes": 40787
+    },
+    {
+      "localPath": "/All_jewelleries/earrings/e5/e5l.png",
+      "publicId": "AR-ITEMS-DEMO/earrings/e5/e5l",
+      "deliveryUrl": "https://res.cloudinary.com/dyrc4bo4m/image/upload/c_limit,w_1400,q_auto:good,f_avif/v1781955019/AR-ITEMS-DEMO/earrings/e5/e5l.avif",
+      "width": 1400,
+      "height": 1374,
+      "bytes": 40787
+    },
+    {
+      "localPath": "/All_jewelleries/earrings/e6/e6-l.png",
+      "publicId": "AR-ITEMS-DEMO/earrings/e6/e6-l",
+      "deliveryUrl": "https://res.cloudinary.com/dyrc4bo4m/image/upload/c_limit,w_1400,q_auto:good,f_avif/v1781955023/AR-ITEMS-DEMO/earrings/e6/e6-l.avif",
+      "width": 800,
+      "height": 3703,
+      "bytes": 353040
+    },
+    {
+      "localPath": "/All_jewelleries/earrings/e6/e6-r.png",
+      "publicId": "AR-ITEMS-DEMO/earrings/e6/e6-r",
+      "deliveryUrl": "https://res.cloudinary.com/dyrc4bo4m/image/upload/c_limit,w_1400,q_auto:good,f_avif/v1781955028/AR-ITEMS-DEMO/earrings/e6/e6-r.avif",
+      "width": 800,
+      "height": 3703,
+      "bytes": 353040
+    },
+    {
+      "localPath": "/All_jewelleries/earrings/e7/e5-l.png",
+      "publicId": "AR-ITEMS-DEMO/earrings/e7/e5-l",
+      "deliveryUrl": "https://res.cloudinary.com/dyrc4bo4m/image/upload/c_limit,w_1400,q_auto:good,f_avif/v1781955032/AR-ITEMS-DEMO/earrings/e7/e5-l.avif",
+      "width": 468,
+      "height": 800,
+      "bytes": 109458
+    },
+    {
+      "localPath": "/All_jewelleries/earrings/e7/e7-r.png",
+      "publicId": "AR-ITEMS-DEMO/earrings/e7/e7-r",
+      "deliveryUrl": "https://res.cloudinary.com/dyrc4bo4m/image/upload/c_limit,w_1400,q_auto:good,f_avif/v1781955033/AR-ITEMS-DEMO/earrings/e7/e7-r.avif",
+      "width": 468,
+      "height": 800,
+      "bytes": 109458
+    },
+    {
+      "localPath": "/All_jewelleries/necklace/N1.png",
+      "publicId": "AR-ITEMS-DEMO/necklace/N1",
+      "deliveryUrl": "https://res.cloudinary.com/dyrc4bo4m/image/upload/c_limit,w_1400,q_auto:good,f_avif/v1781955040/AR-ITEMS-DEMO/necklace/N1.avif",
+      "width": 1200,
+      "height": 671,
+      "bytes": 117744
+    },
+    {
+      "localPath": "/All_jewelleries/necklace/N2.png",
+      "publicId": "AR-ITEMS-DEMO/necklace/N2",
+      "deliveryUrl": "https://res.cloudinary.com/dyrc4bo4m/image/upload/c_limit,w_1400,q_auto:good,f_avif/v1781955046/AR-ITEMS-DEMO/necklace/N2.avif",
+      "width": 1197,
+      "height": 892,
+      "bytes": 397880
+    },
+    {
+      "localPath": "/All_jewelleries/necklace/N3.png",
+      "publicId": "AR-ITEMS-DEMO/necklace/N3",
+      "deliveryUrl": "https://res.cloudinary.com/dyrc4bo4m/image/upload/c_limit,w_1400,q_auto:good,f_avif/v1781955049/AR-ITEMS-DEMO/necklace/N3.avif",
+      "width": 830,
+      "height": 1200,
+      "bytes": 152783
+    },
+    {
+      "localPath": "/All_jewelleries/necklace/N4.png",
+      "publicId": "AR-ITEMS-DEMO/necklace/N4",
+      "deliveryUrl": "https://res.cloudinary.com/dyrc4bo4m/image/upload/c_limit,w_1400,q_auto:good,f_avif/v1781955051/AR-ITEMS-DEMO/necklace/N4.avif",
+      "width": 1400,
+      "height": 1806,
+      "bytes": 72851
+    },
+    {
+      "localPath": "/All_jewelleries/necklace/N5.png",
+      "publicId": "AR-ITEMS-DEMO/necklace/N5",
+      "deliveryUrl": "https://res.cloudinary.com/dyrc4bo4m/image/upload/c_limit,w_1400,q_auto:good,f_avif/v1781955053/AR-ITEMS-DEMO/necklace/N5.avif",
+      "width": 1400,
+      "height": 1498,
+      "bytes": 41722
+    },
+    {
+      "localPath": "/All_jewelleries/necklace/N6.png",
+      "publicId": "AR-ITEMS-DEMO/necklace/N6",
+      "deliveryUrl": "https://res.cloudinary.com/dyrc4bo4m/image/upload/c_limit,w_1400,q_auto:good,f_avif/v1781955057/AR-ITEMS-DEMO/necklace/N6.avif",
+      "width": 696,
+      "height": 780,
+      "bytes": 59254
+    },
+    {
+      "localPath": "/All_jewelleries/necklace/N7.png",
+      "publicId": "AR-ITEMS-DEMO/necklace/N7",
+      "deliveryUrl": "https://res.cloudinary.com/dyrc4bo4m/image/upload/c_limit,w_1400,q_auto:good,f_avif/v1781955059/AR-ITEMS-DEMO/necklace/N7.avif",
+      "width": 529,
+      "height": 623,
+      "bytes": 77044
+    },
+    {
+      "localPath": "/All_jewelleries/necklace/N8.png",
+      "publicId": "AR-ITEMS-DEMO/necklace/N8",
+      "deliveryUrl": "https://res.cloudinary.com/dyrc4bo4m/image/upload/c_limit,w_1400,q_auto:good,f_avif/v1781955061/AR-ITEMS-DEMO/necklace/N8.avif",
+      "width": 800,
+      "height": 781,
+      "bytes": 90507
+    },
+    {
+      "localPath": "/All_jewelleries/necklace/N9.png",
+      "publicId": "AR-ITEMS-DEMO/necklace/N9",
+      "deliveryUrl": "https://res.cloudinary.com/dyrc4bo4m/image/upload/c_limit,w_1400,q_auto:good,f_avif/v1781955065/AR-ITEMS-DEMO/necklace/N9.avif",
+      "width": 800,
+      "height": 578,
+      "bytes": 66979
+    },
+    {
+      "localPath": "/All_jewelleries/rings/1.png",
+      "publicId": "AR-ITEMS-DEMO/rings/1",
+      "deliveryUrl": "https://res.cloudinary.com/dyrc4bo4m/image/upload/c_limit,w_1400,q_auto:good,f_avif/v1781955068/AR-ITEMS-DEMO/rings/1.avif",
+      "width": 926,
+      "height": 508,
+      "bytes": 72389
+    },
+    {
+      "localPath": "/All_jewelleries/rings/10.png",
+      "publicId": "AR-ITEMS-DEMO/rings/10",
+      "deliveryUrl": "https://res.cloudinary.com/dyrc4bo4m/image/upload/c_limit,w_1400,q_auto:good,f_avif/v1781955070/AR-ITEMS-DEMO/rings/10.avif",
+      "width": 645,
+      "height": 341,
+      "bytes": 35367
+    },
+    {
+      "localPath": "/All_jewelleries/rings/11.png",
+      "publicId": "AR-ITEMS-DEMO/rings/11",
+      "deliveryUrl": "https://res.cloudinary.com/dyrc4bo4m/image/upload/c_limit,w_1400,q_auto:good,f_avif/v1781955074/AR-ITEMS-DEMO/rings/11.avif",
+      "width": 714,
+      "height": 282,
+      "bytes": 24040
+    },
+    {
+      "localPath": "/All_jewelleries/rings/12.png",
+      "publicId": "AR-ITEMS-DEMO/rings/12",
+      "deliveryUrl": "https://res.cloudinary.com/dyrc4bo4m/image/upload/c_limit,w_1400,q_auto:good,f_avif/v1781955075/AR-ITEMS-DEMO/rings/12.avif",
+      "width": 382,
+      "height": 168,
+      "bytes": 11636
+    },
+    {
+      "localPath": "/All_jewelleries/rings/2.png",
+      "publicId": "AR-ITEMS-DEMO/rings/2",
+      "deliveryUrl": "https://res.cloudinary.com/dyrc4bo4m/image/upload/c_limit,w_1400,q_auto:good,f_avif/v1781955081/AR-ITEMS-DEMO/rings/2.avif",
+      "width": 835,
+      "height": 864,
+      "bytes": 115722
+    },
+    {
+      "localPath": "/All_jewelleries/rings/3.png",
+      "publicId": "AR-ITEMS-DEMO/rings/3",
+      "deliveryUrl": "https://res.cloudinary.com/dyrc4bo4m/image/upload/c_limit,w_1400,q_auto:good,f_avif/v1781955094/AR-ITEMS-DEMO/rings/3.avif",
+      "width": 820,
+      "height": 904,
+      "bytes": 137902
+    },
+    {
+      "localPath": "/All_jewelleries/rings/4.png",
+      "publicId": "AR-ITEMS-DEMO/rings/4",
+      "deliveryUrl": "https://res.cloudinary.com/dyrc4bo4m/image/upload/c_limit,w_1400,q_auto:good,f_avif/v1781955099/AR-ITEMS-DEMO/rings/4.avif",
+      "width": 1092,
+      "height": 608,
+      "bytes": 78979
+    },
+    {
+      "localPath": "/All_jewelleries/rings/5.png",
+      "publicId": "AR-ITEMS-DEMO/rings/5",
+      "deliveryUrl": "https://res.cloudinary.com/dyrc4bo4m/image/upload/c_limit,w_1400,q_auto:good,f_avif/v1781955101/AR-ITEMS-DEMO/rings/5.avif",
+      "width": 1400,
+      "height": 501,
+      "bytes": 20731
+    },
+    {
+      "localPath": "/All_jewelleries/rings/6.png",
+      "publicId": "AR-ITEMS-DEMO/rings/6",
+      "deliveryUrl": "https://res.cloudinary.com/dyrc4bo4m/image/upload/c_limit,w_1400,q_auto:good,f_avif/v1781955104/AR-ITEMS-DEMO/rings/6.avif",
+      "width": 770,
+      "height": 507,
+      "bytes": 56460
+    },
+    {
+      "localPath": "/All_jewelleries/rings/7.png",
+      "publicId": "AR-ITEMS-DEMO/rings/7",
+      "deliveryUrl": "https://res.cloudinary.com/dyrc4bo4m/image/upload/c_limit,w_1400,q_auto:good,f_avif/v1781955106/AR-ITEMS-DEMO/rings/7.avif",
+      "width": 590,
+      "height": 412,
+      "bytes": 86374
+    },
+    {
+      "localPath": "/All_jewelleries/rings/8.png",
+      "publicId": "AR-ITEMS-DEMO/rings/8",
+      "deliveryUrl": "https://res.cloudinary.com/dyrc4bo4m/image/upload/c_limit,w_1400,q_auto:good,f_avif/v1781955109/AR-ITEMS-DEMO/rings/8.avif",
+      "width": 709,
+      "height": 250,
+      "bytes": 16491
+    },
+    {
+      "localPath": "/All_jewelleries/rings/9.png",
+      "publicId": "AR-ITEMS-DEMO/rings/9",
+      "deliveryUrl": "https://res.cloudinary.com/dyrc4bo4m/image/upload/c_limit,w_1400,q_auto:good,f_avif/v1781955110/AR-ITEMS-DEMO/rings/9.avif",
+      "width": 541,
+      "height": 366,
+      "bytes": 25383
+    },
+    {
+      "localPath": "/All_jewelleries/sets/set1/Necklace1.png",
+      "publicId": "AR-ITEMS-DEMO/sets/set1/Necklace1",
+      "deliveryUrl": "https://res.cloudinary.com/dyrc4bo4m/image/upload/c_limit,w_1400,q_auto:good,f_avif/v1781955112/AR-ITEMS-DEMO/sets/set1/Necklace1.avif",
+      "width": 529,
+      "height": 623,
+      "bytes": 77044
+    },
+    {
+      "localPath": "/All_jewelleries/sets/set1/er-l1.png",
+      "publicId": "AR-ITEMS-DEMO/sets/set1/er-l1",
+      "deliveryUrl": "https://res.cloudinary.com/dyrc4bo4m/image/upload/c_limit,w_1400,q_auto:good,f_avif/v1781955113/AR-ITEMS-DEMO/sets/set1/er-l1.avif",
+      "width": 161,
+      "height": 302,
+      "bytes": 19843
+    },
+    {
+      "localPath": "/All_jewelleries/sets/set1/er-r1.png",
+      "publicId": "AR-ITEMS-DEMO/sets/set1/er-r1",
+      "deliveryUrl": "https://res.cloudinary.com/dyrc4bo4m/image/upload/c_limit,w_1400,q_auto:good,f_avif/v1781955114/AR-ITEMS-DEMO/sets/set1/er-r1.avif",
+      "width": 161,
+      "height": 302,
+      "bytes": 19843
+    },
+    {
+      "localPath": "/All_jewelleries/sets/set2/Necklace2.png",
+      "publicId": "AR-ITEMS-DEMO/sets/set2/Necklace2",
+      "deliveryUrl": "https://res.cloudinary.com/dyrc4bo4m/image/upload/c_limit,w_1400,q_auto:good,f_avif/v1781955116/AR-ITEMS-DEMO/sets/set2/Necklace2.avif",
+      "width": 696,
+      "height": 780,
+      "bytes": 59254
+    },
+    {
+      "localPath": "/All_jewelleries/sets/set2/er-r1.png",
+      "publicId": "AR-ITEMS-DEMO/sets/set2/er-r1",
+      "deliveryUrl": "https://res.cloudinary.com/dyrc4bo4m/image/upload/c_limit,w_1400,q_auto:good,f_avif/v1781955119/AR-ITEMS-DEMO/sets/set2/er-r1.avif",
+      "width": 504,
+      "height": 1191,
+      "bytes": 63490
+    },
+    {
+      "localPath": "/All_jewelleries/sets/set2/er-r2.png",
+      "publicId": "AR-ITEMS-DEMO/sets/set2/er-r2",
+      "deliveryUrl": "https://res.cloudinary.com/dyrc4bo4m/image/upload/c_limit,w_1400,q_auto:good,f_avif/v1781955120/AR-ITEMS-DEMO/sets/set2/er-r2.avif",
+      "width": 504,
+      "height": 1191,
+      "bytes": 63490
+    },
+    {
+      "localPath": "/All_jewelleries/sets/set3/Necklace3.png",
+      "publicId": "AR-ITEMS-DEMO/sets/set3/Necklace3",
+      "deliveryUrl": "https://res.cloudinary.com/dyrc4bo4m/image/upload/c_limit,w_1400,q_auto:good,f_avif/v1781955122/AR-ITEMS-DEMO/sets/set3/Necklace3.avif",
+      "width": 529,
+      "height": 623,
+      "bytes": 77044
+    },
+    {
+      "localPath": "/All_jewelleries/sets/set3/er-l3.png",
+      "publicId": "AR-ITEMS-DEMO/sets/set3/er-l3",
+      "deliveryUrl": "https://res.cloudinary.com/dyrc4bo4m/image/upload/c_limit,w_1400,q_auto:good,f_avif/v1781955124/AR-ITEMS-DEMO/sets/set3/er-l3.avif",
+      "width": 161,
+      "height": 302,
+      "bytes": 19843
+    },
+    {
+      "localPath": "/All_jewelleries/sets/set3/er-r3.png",
+      "publicId": "AR-ITEMS-DEMO/sets/set3/er-r3",
+      "deliveryUrl": "https://res.cloudinary.com/dyrc4bo4m/image/upload/c_limit,w_1400,q_auto:good,f_avif/v1781955125/AR-ITEMS-DEMO/sets/set3/er-r3.avif",
+      "width": 161,
+      "height": 302,
+      "bytes": 19843
+    }
+  ]
+}

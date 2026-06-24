@@ -9,7 +9,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { ARViewport, type ARViewportHandle } from '@/components/ar/ARViewport';
 import { trackEvent } from '@/lib/analytics';
-import { SHOWCASE_AR_PRODUCTS } from '@/lib/showcase-ar-assets';
+import { CLOUDINARY_READY_SHOWCASE_AR_PRODUCTS } from '@/lib/showcase-ar-assets';
 
 // Matches a v4 UUID — used to skip analytics product_id for showcase assets.
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -99,9 +99,9 @@ export default function TryOnPage() {
           setLoadError(json.error.message);
           return;
         }
-        setArProducts([...SHOWCASE_AR_PRODUCTS, ...json.data.products]);
+        setArProducts([...CLOUDINARY_READY_SHOWCASE_AR_PRODUCTS, ...json.data.products]);
       } catch (e) {
-        if (!cancelled) setArProducts(SHOWCASE_AR_PRODUCTS);
+        if (!cancelled) setArProducts(CLOUDINARY_READY_SHOWCASE_AR_PRODUCTS);
       }
     })();
     return () => {

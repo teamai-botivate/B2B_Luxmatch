@@ -8,6 +8,7 @@ import { motion } from "motion/react";
 import { ArrowRight, Camera, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ProductCard from "@/components/product/ProductCard";
+import { arDemoAssetUrl } from "@/lib/ar-demo-assets";
 import { MOCK_OCCASIONS } from "@/lib/mock-data";
 import type { Collection, Product } from "@/lib/mock-data";
 import {
@@ -76,19 +77,19 @@ export default function HomePage() {
           <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-background/45 via-background/10 to-transparent" />
           <div className="pointer-events-none absolute right-[-1%] top-[10%] hidden h-[76%] w-[49%] md:block">
             <img
-              src="/All_jewelleries/necklace/N2.png"
+              src={arDemoAssetUrl("/All_jewelleries/necklace/N2.png")}
               alt=""
               aria-hidden="true"
               className="absolute right-[0%] top-[0%] h-[50%] w-auto object-contain opacity-95 drop-shadow-[0_38px_72px_rgba(0,0,0,0.55)]"
             />
             <img
-              src="/All_jewelleries/rings/4.png"
+              src={arDemoAssetUrl("/All_jewelleries/rings/4.png")}
               alt=""
               aria-hidden="true"
               className="absolute bottom-[5%] right-[36%] h-[25%] w-auto rotate-[-8deg] object-contain opacity-92 drop-shadow-[0_28px_50px_rgba(0,0,0,0.48)]"
             />
             <img
-              src="/All_jewelleries/bracelets/1.png"
+              src={arDemoAssetUrl("/All_jewelleries/bracelets/1.png")}
               alt=""
               aria-hidden="true"
               className="absolute bottom-[16%] right-[0%] h-[28%] w-auto rotate-[8deg] object-contain opacity-92 drop-shadow-[0_28px_50px_rgba(0,0,0,0.48)]"
@@ -96,7 +97,7 @@ export default function HomePage() {
           </div>
           <div className="pointer-events-none absolute right-[-38%] top-[10%] h-[42%] w-[92%] opacity-35 md:hidden">
             <img
-              src="/All_jewelleries/necklace/N2.png"
+              src={arDemoAssetUrl("/All_jewelleries/necklace/N2.png")}
               alt=""
               aria-hidden="true"
               className="h-full w-full object-contain drop-shadow-[0_30px_60px_rgba(0,0,0,0.5)]"
@@ -325,11 +326,11 @@ export default function HomePage() {
                 Open Try-On
               </Button>
             </div>
-            <div className="min-h-[260px] overflow-hidden md:min-h-full">
+            <div className="relative aspect-[16/10] w-full overflow-hidden sm:aspect-[16/9] md:aspect-auto md:h-full md:min-h-[320px]">
               <img
-                src="https://images.unsplash.com/photo-1573408301185-9519f94f4105?w=900&q=85"
+                src="https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=900&q=85"
                 alt="Jewellery try-on inspiration"
-                className="h-full w-full object-cover"
+                className="absolute inset-0 h-full w-full object-cover object-center"
               />
             </div>
           </div>

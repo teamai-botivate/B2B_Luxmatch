@@ -2,10 +2,13 @@
 
 import CustomerLayout from "@/components/layout/CustomerLayout";
 
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
+import { ArrowRight, Sparkles } from "lucide-react";
 import ProductGrid from "@/components/product/ProductGrid";
+import { Button } from "@/components/ui/button";
 import { MOCK_OCCASIONS } from "@/lib/mock-data";
 import type { Product } from "@/lib/mock-data";
 import { adaptProduct, fetchCategories, type ApiProduct } from "@/lib/catalog-adapter";
@@ -56,7 +59,60 @@ export default function OccasionPage() {
       </div>
       <div className="max-w-[1400px] mx-auto px-4 md:px-6 lg:px-12 py-10">
         <ProductGrid products={products} loading={loading} emptyTitle="No products for this occasion" />
+
+        {/* View all CTA */}
+        <div className="flex flex-col items-center gap-3 mt-10 mb-4">
+          <Link href="/catalog">
+            <Button variant="outline" className="rounded-full px-8 gap-2 border-border hover:border-primary hover:text-primary">
+              View All Jewellery <ArrowRight className="w-4 h-4" />
+            </Button>
+          </Link>
+        </div>
       </div>
+
+      {/* Try-On CTA */}
+      <section className="py-14 bg-background">
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="max-w-[1400px] mx-auto px-4 md:px-6 lg:px-12 flex flex-col md:flex-row items-center justify-between gap-6 bg-primary/5 border border-primary/10 rounded-3xl p-8 md:p-10"
+        >
+          <div>
+            <p className="text-xs font-bold uppercase tracking-widest text-primary mb-2">Virtual Try-On</p>
+            <h3 className="text-xl font-medium mb-1">See how it looks on you</h3>
+            <p className="text-sm text-muted-foreground max-w-md">Try on any AR-enabled piece for this occasion before you buy — no commitment, just confidence.</p>
+          </div>
+          <Link href="/try-on">
+            <Button className="rounded-full px-8 whitespace-nowrap bg-primary text-primary-foreground hover:opacity-90 gap-2 shrink-0">
+              Open Try-On <ArrowRight className="w-4 h-4" />
+            </Button>
+          </Link>
+        </motion.div>
+      </section>
+
+      {/* Style Quiz banner */}
+      <section className="bg-gradient-to-r from-[#1a1208] to-[#2a1f0a] py-14">
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="max-w-2xl mx-auto px-6 text-center flex flex-col items-center gap-5"
+        >
+          <div className="w-12 h-12 rounded-2xl bg-[#C9A84C]/15 flex items-center justify-center">
+            <Sparkles className="w-5 h-5 text-[#C9A84C]" />
+          </div>
+          <h2 className="text-2xl font-medium text-white">Not sure what suits you?</h2>
+          <p className="text-white/60 text-sm leading-relaxed">
+            Take our 7-step style quiz and get a personalised curation of pieces for this occasion — matched to your budget and aesthetic.
+          </p>
+          <Link href="/style-quiz">
+            <Button className="rounded-full px-8 py-3 bg-[#C9A84C] hover:bg-[#b8963e] text-black font-semibold gap-2">
+              Take the Style Quiz <ArrowRight className="w-4 h-4" />
+            </Button>
+          </Link>
+        </motion.div>
+      </section>
     </div>
     </CustomerLayout>
 

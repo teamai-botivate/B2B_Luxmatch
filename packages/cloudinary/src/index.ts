@@ -13,15 +13,15 @@ import { createHash } from 'node:crypto';
 export const CLOUDINARY_BUCKETS = ['products', 'tryon', 'logo', 'avatars'] as const;
 export type CloudinaryBucket = (typeof CLOUDINARY_BUCKETS)[number];
 
-export type AllowedFormat = 'jpg' | 'jpeg' | 'png' | 'webp';
+export type AllowedFormat = 'jpg' | 'jpeg' | 'png' | 'webp' | 'avif';
 
 const ALLOWED_FORMATS_BY_BUCKET: Record<CloudinaryBucket, AllowedFormat[]> = {
-  products: ['jpg', 'jpeg', 'png', 'webp'],
+  products: ['jpg', 'jpeg', 'png', 'webp', 'avif'],
   // Try-on assets require transparency, so jpg is rejected.
-  tryon: ['png', 'webp'],
-  logo: ['jpg', 'jpeg', 'png', 'webp'],
+  tryon: ['png', 'webp', 'avif'],
+  logo: ['jpg', 'jpeg', 'png', 'webp', 'avif'],
   // Customer profile pictures.
-  avatars: ['jpg', 'jpeg', 'png', 'webp'],
+  avatars: ['jpg', 'jpeg', 'png', 'webp', 'avif'],
 };
 
 export function getAllowedFormats(bucket: CloudinaryBucket): AllowedFormat[] {

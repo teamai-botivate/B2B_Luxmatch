@@ -21,6 +21,7 @@
     "check-env": "tsx --env-file=apps/web/.env.local scripts/check-env.ts",
     "smoke-test": "tsx --env-file=apps/web/.env.local scripts/smoke-test.ts",
     "import:cloudinary-product-images": "tsx --env-file=apps/web/.env.local scripts/import-cloudinary-product-images.ts",
+    "upload:ar-demo-assets": "tsx --env-file=apps/web/.env.local scripts/upload-ar-demo-assets.ts",
     "test": "vitest run"
   },
   "devDependencies": {

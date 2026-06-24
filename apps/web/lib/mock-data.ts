@@ -82,11 +82,11 @@ export const MOCK_COLLECTIONS: Collection[] = [
 ];
 
 export const MOCK_OCCASIONS: OccasionData[] = [
-  { id: "o1", name: "Wedding", slug: "wedding", description: "Bridal and wedding jewellery for your big day.", imageUrl: "https://images.unsplash.com/photo-1599643478524-fb66f7ca2b6e?w=400&q=80" },
+  { id: "o1", name: "Wedding", slug: "wedding", description: "Bridal and wedding jewellery for your big day.", imageUrl: "https://images.unsplash.com/photo-1617038260897-41a1f14a8ca0?w=400&q=80" },
   { id: "o2", name: "Daily Wear", slug: "daily-wear", description: "Everyday elegance that complements your routine.", imageUrl: "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=400&q=80" },
   { id: "o3", name: "Festival", slug: "festival", description: "Statement pieces for festive celebrations.", imageUrl: "https://images.unsplash.com/photo-1601121141461-9d6647bca1ed?w=400&q=80" },
   { id: "o4", name: "Anniversary", slug: "anniversary", description: "Timeless gifts to mark milestones of love.", imageUrl: "https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=400&q=80" },
-  { id: "o5", name: "Gift", slug: "gift", description: "Thoughtful pieces for everyone you love.", imageUrl: "https://images.unsplash.com/photo-1573408301185-9519f94f4105?w=400&q=80" },
+  { id: "o5", name: "Gift", slug: "gift", description: "Thoughtful pieces for everyone you love.", imageUrl: "https://images.unsplash.com/photo-1602173574767-37ac01994b2a?w=400&q=80" },
 ];
 
 export const MOCK_PRODUCTS: Product[] = [
