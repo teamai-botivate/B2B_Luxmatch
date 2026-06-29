@@ -20,7 +20,7 @@ const ServerEnvSchema = z.object({
   QDRANT_COLLECTION: z.string().min(1).default('luxematch_products'),
   // OpenCLIP embedder service (apps/embedder). Same model as Jewellery_AI:
   // ViT-B-32 / laion2b_s34b_b79k / 512-d.
-  EMBEDDER_URL: z.string().url('EMBEDDER_URL must be a valid URL'),
+  EMBEDDER_URL: z.string().url('EMBEDDER_URL must be a valid URL').optional(),
   EMBEDDER_API_KEY: z.string().optional(),
   // Optional transactional email sender for non-auth messages such as order
   // confirmations. Supabase Auth OTP emails use the SMTP settings configured
