@@ -2,7 +2,7 @@ services:
   - type: web
     name: luxematch-web
     runtime: node
-    plan: free
+    plan: starter
     autoDeploy: true
     buildCommand: corepack enable && corepack prepare pnpm@10.33.2 --activate && pnpm install --frozen-lockfile && pnpm --filter @luxematch/web build
     startCommand: corepack enable && pnpm --filter @luxematch/web start
