@@ -23,7 +23,9 @@ function authHeaders(): Record<string, string> {
 }
 
 function baseUrl(): string {
-  return getServerEnv().EMBEDDER_URL.replace(/\/$/, '');
+  const url = getServerEnv().EMBEDDER_URL;
+  if (!url) throw new Error('EMBEDDER_URL is not configured — embedder is not deployed');
+  return url.replace(/\/$/, '');
 }
 
 async function readJsonOrThrow<T>(res: Response, ctx: string): Promise<T> {
