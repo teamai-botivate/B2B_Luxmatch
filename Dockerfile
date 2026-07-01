@@ -3,7 +3,7 @@
 FROM node:20.18.1-bookworm-slim AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable && corepack prepare pnpm@10.33.2 --activate
+RUN npm install -g pnpm@10.33.2
 WORKDIR /app
 
 FROM base AS deps
