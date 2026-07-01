@@ -36,7 +36,7 @@ ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable && corepack prepare pnpm@10.33.2 --activate
+RUN npm install -g pnpm@10.33.2
 WORKDIR /app
 
 COPY --from=builder /app/package.json /app/pnpm-lock.yaml /app/pnpm-workspace.yaml ./
