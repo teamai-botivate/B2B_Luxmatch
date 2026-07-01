@@ -1,506 +1,503 @@
-# LuxeMatch — AT Jewellers Platform · Setup & Testing Guide
+# LuxeMatch Client Setup Guide
 
-> **What this is:** An AI-powered jewellery e-commerce platform for AT Jewellers — a single seller with multiple branches. Customers browse, search by photo, try jewellery on via AR camera, add to cart, and checkout. Staff manage inventory and analytics from the same device via a PIN-locked back-office.
+This guide explains how to set up LuxeMatch for a new client using their own Supabase, Cloudinary, Qdrant, and optional embedder service.
 
----
+LuxeMatch has three actors:
 
-## Table of Contents
+- **Manufacturer**: manages wholesale catalog, stores, and B2B orders.
+- **Store/Retailer**: logs in, orders manufacturer designs, and sells fulfilled products to customers.
+- **Customer**: browses the store inventory, image-searches, tries AR, adds to cart, and checks out.
 
-1. [Prerequisites](#prerequisites)
-2. [Environment Setup](#environment-setup)
-3. [Database Migration](#database-migration)
-4. [Running the System](#running-the-system)
-5. [Testing the Full Flow](#testing-the-full-flow)
-6. [All Pages Reference](#all-pages-reference)
-7. [API Endpoints Reference](#api-endpoints-reference)
-8. [Demo Credentials](#demo-credentials)
-9. [What Is Dummy vs Real](#what-is-dummy-vs-real)
-10. [Troubleshooting](#troubleshooting)
+For business/user flow, see [USER_MANUAL.md](USER_MANUAL.md).
 
----
+## 1. Requirements
 
-## Prerequisites
+Install:
 
-| Tool | Version | Notes |
-|---|---|---|
-| Node.js | >= 20 | v22 recommended |
-| pnpm | >= 10 | `npm install -g pnpm` |
-| Python | >= 3.10 | For the OpenCLIP embedder only |
-
-Cloud services already configured in `.env.local`:
-- **Supabase** — Postgres database + Realtime
-- **Qdrant Cloud** — Vector search (512-d cosine)
-- **Cloudinary** — Product image hosting
-
----
-
-## Environment Setup
-
-The `.env.local` file in `apps/web/` already contains all working keys for the AT Jewellers dev project. **Do not commit this file.**
-
-```
-apps/web/.env.local   ← real credentials, git-ignored
+```powershell
+node --version   # Node 20+
+pnpm --version   # pnpm 10+
+python --version # Python 3.10+ for embedder
+git --version
 ```
 
-Key variables:
+Optional:
 
-| Variable | Purpose |
-|---|---|
-| `SHOP_JEWELLER_ID` | AT Jewellers UUID — every query is scoped to this |
-| `SUPABASE_SERVICE_ROLE_KEY` | Bypasses RLS; used server-side only |
-| `NEXT_PUBLIC_SUPABASE_*` | Browser-safe Supabase keys (anon) |
-| `LM_PIN_COOKIE_SECRET` | Signs both staff PIN cookie and customer session cookie |
-| `QDRANT_*` | Vector DB connection |
-| `CLOUDINARY_*` | Asset hosting |
-| `EMBEDDER_URL` | Local OpenCLIP service (`http://localhost:8001`) |
-
----
-
-## Database Migration
-
-The e-commerce layer requires **one manual migration** run in the Supabase dashboard.
-
-### Step 1 — Run the SQL migration
-
-1. Open **https://supabase.com/dashboard** → Your project
-2. Go to **SQL Editor** → New query
-3. Paste the full content of [`supabase/migrations/0002_ecommerce.sql`](supabase/migrations/0002_ecommerce.sql)
-4. Click **Run**
-
-This creates 8 new tables:
-`branches` · `customers` · `customer_addresses` · `customer_otps` · `cart_items` · `orders` · `order_items` · `order_status_history`
-
-### Step 2 — Seed demo data
-
-```bash
-node scripts/run-migration.mjs
+```powershell
+npm install -g supabase
 ```
 
-This seeds:
-- **4 branches**: Connaught Place (Delhi), Bandra West (Mumbai), MI Road (Jaipur), Anna Nagar (Chennai)
-- **3 demo customers**: Priya Sharma, Anjali Mehta, Kavita Singh
-- **2 demo orders**: one delivered, one in-transit (with full tracking history)
+On Windows, use `supabase.cmd` instead of `supabase` if PowerShell blocks `.ps1` scripts.
 
----
+## 2. Create Client Cloud Accounts
 
-## Running the System
+### Supabase
 
-### Minimal (no AI search)
+1. Go to `https://supabase.com/dashboard`.
+2. Create a new project for the client.
+3. Copy:
+   - Project URL
+   - Anon/public key
+   - Service role key
+4. In Authentication settings:
+   - Enable email/password auth.
+   - Configure SMTP before production.
+   - Supabase email OTP is usually 8 digits; LuxeMatch accepts 6-8 digits.
 
-```bash
-pnpm install
-pnpm dev
+### Cloudinary
+
+1. Create a Cloudinary cloud for the client.
+2. Copy:
+   - Cloud name
+   - API key
+   - API secret
+3. LuxeMatch stores assets under:
+
+```text
+luxematch/<jewellerId>/products/
+luxematch/<jewellerId>/tryon/
+luxematch/<jewellerId>/avatars/
+luxematch/manufacturer/<manufacturerId>/catalog/
 ```
 
-Opens at **http://localhost:3000**. Catalog, AR try-on, cart, checkout, and orders all work without the embedder.
+### Qdrant
 
-### Full stack (with AI image search)
+1. Create a Qdrant Cloud cluster.
+2. Create/copy API key.
+3. LuxeMatch will use:
 
-You need three processes running simultaneously:
+```text
+luxematch_products
+luxematch_manufacturer_products
+```
 
-```bash
-# Terminal 1 — Python OpenCLIP embedder
-cd apps/embedder
-python -m venv .venv && source .venv/bin/activate  # Windows: .venv\Scripts\activate
+The app can create Qdrant collections/indexes when indexing runs.
+
+### Embedder
+
+Dev/local:
+
+```text
+EMBEDDER_URL=http://localhost:8001
+```
+
+Production:
+
+- Deploy `apps/embedder` to a GPU/CPU service.
+- Keep endpoint compatible with `/embed/image`, `/embed/text`, and `/embed/hybrid`.
+
+## 3. Configure Env
+
+Create or edit:
+
+```text
+apps/web/.env.local
+```
+
+Use this template:
+
+```env
+NODE_ENV=development
+
+NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
+SUPABASE_SERVICE_ROLE_KEY=YOUR_SUPABASE_SERVICE_ROLE_KEY
+
+LM_PIN_COOKIE_SECRET=generate-a-random-32-plus-char-secret
+LM_PIN_COOKIE_TTL_SECONDS=14400
+LM_STORE_COOKIE_TTL_SECONDS=28800
+MANUFACTURER_COOKIE_SECRET=generate-another-random-32-plus-char-secret
+LM_MANUFACTURER_COOKIE_TTL_SECONDS=28800
+
+# Device mode: set this to one jeweller id.
+# B2B mode: leave blank, store login decides jeweller_id.
+SHOP_JEWELLER_ID=
+
+CLOUDINARY_CLOUD_NAME=YOUR_CLOUDINARY_CLOUD_NAME
+CLOUDINARY_API_KEY=YOUR_CLOUDINARY_API_KEY
+CLOUDINARY_API_SECRET=YOUR_CLOUDINARY_API_SECRET
+
+QDRANT_URL=https://YOUR_QDRANT_CLUSTER
+QDRANT_API_KEY=YOUR_QDRANT_API_KEY
+QDRANT_COLLECTION=luxematch_products
+QDRANT_MANUFACTURER_COLLECTION=luxematch_manufacturer_products
+
+EMBEDDER_URL=http://localhost:8001
+EMBEDDER_API_KEY=
+
+# Optional showcase/fallback only
+JEWELLERY_AI_URL=https://botivate2026-jewellery.hf.space
+
+# Optional checkout confirmation email
+SMTP_HOST=
+SMTP_PORT=
+SMTP_USER=
+SMTP_PASS=
+SMTP_FROM=
+```
+
+Generate secrets:
+
+```powershell
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+Check env:
+
+```powershell
+pnpm.cmd check-env
+```
+
+## 4. Install Dependencies
+
+```powershell
+cd C:\Users\prabh\Desktop\LuxeMatch
+pnpm.cmd install
+```
+
+## 5. Apply Supabase Migrations
+
+Open Supabase SQL Editor and run in this order:
+
+```text
+supabase/migrations/0001_init.sql
+supabase/migrations/0002_ecommerce.sql
+supabase/migrations/0003_security_advisor.sql
+supabase/migrations/0004_customer_avatar.sql
+supabase/migrations/0005_b2b_platform.sql
+```
+
+If an older draft of `0005` was partially applied and you see errors like existing policies or missing `sku`, run this first:
+
+```text
+supabase/migrations/0005_b2b_repair_existing.sql
+```
+
+Then rerun:
+
+```text
+supabase/migrations/0005_b2b_platform.sql
+```
+
+Verify:
+
+```sql
+select table_name
+from information_schema.tables
+where table_schema = 'public'
+  and table_name in (
+    'manufacturers',
+    'manufacturer_products',
+    'manufacturer_product_images',
+    'manufacturer_product_embeddings',
+    'stores',
+    'b2b_orders',
+    'b2b_order_items',
+    'b2b_order_status_history'
+  )
+order by table_name;
+```
+
+## 6. Seed Client/Demo Data
+
+For demo/dev, run the full:
+
+```text
+supabase/seed.sql
+```
+
+For only B2B demo data, run from:
+
+```sql
+-- B2B demo data (DEV ONLY)
+```
+
+Demo accounts:
+
+```text
+Manufacturer: admin@atplusjewellers.com / manufacturer123
+Store:        store@aurumheritage.com / store123
+PIN:          123456
+```
+
+For a real client, create production-safe records:
+
+1. Create jeweller in `jewellers`.
+2. Create manufacturer in `manufacturers`.
+3. Create store in `stores`, linked to `jewellers.id`.
+4. Upload manufacturer products from portal or insert into `manufacturer_products`.
+
+Important IDs:
+
+```text
+jewellers.id                  tenant id for store/customer data
+manufacturers.id              manufacturer account id
+stores.id                     store login id
+stores.jeweller_id            links store login to tenant
+manufacturer_products.id      global design id
+products.manufacturer_product_id  backlink after B2B fulfillment
+```
+
+## 7. Run Locally
+
+Terminal 1, web app:
+
+```powershell
+cd C:\Users\prabh\Desktop\LuxeMatch
+pnpm.cmd dev
+```
+
+Open:
+
+```text
+http://localhost:3000
+```
+
+Terminal 2, embedder for image search:
+
+```powershell
+cd C:\Users\prabh\Desktop\LuxeMatch\apps\embedder
+python -m venv .venv
+.\.venv\Scripts\activate
 pip install -r requirements.txt
 python -m uvicorn embedder:app --port 8001
-# First boot downloads ~350 MB of model weights
-
-# Terminal 2 — Next.js dev server
-pnpm dev
-
-# Terminal 3 — (optional) Reindex products into Qdrant
-pnpm reindex --jeweller-id=00000000-0000-0000-0000-00000000d3e1
 ```
 
-### Useful commands
+First boot downloads model weights.
 
-```bash
-pnpm dev                   # Start Next.js on :3000
-pnpm typecheck             # TypeScript check (all 11 packages)
-pnpm build                 # Production build
-pnpm lint                  # ESLint
-pnpm format                # Prettier write
+Stop web app or embedder:
 
-node scripts/run-migration.mjs   # Seed branches + demo data
-pnpm reindex --all               # Reindex all products into Qdrant
+```text
+Press Ctrl+C in the terminal running it.
 ```
 
----
+Stop anything listening on port 8000/8001:
 
-## Testing the Full Flow
-
-### Customer Flow (end-to-end)
-
-#### 1. Browse the catalog
-
-```
-http://localhost:3000/catalog
+```powershell
+$connections = Get-NetTCPConnection -LocalPort 8000,8001 -ErrorAction SilentlyContinue | Where-Object { $_.State -eq 'Listen' }
+$connections | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }
 ```
 
-- Products load from real Supabase data (not mock)
-- Filter by category, metal, price, occasion, AR availability
-- Sort by price or newest
+## 8. Modes
 
-#### 2. Open a product detail
+### Device Mode
 
-Click any product. You will see:
-- Real images from Cloudinary
-- **Add to Cart** and **Buy Now** buttons
-- **Try On** button (needs camera permission)
-- Save + Compare buttons
+Use when one installed device belongs to one jeweller.
 
-#### 3. Login / Create account
-
-```
-http://localhost:3000/login
+```env
+SHOP_JEWELLER_ID=client-jeweller-uuid
 ```
 
-- Enter any 10-digit phone number (e.g. `9876543210`)
-- Click **Get OTP**
-- The OTP appears in an amber box on the same screen (demo mode — no real SMS)
-- Enter the OTP → you are logged in
+Staff goes to:
 
-#### 4. Add to cart
-
-- Go back to any product page
-- Click **Add to Cart**
-- The cart icon in the header shows a count badge
-
-#### 5. View cart
-
-```
-http://localhost:3000/cart
+```text
+/jeweller/unlock
 ```
 
-- Adjust quantities with +/−
-- See the discount hint: use code `LUXE10` at checkout for 10% off
+Uses PIN.
 
-#### 6. Checkout
+### B2B Store Mode
 
-```
-http://localhost:3000/checkout
-```
+Use when one deployment supports store login.
 
-Steps to test:
-1. Choose **Home Delivery** or **Click & Collect**
-2. If Home Delivery: fill in an address (any values work)
-3. Choose a payment method:
-   - **Debit/Credit Card** → shows dummy card fields
-   - **UPI** → shows a dummy UPI field
-   - **Cash on Delivery** → no fields needed
-4. (Optional) Enter discount code: `LUXE10`
-5. Click **Pay ₹X,XXX**
-6. You are redirected to the success page with an order number
-
-#### 7. Order confirmation
-
-```
-http://localhost:3000/checkout/success?order=ATJ-YYYYMMDD-XXXX
+```env
+SHOP_JEWELLER_ID=
 ```
 
-Shows order number and a mini status timeline. Click **Track Order**.
+Store goes to:
 
-#### 8. Order tracking
-
-```
-http://localhost:3000/orders
-http://localhost:3000/orders/[order-id]
+```text
+/store/login
 ```
 
-- Full timeline: Placed → Confirmed → Packed → Shipped → Delivered
-- Each step shows a timestamp and note
-- Payment details and delivery address summary
+The `lm_store` cookie carries the `jewellerId`.
 
-#### 9. Account page
+## 9. Indexing And Search
 
-```
-http://localhost:3000/account
-```
+### Index store inventory
 
-- Shows your name and phone
-- Link to order history
-- Sign out
-
----
-
-### Staff / Back-office Flow
-
-#### Unlock the dashboard
-
-```
-http://localhost:3000/jeweller/unlock
+```powershell
+pnpm.cmd reindex --jeweller-id=CLIENT_JEWELLER_UUID
 ```
 
-- Enter PIN: **`123456`** (dev PIN)
-- Access granted for 4 hours
+Or all stores:
 
-#### Dashboard
-
-```
-http://localhost:3000/jeweller/dashboard
+```powershell
+pnpm.cmd reindex --all
 ```
 
-- Business snapshot: views, sales, products, try-ons
-- Inventory Decision Brief (AI-powered recommendations)
-- Auto-refreshes when another device updates inventory (Supabase Realtime)
+### Index one store product
 
-#### Analytics
+Requires PIN or valid store session:
 
-```
-http://localhost:3000/jeweller/analytics
+```text
+POST /api/embeddings/product/:id
 ```
 
-- Daily activity chart (searches + try-ons)
-- Sales by metal and category
-- **Conversion Funnel**: views → try-ons → sales with conversion %
+### Index one manufacturer product
 
-#### Intelligence (Inventory AI)
+Requires manufacturer session:
 
-```
-http://localhost:3000/jeweller/intelligence
+```text
+POST /api/embeddings/manufacturer/:id
 ```
 
-- Demand signals per product
-- Recommendations: restock, review price, trending up, stalled interest
-- Season readiness (wedding season, festive season, gift season)
+Data goes to:
 
-#### Products
-
-```
-http://localhost:3000/jeweller/products
-http://localhost:3000/jeweller/products/new
-http://localhost:3000/jeweller/products/[id]
+```text
+product_embeddings
+manufacturer_product_embeddings
+Qdrant: luxematch_products
+Qdrant: luxematch_manufacturer_products
 ```
 
-- View, create, edit products
-- Upload images via Cloudinary
-- Configure AR try-on assets
+## 10. Production Deployment Checklist
 
----
+### Render Docker Deployment
 
-### AR Try-On Flow
+This repo includes:
 
-```
-http://localhost:3000/try-on
-```
-
-1. Allow camera permission when prompted
-2. Models download from MediaPipe CDN (~first load only)
-3. Hold your hand in front of camera for ring/bangle
-4. Look at camera for earrings/necklace
-5. The jewellery overlay tracks in real time
-
-**3D models (GLB/GLTF):** Renderer auto-detects `.glb`/`.gltf` URLs and loads them with lighting. PNG assets continue to work as before.
-
----
-
-### AI Image Search
-
-```
-http://localhost:3000/search/image
+```text
+Dockerfile
+apps/embedder/Dockerfile
+.python-version
+apps/embedder/.python-version
 ```
 
-Requires the Python embedder running on `:8001`.
+Create two Render Web Services manually using **New + > Web Service** and the Docker runtime. No Blueprint or `render.yaml` is required.
 
-1. Upload a photo of any jewellery
-2. OpenCLIP embeds it into a 512-d vector
-3. Qdrant finds visually similar products from the catalog
-4. Results show with similarity scores
+Render services:
 
----
-
-## All Pages Reference
-
-### Customer pages
-
-| Page | URL | Description |
+| Service | Dockerfile | Notes |
 |---|---|---|
-| Home | `/` | Landing page |
-| Catalog | `/catalog` | Browse all products with filters |
-| Product detail | `/catalog/[slug]` | Full product page with cart buttons |
-| Collections | `/collections` | Curated product bundles |
-| Try-on | `/try-on` | AR camera experience |
-| Search | `/search` | Text search |
-| Image search | `/search/image` | Photo-to-product search |
-| Compare | `/compare` | Side-by-side product comparison |
-| Saved | `/saved` | Wishlist |
-| **Login** | `/login` | Phone OTP authentication |
-| **Cart** | `/cart` | Shopping cart |
-| **Checkout** | `/checkout` | Address + payment |
-| **Order success** | `/checkout/success` | Post-purchase confirmation |
-| **Orders** | `/orders` | Order history |
-| **Order tracking** | `/orders/[id]` | Live order status timeline |
-| **Account** | `/account` | Profile + logout |
+| `luxematch-web` | `./Dockerfile` | Next.js web app/API on port `3000` |
+| `luxematch-embedder` | `./apps/embedder/Dockerfile` | FastAPI OpenCLIP service, Python 3.10, port from `$PORT` |
 
-### Staff pages (PIN required)
+Manual Docker commands:
 
-| Page | URL | Description |
-|---|---|---|
-| Unlock | `/jeweller/unlock` | PIN entry |
-| Dashboard | `/jeweller/dashboard` | Business snapshot + AI brief |
-| Analytics | `/jeweller/analytics` | Charts, funnel, sales breakdown |
-| Intelligence | `/jeweller/intelligence` | Demand signals + recommendations |
-| Products | `/jeweller/products` | Product list |
-| New product | `/jeweller/products/new` | Add product |
-| Edit product | `/jeweller/products/[id]` | Edit + manage images |
-| Onboarding | `/jeweller/onboarding` | First-time setup |
-| Settings | `/jeweller/settings` | Shop settings |
+```powershell
+docker build -t luxematch-web .
+docker run --env-file apps/web/.env.local -p 3000:3000 luxematch-web
 
----
-
-## API Endpoints Reference
-
-All routes mount under `/api`.
-
-### Public (no auth)
-
-| Method | Path | Description |
-|---|---|---|
-| GET | `/api/health` | Health check |
-| GET | `/api/products` | List products (with filters) |
-| GET | `/api/products/:slug` | Single product |
-| GET | `/api/categories` | All categories |
-| GET | `/api/collections` | All collections |
-| GET | `/api/search/suggest?q=` | FTS autocomplete |
-| POST | `/api/search/text` | Vector text search |
-| POST | `/api/search/image` | Vector image search |
-| POST | `/api/search/hybrid` | Text + image hybrid search |
-| GET | `/api/shop` | Shop public info |
-| GET | `/api/customer/cart` | Cart (empty if not logged in) |
-| GET | `/api/customer/branches` | Pickup branch list |
-
-### Customer auth
-
-| Method | Path | Body |
-|---|---|---|
-| POST | `/api/customer/send-otp` | `{ phone }` → returns `demo_otp` |
-| POST | `/api/customer/verify-otp` | `{ phone, otp, name? }` → sets cookie |
-| GET | `/api/customer/me` | Current session |
-| POST | `/api/customer/logout` | Clears cookie |
-
-### Customer (cookie required)
-
-| Method | Path | Description |
-|---|---|---|
-| POST | `/api/customer/cart` | Add item `{ product_id, quantity }` |
-| PATCH | `/api/customer/cart/:productId` | Update quantity |
-| DELETE | `/api/customer/cart/:productId` | Remove item |
-| DELETE | `/api/customer/cart` | Clear cart |
-| POST | `/api/customer/checkout` | Place order |
-| GET | `/api/customer/orders` | Order history |
-| GET | `/api/customer/orders/:id` | Order detail + tracking |
-
-### Staff (PIN cookie required)
-
-| Method | Path | Description |
-|---|---|---|
-| POST | `/api/shop/pin/verify` | Unlock (returns PIN cookie) |
-| POST | `/api/products` | Create product |
-| PATCH | `/api/products/:id` | Update product |
-| DELETE | `/api/products/:id` | Delete product |
-| POST | `/api/intelligence/sales` | Record a sale |
-| GET | `/api/intelligence/summary` | Dashboard summary |
-| GET | `/api/intelligence/funnel` | Conversion funnel |
-| GET | `/api/intelligence/recommendations` | Full recommendations |
-
----
-
-## Demo Credentials
-
-### Staff PIN (back-office unlock)
-```
-PIN: 123456
-```
-Valid for 4 hours per session.
-
-### Demo Customer Accounts
-Pre-seeded customers (use their phone to log in):
-
-| Name | Phone | Notes |
-|---|---|---|
-| Priya Sharma | `+919876543210` | Has 2 orders (delivered + shipped) |
-| Anjali Mehta | `+919876543211` | No orders yet |
-| Kavita Singh | `+919876543212` | No orders yet |
-
-### Discount Code
-```
-LUXE10  →  10% off at checkout
+docker build -t luxematch-embedder -f apps/embedder/Dockerfile apps/embedder
+docker run -p 8001:8001 luxematch-embedder
 ```
 
-### OTP Behavior (Demo Mode)
-- OTP is **displayed on screen** in an amber box — no actual SMS is sent
-- OTP expires after **10 minutes**
-- Any valid 6-digit OTP from the screen will work
+### Render Web Service
 
----
+Create the first service:
 
-## What Is Dummy vs Real
-
-| Feature | Status | Notes |
-|---|---|---|
-| Product catalog | **Real** | Live Supabase data |
-| Image search | **Real** | OpenCLIP embedder + Qdrant |
-| AR try-on | **Real** | MediaPipe in browser |
-| Customer login (OTP) | **Dummy** | OTP shown on screen, no SMS |
-| Cart | **Real** | Stored in Supabase |
-| Checkout payment | **Dummy** | Always succeeds, no gateway |
-| Order creation | **Real** | Stored in Supabase with full history |
-| Order tracking | **Real** | DB-driven status timeline |
-| Inventory analytics | **Real** | Live from event tables |
-| Realtime sync | **Real** | Supabase Realtime channels |
-| Staff PIN auth | **Real** | scrypt hash, HMAC-signed cookie |
-| Cloudinary images | **Real** | Actual CDN hosting |
-| Qdrant vector search | **Real** | Live cloud instance |
-
-### For production, replace:
-1. **OTP** → Twilio / MSG91 / AWS SNS (call `createOtp()` then send via SMS)
-2. **Payment** → Razorpay (`POST /api/customer/checkout` → call Razorpay Orders API)
-3. **PIN auth** → Supabase Auth with role-based access (Phase 12)
-
----
-
-## Troubleshooting
-
-### Catalog shows no products
-The embedder or Supabase connection may be down. Check:
-```bash
-curl http://localhost:3000/api/health
-curl http://localhost:3000/api/products?limit=5
+```text
+Runtime: Docker
+Dockerfile Path: ./Dockerfile
+Docker Build Context Directory: .
+Health Check Path: /api/health
 ```
 
-### "Add to Cart" redirects to login
-You are not logged in. Go to `/login`, enter any phone number, use the OTP shown.
+Add all variables from `apps/web/.env.local` manually in Render Environment settings. Do not upload the `.env.local` file.
 
-### OTP not appearing
-The Supabase `customer_otps` table may not exist yet. Run the migration: [`supabase/migrations/0002_ecommerce.sql`](supabase/migrations/0002_ecommerce.sql)
+Set:
 
-### Cart is empty after login
-Make sure you add products AFTER logging in. Guest-cart persistence is not implemented; cart is server-side per customer.
-
-### Image search returns no results
-The embedder must be running on `:8001` AND products must be indexed in Qdrant:
-```bash
-python -m uvicorn embedder:app --port 8001  # in apps/embedder venv
-pnpm reindex --jeweller-id=00000000-0000-0000-0000-00000000d3e1
+```env
+NODE_ENV=production
+PORT=10000
+EMBEDDER_URL=https://YOUR-EMBEDDER-SERVICE.onrender.com
 ```
 
-### AR try-on not tracking
-- Camera permission must be granted in the browser
-- MediaPipe model files download on first use (~50 MB) — wait a few seconds
-- GPU delegate preferred; falls back to CPU if unavailable
+For B2B multi-store mode:
 
-### TypeScript errors after pulling changes
-```bash
-pnpm install
-pnpm typecheck
+```env
+SHOP_JEWELLER_ID=
 ```
 
-### Next.js stale manifest after config changes
-```bash
-rm -rf apps/web/.next
-pnpm dev
+For one-store kiosk mode:
+
+```env
+SHOP_JEWELLER_ID=CLIENT_JEWELLER_UUID
 ```
 
-### Staff dashboard PIN rejected
-Default dev PIN is `123456`. If changed, run `pnpm provision-shop` to set a new one.
+### Render Embedder Service
+
+Create the second service:
+
+```text
+Runtime: Docker
+Root Directory: apps/embedder
+Dockerfile Path: ./Dockerfile
+Docker Build Context Directory: .
+Health Check Path: /health
+```
+
+The Docker image uses:
+
+```dockerfile
+FROM python:3.10-slim-bookworm
+```
+
+Both `.python-version` files also specify:
+
+```text
+3.10
+```
+
+Set the same `EMBEDDER_API_KEY` on both the web service and embedder service.
+
+Before giving to a client:
+
+1. Rotate all secrets.
+2. Use the client's Supabase, Cloudinary, and Qdrant keys.
+3. Apply migrations.
+4. Create real manufacturer/store/jeweller rows.
+5. Configure SMTP for Supabase Auth.
+6. Configure `SMTP_*` for order emails if needed.
+7. Upload real product images.
+8. Run `pnpm.cmd typecheck`.
+9. Run `pnpm.cmd build`.
+10. Run browser smoke tests:
+    - `/manufacturer/login`
+    - `/store/login`
+    - `/jeweller/manufacturer-catalog`
+    - `/jeweller/b2b-orders/new`
+    - `/manufacturer/orders/:id`
+    - `/products`
+    - `/search/image`
+    - `/cart`
+    - `/checkout`
+
+## 11. Troubleshooting
+
+Policy already exists:
+
+```text
+Run 0005_b2b_repair_existing.sql, then rerun 0005_b2b_platform.sql.
+```
+
+`sku` column missing:
+
+```text
+Run 0005_b2b_repair_existing.sql, then rerun the B2B seed block.
+```
+
+Image search fails:
+
+```text
+Start embedder on 8001 and reindex products.
+```
+
+Store login works but jeweller pages redirect:
+
+```text
+Check stores.jeweller_id and lm_store cookie.
+```
+
+Cloudinary upload fails:
+
+```text
+Check CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET.
+```
+
+Qdrant fails:
+
+```text
+Check QDRANT_URL, QDRANT_API_KEY, and collection names.
+```

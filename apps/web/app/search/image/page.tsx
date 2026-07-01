@@ -1,20 +1,27 @@
 'use client';
 
-import { Camera, ExternalLink, SlidersHorizontal } from 'lucide-react';
+import { Camera, Eye, SlidersHorizontal } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useState } from 'react';
+import Link from 'next/link';
 
 import CustomerLayout from '@/components/layout/CustomerLayout';
 import ImageUploadDropzone from '@/components/search/ImageUploadDropzone';
+import { productImageUrl } from '@/lib/catalog-adapter';
 
-type JewelleryAiResult = {
-  id: string;
-  image_url: string;
+type NativeImageSearchResult = {
+  product: {
+    id: string;
+    slug: string;
+    name: string;
+    primary_image_url?: string | null;
+    images?: Array<{ url?: string | null; secure_url?: string | null; is_primary?: boolean }>;
+  };
   score: number;
 };
 
 export default function ImageSearchPage() {
-  const [results, setResults] = useState<JewelleryAiResult[]>([]);
+  const [results, setResults] = useState<NativeImageSearchResult[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [topK, setTopK] = useState(20);
 
@@ -22,16 +29,20 @@ export default function ImageSearchPage() {
     setError(null);
     setResults([]);
 
-    const form = new FormData();
-    form.append('file', file);
-    form.append('top_k', String(topK));
+    const imageBase64 = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () => reject(new Error('Could not read image'));
+      reader.readAsDataURL(file);
+    });
 
-    const res = await fetch('/api/search/jewellery-ai', {
+    const res = await fetch('/api/search/image', {
       method: 'POST',
-      body: form,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image_base64: imageBase64, limit: topK }),
     });
     const json = (await res.json().catch(() => ({}))) as
-      | { data: { results: JewelleryAiResult[] } }
+      | { data: { results: NativeImageSearchResult[] } }
       | { error: { message: string } };
 
     if (!res.ok || 'error' in json) {
@@ -66,7 +77,7 @@ export default function ImageSearchPage() {
             <div className="space-y-4">
               <ImageUploadDropzone
                 onSearch={runSearch}
-                loadingLabel="Searching Jewellery_AI for similar pieces..."
+                loadingLabel="Searching this store's catalog..."
               />
 
               <div className="rounded-2xl border bg-card p-4">
@@ -104,18 +115,23 @@ export default function ImageSearchPage() {
                     {results.map((item, index) => {
                       const pct = Math.round(item.score * 100);
                       return (
-                        <a
-                          key={`${item.id}-${index}`}
-                          href={item.image_url}
-                          target="_blank"
-                          rel="noreferrer"
+                        <Link
+                          key={`${item.product.id}-${index}`}
+                          href={`/products/${item.product.slug}`}
                           className="group overflow-hidden rounded-2xl border bg-card transition hover:-translate-y-0.5 hover:shadow-md"
                           data-testid={`visual-result-${index}`}
                         >
                           <div className="relative aspect-[3/4] bg-muted">
                             <img
-                              src={item.image_url}
-                              alt={`Similar jewellery ${index + 1}`}
+                              src={
+                                item.product.primary_image_url ??
+                                productImageUrl(
+                                  item.product.images?.map((image) => ({
+                                    url: image.url ?? image.secure_url ?? '',
+                                  })),
+                                )
+                              }
+                              alt={item.product.name}
                               className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                               loading="lazy"
                             />
@@ -126,11 +142,11 @@ export default function ImageSearchPage() {
                           <div className="flex items-center justify-between gap-2 p-3">
                             <div>
                               <p className="text-sm font-medium">Result #{index + 1}</p>
-                              <p className="text-xs text-muted-foreground">Jewellery_AI match</p>
+                              <p className="text-xs text-muted-foreground">Catalog match</p>
                             </div>
-                            <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                            <Eye className="h-4 w-4 text-muted-foreground" />
                           </div>
-                        </a>
+                        </Link>
                       );
                     })}
                   </div>
@@ -142,7 +158,7 @@ export default function ImageSearchPage() {
                   </div>
                   <p className="mb-1 text-sm font-medium text-foreground">Upload or capture a photo</p>
                   <p className="max-w-sm text-xs">
-                    Results from the Jewellery_AI visual-search backend will appear here.
+                    Similar products from this store&apos;s own catalog will appear here.
                   </p>
                 </div>
               )}

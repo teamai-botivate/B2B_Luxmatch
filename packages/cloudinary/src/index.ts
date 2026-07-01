@@ -32,6 +32,10 @@ export function folderFor(jewellerId: string, bucket: CloudinaryBucket): string 
   return `luxematch/${jewellerId}/${bucket}`;
 }
 
+export function manufacturerFolder(manufacturerId: string): string {
+  return `luxematch/manufacturer/${manufacturerId}/catalog`;
+}
+
 /**
  * Verifies a publicId belongs to a jeweller's folder. Used by the deletion
  * endpoint to prevent a shop from deleting another shop's assets.
@@ -100,6 +104,32 @@ export function generateSignedUploadParams(opts: {
     signature,
     uploadUrl: `https://api.cloudinary.com/v1_1/${env.CLOUDINARY_CLOUD_NAME}/image/upload`,
     allowedFormats: getAllowedFormats(opts.bucket),
+    maxBytes: MAX_BYTES_DEFAULT,
+  };
+}
+
+export function generateManufacturerSignedUploadParams(opts: {
+  manufacturerId: string;
+  publicId?: string;
+}): SignedUploadParams {
+  const env = getServerEnv();
+  const folder = manufacturerFolder(opts.manufacturerId);
+  const timestamp = Math.floor(Date.now() / 1000);
+
+  const toSign: Record<string, string | number> = { folder, timestamp };
+  if (opts.publicId) toSign.public_id = opts.publicId;
+
+  const signature = signParams(toSign, env.CLOUDINARY_API_SECRET);
+
+  return {
+    cloudName: env.CLOUDINARY_CLOUD_NAME,
+    apiKey: env.CLOUDINARY_API_KEY,
+    timestamp,
+    folder,
+    publicId: opts.publicId,
+    signature,
+    uploadUrl: `https://api.cloudinary.com/v1_1/${env.CLOUDINARY_CLOUD_NAME}/image/upload`,
+    allowedFormats: ALLOWED_FORMATS_BY_BUCKET.products,
     maxBytes: MAX_BYTES_DEFAULT,
   };
 }

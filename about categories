@@ -1,0 +1,47 @@
+catalog me jo categories and design wise hai n wahi categories and esigns wise hina chaahiey for manufacturers , stores and customers and 
+and try on must be use the same product and and also all products must linked with each other acordinging to their category and designs because suppose any customer use the similar search feature in the store to get the product then if he finds some then there will be the option to try on and order .... and also tell me the required improvements in the flow of the system and image jb admin upload kare ya kuch v kare designs and all to embedding hoke qudrant me v jana chahaiye for the similar search of image har ek product ka unique uid v hona chahaiyr and all must connected  ...... give me the list and tell me tum kya samjhe ..... the similar search system is dwployed seperately on hugging face - @Jewellery/     you may check it also because upload ya jo kuch v hona chahaiye wo sb connected hona chahaiye ye pura system dekh ke batao aage ktay kya karna h , update the @LuxeMatch\B2B_PLAN.md
+mai kya kya chhata hu tum mujhe short me batao aur av kuxmatch me kya h aur kya remove karna h and kya kya improve karna h .... don;t modifyu the code now 
+
+
+
+
+
+[
+  {
+    "type": "manufacturer",
+    "id": "10000000-0000-0000-0000-000000000001",
+    "name": "AT Plus Jewellers HQ",
+    "email": "admin@atplusjewellers.com"
+  },
+  {
+    "type": "store",
+    "id": "20000000-0000-0000-0000-000000000001",
+    "name": "Aurum Heritage Store",
+    "email": "store@aurumheritage.com"
+  }
+]
+
+
+
+now analyse the whole [B2B_PLAN.md](c:/Users/prabh/Desktop/LuxeMatch/B2B_PLAN.md)  and [CLAUDE.md](c:/Users/prabh/Desktop/LuxeMatch/CLAUDE.md) and tell me is there anything left ? and update the claude.md and give me the list ki kya kya bacha h and kya kya av baaki h ?
+
+
+
+runned updated supabase\migrations\0005_b2b_platform.sql in sql editor and i m getting this - Error: Failed to run sql query: ERROR: 42710: policy "service role all manufacturers" for table "manufacturers" already exists
+and runned updated supabase\seed.sql in sql editor and i m getting this - Failed to run sql query: ERROR:  42703: column "sku" of relation "manufacturer_products" does not exist
+LINE 335:   id, manufacturer_id, sku, name, category, description, weight_grams,
+
+
+Manufacturer: admin@atplusjewellers.com / manufacturer123
+Store:        store@aurumheritage.com / store123
+
+
+/manufacturer/login
+admin@atplusjewellers.com
+manufacturer123
+
+/store/login
+store@aurumheritage.com
+store123
+
+now tell me the the complete flow of this sytem which button and what follow and how manufacturer will use this sytem , store wala kaise use karegwa and customer kaise use karega kon kya flow and kons a button dabayega and i mean ek user_manual in .md banake de do with the authorised , authenticated and how to test eacha dn everything with all credentials and alaso what will happen with what and how data is managed in the databse kon sa data kasie kaha manage ho raha h their ids and all i wanna complete guide with user_manual 

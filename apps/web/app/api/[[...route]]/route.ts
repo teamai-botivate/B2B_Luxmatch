@@ -15,6 +15,8 @@ import { cartRoutes } from '@/lib/api/cart-routes';
 import { customerOrderRoutes } from '@/lib/api/customer-orders';
 import { analyticsRoutes } from '@/lib/api/analytics';
 import { healthCheck } from '@/lib/api/health';
+import { manufacturerRoutes } from '@/lib/api/manufacturer';
+import { storeRoutes } from '@/lib/api/store';
 
 export const runtime = 'nodejs';
 
@@ -79,6 +81,11 @@ app.route('/customer/orders', customerOrderRoutes);
 // Keep legacy paths for addresses, branches, checkout so existing pages
 // that call /api/customer/addresses etc. still work:
 app.route('/customer', customerOrderRoutes);
+// B2B routes
+// manufacturerRoutes: /login /logout /me /products /orders (manufacturerGuard on all except login/logout)
+app.route('/manufacturer', manufacturerRoutes);
+// storeRoutes: /login /logout /me /catalog /orders (storeGuard on all except login/logout)
+app.route('/store', storeRoutes);
 app.route('/', catalogRoutes);
 
 export const GET = handle(app);

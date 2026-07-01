@@ -8,19 +8,25 @@ Guidance for Claude Code when working in this repo.
 
 ## What LuxeMatch is
 
-A **shop-installed** AI jewellery platform with a full e-commerce layer. One install serves one jeweller's inventory on an in-store device. Customers browse, search by photo, try jewellery on in 2D AR, add to cart, log in with an email + password (a one-time email OTP verifies the address during sign-up only; phone is still the shop-scoped customer/order identity), and order for delivery or click-and-collect. Staff unlock a back-office on the **same device** with a PIN. The cloud (Supabase, Qdrant, Cloudinary, the Python embedder) is **shared across all shops**; tenancy is enforced by `jeweller_id` on every row, payload, and folder.
+A **B2B jewellery platform** with three actors:
 
-Multi-jeweller "MODE B" (works without `SHOP_JEWELLER_ID`) is **not built** — `getShopJewellerId()` throws without it, and the dead `/store/[jeweller-slug]` page was removed. `plan.txt` is the canonical phase plan; `SETUP.md` covers e-commerce setup. `README.md`, `docs/architecture.md`, `docs/api-contracts.md` are **stale** (Vercel/Gemini/old schema) — prefer `plan.txt`, this file, and the code.
+1. **Manufacturer** — global admin. Uploads product designs, manages a catalog, receives and fulfills B2B orders from stores. Portal at `/manufacturer/`.
+2. **Store (Retailer)** — tenant-isolated via `jeweller_id`. Logs in, browses manufacturer catalog, places B2B orders, runs its own storefront for end customers. Portal extensions at `/jeweller/` + `/store/login`.
+3. **End Customer** — visits the store kiosk, searches by photo, AR try-on, cart → orders. Flow unchanged from original LuxeMatch.
+
+Originally single-store-per-device (`SHOP_JEWELLER_ID` env). **B2B mode** is now being built: `SHOP_JEWELLER_ID` is optional in config; `storeGuard` middleware resolves `jewellerId` from the `lm_store` cookie instead. `getShopJewellerIdOptional()` returns undefined when blank; routes that need it use `storeGuard` which overwrites `shopJewellerId` from the cookie payload — all existing DB helpers work transparently.
+
+New Supabase project: `xcvlswahgglygqfewolf`. `plan.txt` / `B2B_PLAN.md` are the canonical phase plans. `README.md`, `docs/architecture.md`, `docs/api-contracts.md` are **stale** — prefer this file and the code.
 
 ## Build state
 
-All core phases (-1→12) + e-commerce (E1–E3) are landed on `production`. Highlights:
+All core phases (-1→12) + e-commerce (E1–E3) + B2B phases B1–B9 are landed in code; B10 tenancy refactor is started but not fully proven end-to-end. Highlights:
 
 - **Inventory intelligence (9.5)** — heuristic recs on `/jeweller/dashboard` + `/jeweller/intelligence`.
 - **E-commerce** — Supabase Auth email OTP, cart, checkout, orders, multi-branch. Migrations `0002_ecommerce.sql` + `0003_security_advisor.sql`.
 - **Style quiz (9)**, **analytics/smoke/vitest (10)**, **Render config + CORS lockdown (11)**, **PIN hardening (12)**.
 - **Realtime** — `useMultiDeviceSync` / `useRealtimeCatalog` keep catalog + dashboard live across devices.
-- **Cart + cold-boot handling** — `useAddToCart` avoids mount-time cart fetches; `/api/search/jewellery-ai` has a 45s timeout + one retry and returns `upstream_warming_up` 503 during the HF Space's ~30–90s cold boot.
+- **Cart + cold-boot handling** — `useAddToCart` avoids mount-time cart fetches; `/api/search/jewellery-ai` remains as a showcase/fallback proxy with a 45s timeout + one retry and returns `upstream_warming_up` 503 during the HF Space's ~30–90s cold boot.
 - **Prod-blocker pass (P1–P3)** — cart/address helpers jeweller-scoped, demo OTP hidden in prod, migration seeder env-loaded, saved/compare on `sessionStorage`, home on real APIs, year-relative festival windows, durable PIN limits via `pin_audit_events`, tenancy guard tests.
 - **Email OTP verified end-to-end** — custom SMTP set in the Supabase dashboard (dev: a personal Gmail App Password). Supabase email OTP is **8 digits**; verify route + login input accept **6–8** (`/^\d{6,8}$/`, input maxLength 8) — was hardcoded to 6, which made login impossible. `send-otp` logs and returns the real Supabase error on failure, including 429 rate limiting, so the login page can show the actual reason instead of a generic failure.
 - **Storefront renders real `product_images`** — saved/compare/CompareTray hydrate stored UUIDs via tenant-scoped `GET /api/products/by-ids`; collections/occasions use real APIs; `productImageUrl()`/`PLACEHOLDER_IMAGE_URL` fallback. The 12 demo products point at Cloudinary assets under `luxematch/<SHOP_JEWELLER_ID>/products/`, imported from `jewellery_search/*` via `pnpm import:cloudinary-product-images` (sequential map — see gap #6).
@@ -33,7 +39,9 @@ All core phases (-1→12) + e-commerce (E1–E3) are landed on `production`. Hig
 - **Customer dashboard** — `/account` is a real dashboard: editable name, stats (orders/saved/addresses), recent orders, saved addresses, sticky quick-links, and a **profile picture** (see Customer profile pictures below).
 - **Customer profile pictures (DP)** — file in Cloudinary `luxematch/<jewellerId>/avatars/` (new `avatars` bucket), URL+public_id in `customers.avatar_url`/`avatar_public_id` (migration `0004_customer_avatar.sql`, **not yet applied** — gap #3). Customer-gated flow: `POST /api/customer/avatar/sign` → direct Cloudinary upload → `POST /api/customer/avatar`; `DELETE` clears it. `/me` now reads name+avatar fresh from the DB so post-login changes show without re-issuing the cookie.
 
-**NEXT:** push/deploy local `production` commits; apply `0003_security_advisor.sql` + `0004_customer_avatar.sql` in Supabase; swap dev Gmail SMTP for a transactional provider (Resend/Brevo) + set prod `SMTP_*`; upload real per-product photos. Do **not** touch try-on/AR assets — deferred. AWS migration parked.
+**B2B progress:** B1 (migration `0005_b2b_platform.sql`, B2B tables + fulfillment columns + manufacturer image try-on flags) ✅ · B2 (DB helpers: `packages/db/src/manufacturers.ts`, `stores.ts`, `b2b.ts`) ✅ · B3 (cookie auth: `issueManufacturerCookie`/`verifyManufacturerCookie`/`issueStoreCookie`/`verifyStoreCookie` in `@luxematch/tenant`) ✅ · B4 (config makes `SHOP_JEWELLER_ID` optional and adds B2B env vars) ✅ · B5 (page/API middleware guards for manufacturer + store) ✅ · B6 (B2B API routes in `apps/web/lib/api/manufacturer.ts`, `store.ts`, route mounts) ✅ · B7 manufacturer portal UI ✅ (layout, login, dashboard, catalog/products with image upload, stores, orders + tracking) · B8 store portal UI ✅ (store login, manufacturer catalog, session B2B cart, order create/history/detail/cancel, JewellerLayout nav) · B9 core fulfillment ✅ (delivered B2B orders create/update store inventory, copy catalog images, copy marked try-on PNGs, track `fulfilled_at`/`fulfilled_product_ids`) · B10 tenancy refactor partial (store cookie is now checked before env in page middleware, `tenantMiddleware`, and `pinGuard`; native `/search/image` uses tenant-scoped LuxeMatch search; still needs full browser smoke-test and remaining non-request/script/build surfaces).
+
+**NEXT:** Finish B10 properly: run browser smoke tests with `SHOP_JEWELLER_ID` unset, verify store login unlocks all `/jeweller/*` pages and customer/public tenant APIs, then audit server-rendered/build-time paths and scripts that still assume env tenancy. The B2B search/embedding bridge is now mostly coded (`manufacturer_product_embeddings` tracking, manufacturer Qdrant helpers, `POST /api/embeddings/manufacturer/:id`, fulfilled-product indexing, native tenant-scoped `/search/image` UI), but still needs live-service smoke testing with the embedder/Qdrant. Also apply `0004_customer_avatar.sql` + updated `0005_b2b_platform.sql` in Supabase if not applied, seed demo manufacturer/store rows, swap dev Gmail SMTP, and upload real per-product photos. Do **not** touch try-on/AR showcase assets unless explicitly asked. AWS migration parked.
 
 ## Commands
 
@@ -59,7 +67,7 @@ Deploy from `production`.
 
 - **Web** — `luxematch-web` (`render.yaml`): Node, Next.js + Hono on Render, health `/api/health`. On the **free plan** (idle spin-down → cold-start blank kiosk; upgrade before real installs). `ALLOWED_ORIGINS` + `NODE_ENV=production` lock down CORS.
 - **Embedder — NOT DEPLOYED.** `apps/embedder` is local-only (`EMBEDDER_URL=http://localhost:8001`); embeddings are backfilled via `pnpm reindex` from a dev machine. So on the deployed site the OpenCLIP routes (`/api/search/text|image|hybrid`, `POST /api/embeddings/product/:id`) have nothing to call. `luxematch-embedder` is defined in render.yaml but never deployed (roadmap P3 9b).
-- **Jewellery_AI — deployed on HF** at `botivate2026-jewellery.hf.space` (repo `../Jewellery_AI`, Docker SDK Space) with its **own** Qdrant collection `jewellery_search`. It exposes `/search` etc. but **no** `/embed/*`, so it can't be `EMBEDDER_URL`. `JEWELLERY_AI_URL` points here; `/api/search/jewellery-ai` proxies to it and is the **production visual-search path** until the embedder ships.
+- **Jewellery_AI — deployed on HF** at `botivate2026-jewellery.hf.space` (repo `../Jewellery_AI`, Docker SDK Space) with its **own** Qdrant collection `jewellery_search`. It exposes `/search` etc. but **no** `/embed/*`, so it can't be `EMBEDDER_URL`. `JEWELLERY_AI_URL` points here; `/api/search/jewellery-ai` proxies to it only as a showcase/fallback path. Customer `/search/image` now calls native tenant-scoped `/api/search/image`, which requires `EMBEDDER_URL`.
 
 Guides: [`docs/deployment.md`] (operator), `SETUP.md` (dev/testing), [`apps/web/.env.production.example`] (annotated env). AWS migration deferred; when it happens only env vars + `packages/cloudinary` change (see Infrastructure vendors).
 
@@ -72,14 +80,14 @@ packages/
   ar-engine/     MediaPipe + Three.js (ported from jewellery-ar-service); renderer.ts + preview.ts both delegate to overlayMath.ts; 2D PNG + 3D GLB/GLTF
   cloudinary/    signed upload + per-jeweller folder enforcement (only vendor-specific SDK); buckets: products, tryon, logo, avatars
   config/        zod env; server env throws at module load if missing
-  db/            Supabase client + tenant-scoped helpers (products, jewellers, media, metrics, analytics, tryon, events, intelligence, customers, cart, ecommerce, branches)
+  db/            Supabase client + tenant-scoped helpers (products, jewellers, media, metrics, analytics, tryon, events, intelligence, customers, cart, ecommerce, branches, manufacturers, stores, b2b)
   embeddings/    thin TS client for apps/embedder
   intelligence/  heuristic recs (pure, no I/O)
-  qdrant/        single collection luxematch_products, jeweller-filtered search
-  tenant/        SHOP_JEWELLER_ID + PIN cookie (Edge-safe) + /server (Node scrypt)
+  qdrant/        tenant collection luxematch_products + global manufacturer collection helpers
+  tenant/        SHOP_JEWELLER_ID + PIN cookie + manufacturer cookie + store cookie (all Edge-safe HMAC) + /server (Node scrypt)
   types/         cross-package zod schemas
   ui/            EMPTY placeholder — real UI lives in apps/web/components
-supabase/migrations/  0001_init.sql · 0002_ecommerce.sql · 0003_security_advisor.sql · 0004_customer_avatar.sql ; seed.sql (demo jeweller + 12 products + 3 tryon assets, PIN 123456)
+supabase/migrations/  0001_init.sql · 0002_ecommerce.sql · 0003_security_advisor.sql · 0004_customer_avatar.sql · 0005_b2b_platform.sql ; seed.sql (demo jeweller + 12 products + 3 tryon assets, PIN 123456)
 scripts/         provision-shop · reindex · seed-intelligence · seasonal-rollup · check-env · smoke-test · run-migration.mjs (env-loaded demo seeder)
 apps/web/public/All_jewelleries/   ~46 temp transparent AR PNGs
 apps/web/lib/showcase-ar-assets.ts 44 hardcoded showcase products prepended to /api/tryon/products
@@ -112,11 +120,12 @@ GET  /api/categories (global) ; /api/collections[/:slug] ; /api/occasions/:slug 
 
 # Cloudinary (PIN)        POST /api/cloudinary/sign-upload (server forces folder) · /delete (verifies publicId prefix)
 # Try-on assets (PIN)     POST /api/tryon-assets · PATCH|DELETE /api/tryon-assets/:id
-# Embeddings (PIN)        POST /api/embeddings/product/:id
+# Embeddings              POST /api/embeddings/product/:id (PIN or valid store session)
+#                         POST /api/embeddings/manufacturer/:id (manufacturer cookie)
 
 # Search
 POST /api/search/text|image|hybrid   public — OpenCLIP → Qdrant. ⚠️ need EMBEDDER_URL → dead on deployed site
-POST /api/search/jewellery-ai        public — THE visual-search path; multipart proxy to HF Space /search;
+POST /api/search/jewellery-ai        public — showcase/fallback multipart proxy to HF Space /search;
                                      returns Jewellery_AI's catalog {id,image_url,score}, NOT LuxeMatch products
 GET  /api/search/suggest             public — Postgres FTS, no embedder hop
 
@@ -124,7 +133,7 @@ GET  /api/search/suggest             public — Postgres FTS, no embedder hop
 # Analytics               POST /api/analytics/event  public — validated event_type; jeweller_id from ctx;
 #                         fans product_view→product_views, tryon_start→tryon_events
 
-# Customer auth (scoped to SHOP_JEWELLER_ID)
+# Customer auth (tenant-scoped by env or lm_store cookie)
 POST /api/customer/send-otp          public — sign-up email OTP (signInWithOtp; logs real reason on failure)
 POST /api/customer/verify-otp        public — confirms sign-up OTP, sets the password (updateUser),
                                      sets lm_customer (7d). ⚠️ accepts 6–8 digit codes
@@ -142,13 +151,35 @@ POST /api/customer/orders/checkout                         customer-gated (disco
 
 # Cart (per-customer per-shop, all customer-gated)
 GET|POST /api/customer/cart ; PATCH|DELETE /api/customer/cart/:productId ; DELETE /api/customer/cart
+
+# B2B — Manufacturer portal (lm_manufacturer cookie, except login/logout)
+POST /api/manufacturer/login               public — bcrypt verify → lm_manufacturer cookie
+POST /api/manufacturer/logout              public
+GET  /api/manufacturer/me                  manufacturer-gated
+GET  /api/manufacturer/products            manufacturer-gated — list with filters (category/metal/status/search)
+GET  /api/manufacturer/products/:id        manufacturer-gated
+POST /api/manufacturer/products            manufacturer-gated — create
+PATCH|DELETE /api/manufacturer/products/:id  manufacturer-gated — ownership checked
+GET  /api/manufacturer/orders              manufacturer-gated — all B2B orders for this manufacturer
+GET  /api/manufacturer/orders/:id          manufacturer-gated — with items + history
+PATCH /api/manufacturer/orders/:id         manufacturer-gated — status update (confirmed/packed/shipped/delivered/cancelled)
+
+# B2B — Store portal (lm_store cookie, except login/logout)
+POST /api/store/login                      public — bcrypt verify → lm_store cookie (carries jewellerId)
+POST /api/store/logout                     public
+GET  /api/store/me                         store-gated
+GET  /api/store/catalog                    store-gated — browse active manufacturer products
+GET  /api/store/catalog/:id                store-gated — single manufacturer product
+POST /api/store/orders                     store-gated — place B2B order (prices resolved from DB, never trusted from client)
+GET  /api/store/orders                     store-gated — this store's B2B orders
+GET  /api/store/orders/:id                 store-gated — with items + history
 ```
 
 ## Frontend data status
 
 Most customer pages hit real APIs (catalog, detail, try-on, cart, checkout, orders, login/signup, account dashboard + profile picture, collections, occasions, home featured + collections, saved/compare via by-ids).
 
-- **`/search/image` → `/api/search/jewellery-ai`** — works in prod but returns Jewellery_AI's catalog, not this shop's.
+- **`/search/image` → `/api/search/image`** — native tenant-scoped visual search against `luxematch_products`; requires the OpenCLIP embedder and indexed product vectors.
 - **`/search` text + `/style-quiz`** → embedder-dependent → broken on the deployed site until the embedder ships.
 - **`/compare` + `/saved`** — `CompareContext`/`SavedItemsContext` on **`sessionStorage`** (`luxematch_compare`/`luxematch_saved`, max 4 compare). Intentional kiosk reset-between-customers; no `saved_items` table.
 - **`/checkout/success`** — URL-param only; checkout sends a confirmation email when `SMTP_*` env is set.
@@ -179,29 +210,33 @@ Current image state: the 12 demo products have primary `product_images` rows poi
 
 Data flow identical; only env changes. Dev → Prod(when migrating): Cloudinary `dyrc4bo4m` → S3+CloudFront · Qdrant Cloud → self-hosted Qdrant · Supabase Postgres → RDS · local embedder → EC2/ECS GPU (same FastAPI). Migration touches only: `CLOUDINARY_*` env + `packages/cloudinary/src/index.ts` (→ S3 SDK), `QDRANT_*`, `EMBEDDER_URL`, `NEXT_PUBLIC_SUPABASE_*`. `packages/embeddings`/`packages/qdrant`/search routes are vendor-agnostic HTTP.
 
-## Two cookies, two auth flows
+## Four cookies, four auth flows
 
-| Cookie | Purpose | Signed with | TTL |
-|---|---|---|---|
-| `lm_pin` | Jeweller back-office | `LM_PIN_COOKIE_SECRET` (HMAC, Web Crypto) | `LM_PIN_COOKIE_TTL_SECONDS` (4h) |
-| `lm_customer` | Customer account/cart/orders | same secret + `:customer` suffix | 7d |
+| Cookie | Purpose | Signed with | TTL | Format |
+|---|---|---|---|---|
+| `lm_pin` | Jeweller back-office | `LM_PIN_COOKIE_SECRET` (HMAC) | `LM_PIN_COOKIE_TTL_SECONDS` (4h) | `jewellerId.ts.sig` |
+| `lm_customer` | Customer account/cart/orders | same secret + `:customer` suffix | 7d | base64 payload |
+| `lm_manufacturer` | Manufacturer portal | `MANUFACTURER_COOKIE_SECRET` (HMAC, min 32 chars, **separate** secret) | `LM_MANUFACTURER_COOKIE_TTL_SECONDS` (8h) | `manufacturerId.ts.sig` |
+| `lm_store` | Store portal — also carries jewellerId for tenancy | `LM_PIN_COOKIE_SECRET` + `:store` namespace | `LM_STORE_COOKIE_TTL_SECONDS` (8h) | `storeId.jewellerId.ts.sig` |
 
-Both HMAC-SHA-256 via `crypto.subtle` (Node + Edge safe). PIN hashing (scrypt, `scrypt$N$r$p$salt$hash`, timing-safe) is Node-only in `@luxematch/tenant/server` — **never import from middleware/Edge**.
+All HMAC-SHA-256 via `crypto.subtle` (Node + Edge safe). PIN + store/manufacturer passwords use **bcrypt** (`bcryptjs`). PIN hashing (scrypt) is Node-only in `@luxematch/tenant/server` — **never import from middleware/Edge**.
+
+**Store cookie design:** embeds `jewellerId` in the payload (4-part format) so `storeGuard` sets `shopJewellerId` from the cookie with zero DB lookups — all existing tenant-scoped DB helpers work on store routes unchanged.
 
 **PIN hardening (12):** rate limit 5 fails/60s per `(jeweller_id, IP)` — **in-memory per-process Map**, resets on deploy, not multi-instance safe (revisit via `pin_audit_events` count before scaling). Every attempt audited to `pin_audit_events` (fire-and-forget). Cookie `HttpOnly`/`SameSite=Strict`/`Secure` in prod. Lock button → `POST /api/shop/lock`. Idle-lock: `apps/web/middleware.ts` re-checks TTL on every `/jeweller/*` and redirects to `/jeweller/unlock?next=…`. Multi-staff path specced in [docs/auth-readiness.md].
 
 ## Tenancy enforcement (most important invariant)
 
-Every read/write filtered by `SHOP_JEWELLER_ID`. Check each layer:
+Every read/write filtered by `jeweller_id`. Check each layer:
 
-1. **Env** — `SHOP_JEWELLER_ID` via `getShopJewellerId()`.
-2. **Middleware** — `tenantMiddleware` sets `c.set('shopJewellerId', id)`; handlers read context, never the body.
+1. **Env / cookie** — kiosk mode: `getShopJewellerIdOptional()` from env. B2B mode: `storeGuard` reads `jewellerId` from `lm_store` cookie payload and calls `c.set('shopJewellerId', ...)`. Both paths produce the same context key — downstream code is identical.
+2. **Middleware** — `tenantMiddleware` (kiosk) or `storeGuard` (B2B) sets `c.get('shopJewellerId')`; handlers read context, never the body.
 3. **DB helpers** — take `jewellerId` first arg; service-role bypasses RLS so filtering is the *only* isolation. **Known exceptions** (rely on shop-scoped `lm_customer` cookie): `updateCartItem`, `removeFromCart`, `clearCart`, `getCartCount`, `getCustomerAddresses`, `upsertCustomerAddress` take only `customerId`; `getCategories`/`getCollectionProductIds` are global. Don't add new exceptions.
-4. **Qdrant** — `searchByVector()` force-merges `jeweller_id` as the first must-filter; callers can't opt out. `upsertProductVector()` does NOT validate payload jeweller_id — set it correctly.
-5. **Cloudinary** — folders built server-side as `luxematch/<jewellerId>/<bucket>/`; `publicIdBelongsToJeweller()` checks prefix, but `deleteAsset()` does NOT — the route must check first.
-6. **PIN/customer guard** — mutations via `pinGuard`; customer routes verify `lm_customer` per-handler (no global middleware).
+4. **Qdrant** — `searchByVector()` force-merges `jeweller_id` as the first must-filter; callers can't opt out. `upsertProductVector()` does NOT validate payload jeweller_id — set it correctly. Manufacturer catalog uses `QDRANT_MANUFACTURER_COLLECTION=luxematch_manufacturer_products` via `upsertManufacturerProductVector()` / `searchManufacturerCatalog()` with no jeweller filter because it is global.
+5. **Cloudinary** — folders built server-side as `luxematch/<jewellerId>/<bucket>/`; `publicIdBelongsToJeweller()` checks prefix, but `deleteAsset()` does NOT — the route must check first. Manufacturer images go under `luxematch/manufacturer/<manufacturerId>/catalog/`.
+6. **Guards** — `pinGuard` (jeweller mutations) · `manufacturerGuard` (all `/api/manufacturer/*`) · `storeGuard` (all `/api/store/*`) · `lm_customer` verified per-handler on customer routes.
 
-Applies to e-commerce too: `customers`/`cart_items`/`orders`/`branches` all carry `jeweller_id`. Same phone = different `customers` row per shop; never join customers across jewellers.
+Applies to e-commerce too: `customers`/`cart_items`/`orders`/`branches` all carry `jeweller_id`. Same phone = different `customers` row per shop; never join customers across jewellers. B2B tables (`manufacturer_products`, `b2b_orders`, etc.) are global — no `jeweller_id` on them except `b2b_orders.jeweller_id` (audit trail only).
 
 ## AR engine math (don't fight the conventions)
 
@@ -256,14 +291,16 @@ Applies to e-commerce too: `customers`/`cart_items`/`orders`/`branches` all carr
 5. **Order confirmation email** — checkout sends via optional `SMTP_*` (nodemailer, separate from Supabase Auth SMTP); set in prod env, ideally same provider as #4.
 6. **Product image mapping quality** — real Cloudinary images imported + displayed, but `jewellery_search/*` sources had no metadata so the 12 products were mapped sequentially. Upload per-product photos via the jeweller flow, or add an explicit mapping layer + rerun the importer. Don't touch try-on/AR.
 7. **Embedder not deployed** — text search + style quiz dead on the deployed site; indexing manual. Visual search works via the HF Space proxy but isn't tenancy-scoped. Decide hosting (own HF Space / Render service / add `/embed/*` to the Jewellery_AI Space).
-8. **`luxematch-web` on Render free plan** — idle spin-down = cold-start blank kiosk.
-9. **Hardcoded `LUXE10` discount** — no discount table.
-10. **Test coverage** — tenancy guards exist; checkout/order-email + full auth flows lack integration tests.
-11. **Stale docs** — `docs/architecture.md`, `docs/api-contracts.md`, `README.md` (Gemini/Vercel/old schema); `apps/Readme.md` empty.
-12. **Empty `@luxematch/ui`** — placeholder; populate or remove.
+8. **B10 not complete yet** — store-cookie-first tenancy is implemented in main middleware/API guards, but must be browser-smoked with `SHOP_JEWELLER_ID` unset and audited for SSR/build-time/script paths that still require env tenancy.
+9. **B2B embedding/search bridge needs live smoke** — manufacturer Qdrant helpers, `POST /api/embeddings/manufacturer/:id`, fulfilled-product indexing, and native `/search/image` are coded and typechecked. Still missing: live embedder/Qdrant smoke and optional Jewellery_AI `/add-image` bridge metadata.
+10. **`luxematch-web` on Render free plan** — idle spin-down = cold-start blank kiosk.
+11. **Hardcoded `LUXE10` discount** — no discount table.
+12. **Test coverage** — tenancy guards exist; checkout/order-email + full auth flows + B2B login/order/fulfillment flows lack integration tests.
+13. **Stale docs** — `docs/architecture.md`, `docs/api-contracts.md`, `README.md` (Gemini/Vercel/old schema); `apps/Readme.md` empty.
+14. **Empty `@luxematch/ui`** — placeholder; populate or remove.
 
 ## Phase status
 
-Done (✅): -1/0.5/1 scaffold+tenancy · 2 design system · 3 schema+catalog · 4 Cloudinary uploads · 5 OpenCLIP+Qdrant · 6 AR engine · 7 try-on calibration · 8 dashboard+CRUD+analytics · 9.5 intelligence · E1 customer auth/cart/checkout/orders/branches · E2 catalog→checkout wiring · E3 jeweller order mgmt · 9 style quiz · 10 analytics+smoke+vitest+health · 11 deploy config+CORS · 12 PIN hardening · P1 security · P2 kiosk correctness · P3 durable PIN limit+tenancy tests · Stage 3 email OTP+order email · Security Advisor migration · Email OTP live (custom SMTP, 6–8 digit) · Storefront real `product_images` + 12 Cloudinary photos imported · customer cookie-decode fix + sign-in/sign-up + account dashboard + profile pictures (Cloudinary `avatars` + migration `0004`) + cart/checkout/account redesign · customer UI/UX refinements + compare alignment + catalog hover cleanup + mobile profile responsiveness.
+Done (✅): -1/0.5/1 scaffold+tenancy · 2 design system · 3 schema+catalog · 4 Cloudinary uploads · 5 OpenCLIP+Qdrant · 6 AR engine · 7 try-on calibration · 8 dashboard+CRUD+analytics · 9.5 intelligence · E1 customer auth/cart/checkout/orders/branches · E2 catalog→checkout wiring · E3 jeweller order mgmt · 9 style quiz · 10 analytics+smoke+vitest+health · 11 deploy config+CORS · 12 PIN hardening · P1 security · P2 kiosk correctness · P3 durable PIN limit+tenancy tests · Stage 3 email OTP+order email · Security Advisor migration · Email OTP live (custom SMTP, 6–8 digit) · Storefront real `product_images` + 12 Cloudinary photos imported · customer cookie-decode fix + sign-in/sign-up + account dashboard + profile pictures (Cloudinary `avatars` + migration `0004`) + cart/checkout/account redesign · customer UI/UX refinements + compare alignment + catalog hover cleanup + mobile profile responsiveness · **B1** migration `0005_b2b_platform.sql` · **B2** DB helpers (manufacturers.ts, stores.ts, b2b.ts) · **B3** cookie auth (manufacturer + store HMAC cookies in `@luxematch/tenant`) · **B4** optional shop env + B2B env vars · **B5** page/API guards · **B6** B2B API routes · **B7** manufacturer portal UI · **B8** store portal UI · **B9** core fulfillB2BOrder.
 
-Next (⬜): push/deploy local `production` · apply `0004_customer_avatar.sql` · upload real per-product photos · cleanup (discount table, stale docs, empty `@luxematch/ui`). Parked: AWS S3+CloudFront+EC2 migration.
+Next (⬜): finish **B10** browser smoke-test + remaining tenancy audit · live smoke B2B embeddings/search with embedder + Qdrant · optional Jewellery_AI `/add-image` bridge metadata · apply `0004_customer_avatar.sql` + updated `0005_b2b_platform.sql` · seed demo manufacturer/store rows · upload real per-product photos · cleanup (discount table, stale docs, empty `@luxematch/ui`). Parked: AWS S3+CloudFront+EC2 migration.

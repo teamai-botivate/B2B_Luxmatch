@@ -101,4 +101,57 @@ export {
 
 export { listTryOnProducts, type TryOnProduct } from './tryon';
 
+export {
+  getManufacturerByEmail,
+  getManufacturerById,
+  verifyManufacturerPassword,
+  type ManufacturerRow,
+  type ManufacturerPublic,
+} from './manufacturers';
+
+export {
+  getStoreByEmail,
+  getStoreById,
+  getStoreByJewellerId,
+  verifyStorePassword,
+  listStoresByManufacturer,
+  createStore,
+  updateStoreStatus,
+  type StoreRow,
+  type StorePublic,
+  type CreateStoreInput,
+} from './stores';
+
+export {
+  listManufacturerProducts,
+  getManufacturerProductById,
+  createManufacturerProduct,
+  updateManufacturerProduct,
+  deleteManufacturerProduct,
+  addManufacturerProductImage,
+  removeManufacturerProductImage,
+  trackManufacturerProductEmbedding,
+  isManufacturerProductEmbedded,
+  placeB2BOrder,
+  getB2BOrdersByStore,
+  getB2BOrdersByManufacturer,
+  getB2BOrderWithItems,
+  updateB2BOrderStatus,
+  fulfillB2BOrder,
+  type ManufacturerProductRow,
+  type ManufacturerProductImageRow,
+  type ManufacturerProductWithImages,
+  type ManufacturerProductFilters,
+  type CreateManufacturerProductInput,
+  type UpdateManufacturerProductInput,
+  type ManufacturerProductStatus,
+  type B2BOrderRow,
+  type B2BOrderItemRow,
+  type B2BOrderStatusHistoryRow,
+  type B2BOrderWithItems,
+  type B2BOrderStatus,
+  type PlaceB2BOrderInput,
+  type FulfillB2BOrderResult,
+} from './b2b';
+
 export const PACKAGE_NAME = '@luxematch/db';

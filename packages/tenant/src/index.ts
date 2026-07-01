@@ -38,6 +38,15 @@ export function getShopJewellerId(env: Record<string, string | undefined> = proc
   return id;
 }
 
+// B2B mode: returns undefined when SHOP_JEWELLER_ID is blank.
+// Use this in routes that resolve jeweller_id from the lm_store cookie instead.
+export function getShopJewellerIdOptional(
+  env: Record<string, string | undefined> = process.env,
+): string | undefined {
+  const id = env.SHOP_JEWELLER_ID;
+  return id && UUID_RE.test(id) ? id : undefined;
+}
+
 // ────────────────────────────────────────────────────────────────────────────
 // PIN cookie (HMAC-signed via Web Crypto SubtleCrypto)
 //
@@ -213,6 +222,164 @@ export function isPinLocked(key: string, now = Date.now()): { locked: boolean; r
     return { locked: true, retryAfterMs: PIN_FAILURE_WINDOW_MS - (now - rec.firstFailureMs) };
   }
   return { locked: false, retryAfterMs: 0 };
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Manufacturer cookie (HMAC-signed, same primitives as PIN cookie)
+//
+// Format: <manufacturerId>.<issuedAtMs>.<sigBase64Url>
+//   sig = HMAC-SHA256(MANUFACTURER_COOKIE_SECRET, `<manufacturerId>.<issuedAtMs>`)
+// Signed with a SEPARATE secret from lm_pin so a leaked store secret
+// cannot be used to forge a manufacturer session and vice-versa.
+// ────────────────────────────────────────────────────────────────────────────
+
+export const MANUFACTURER_COOKIE_NAME = 'lm_manufacturer';
+
+export type ManufacturerCookieOptions = {
+  secret: string;
+  ttlSeconds: number;
+  secure?: boolean;
+};
+
+export type ManufacturerCookieVerification =
+  | { valid: true; manufacturerId: string; issuedAt: number }
+  | { valid: false; reason: 'missing' | 'malformed' | 'bad_signature' | 'expired' };
+
+export async function issueManufacturerCookie(
+  manufacturerId: string,
+  opts: ManufacturerCookieOptions,
+): Promise<PinCookie> {
+  const issuedAt = Date.now();
+  const payload = `${manufacturerId}.${issuedAt}`;
+  const key = await importHmacKey(opts.secret);
+  const sigBuf = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(payload));
+  const sig = b64urlFromBytes(new Uint8Array(sigBuf));
+  return {
+    name: MANUFACTURER_COOKIE_NAME,
+    value: `${payload}.${sig}`,
+    options: {
+      httpOnly: true,
+      sameSite: 'strict',
+      secure: opts.secure ?? process.env.NODE_ENV === 'production',
+      path: '/',
+      maxAge: opts.ttlSeconds,
+    },
+  };
+}
+
+export async function verifyManufacturerCookie(
+  value: string | undefined,
+  opts: ManufacturerCookieOptions,
+): Promise<ManufacturerCookieVerification> {
+  if (!value) return { valid: false, reason: 'missing' };
+  const parts = value.split('.');
+  if (parts.length !== 3) return { valid: false, reason: 'malformed' };
+  const [manufacturerId, issuedAtRaw, providedSig] = parts as [string, string, string];
+  if (!UUID_RE.test(manufacturerId)) return { valid: false, reason: 'malformed' };
+  const issuedAt = Number(issuedAtRaw);
+  if (!Number.isFinite(issuedAt)) return { valid: false, reason: 'malformed' };
+
+  const key = await importHmacKey(opts.secret);
+  const expectedSigBuf = await crypto.subtle.sign(
+    'HMAC',
+    key,
+    new TextEncoder().encode(`${manufacturerId}.${issuedAt}`),
+  );
+  let provided: Uint8Array;
+  try {
+    provided = b64urlToBytes(providedSig);
+  } catch {
+    return { valid: false, reason: 'malformed' };
+  }
+  if (!timingSafeEqualBytes(provided, new Uint8Array(expectedSigBuf))) {
+    return { valid: false, reason: 'bad_signature' };
+  }
+  if (Date.now() - issuedAt > opts.ttlSeconds * 1000) {
+    return { valid: false, reason: 'expired' };
+  }
+  return { valid: true, manufacturerId, issuedAt };
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Store cookie (HMAC-signed, reuses LM_PIN_COOKIE_SECRET)
+//
+// Format: <storeId>.<jewellerId>.<issuedAtMs>.<sigBase64Url>
+//   sig = HMAC-SHA256(LM_PIN_COOKIE_SECRET + ":store", `<storeId>.<jewellerId>.<issuedAtMs>`)
+//
+// Carries jewellerId in the payload so middleware can resolve tenancy without
+// a DB lookup on every request. The ":store" suffix namespaces the key so a
+// PIN cookie value cannot be replayed as a store cookie.
+// ────────────────────────────────────────────────────────────────────────────
+
+export const STORE_COOKIE_NAME = 'lm_store';
+
+export type StoreCookieOptions = {
+  secret: string; // pass LM_PIN_COOKIE_SECRET
+  ttlSeconds: number;
+  secure?: boolean;
+};
+
+export type StoreCookieVerification =
+  | { valid: true; storeId: string; jewellerId: string; issuedAt: number }
+  | { valid: false; reason: 'missing' | 'malformed' | 'bad_signature' | 'expired' };
+
+export async function issueStoreCookie(
+  storeId: string,
+  jewellerId: string,
+  opts: StoreCookieOptions,
+): Promise<PinCookie> {
+  const issuedAt = Date.now();
+  const payload = `${storeId}.${jewellerId}.${issuedAt}`;
+  // namespace key so PIN cookie can't be replayed as a store cookie
+  const key = await importHmacKey(opts.secret + ':store');
+  const sigBuf = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(payload));
+  const sig = b64urlFromBytes(new Uint8Array(sigBuf));
+  return {
+    name: STORE_COOKIE_NAME,
+    value: `${payload}.${sig}`,
+    options: {
+      httpOnly: true,
+      sameSite: 'strict',
+      secure: opts.secure ?? process.env.NODE_ENV === 'production',
+      path: '/',
+      maxAge: opts.ttlSeconds,
+    },
+  };
+}
+
+export async function verifyStoreCookie(
+  value: string | undefined,
+  opts: StoreCookieOptions,
+): Promise<StoreCookieVerification> {
+  if (!value) return { valid: false, reason: 'missing' };
+  const parts = value.split('.');
+  if (parts.length !== 4) return { valid: false, reason: 'malformed' };
+  const [storeId, jewellerId, issuedAtRaw, providedSig] = parts as [string, string, string, string];
+  if (!UUID_RE.test(storeId) || !UUID_RE.test(jewellerId)) {
+    return { valid: false, reason: 'malformed' };
+  }
+  const issuedAt = Number(issuedAtRaw);
+  if (!Number.isFinite(issuedAt)) return { valid: false, reason: 'malformed' };
+
+  const key = await importHmacKey(opts.secret + ':store');
+  const expectedSigBuf = await crypto.subtle.sign(
+    'HMAC',
+    key,
+    new TextEncoder().encode(`${storeId}.${jewellerId}.${issuedAt}`),
+  );
+  let provided: Uint8Array;
+  try {
+    provided = b64urlToBytes(providedSig);
+  } catch {
+    return { valid: false, reason: 'malformed' };
+  }
+  if (!timingSafeEqualBytes(provided, new Uint8Array(expectedSigBuf))) {
+    return { valid: false, reason: 'bad_signature' };
+  }
+  if (Date.now() - issuedAt > opts.ttlSeconds * 1000) {
+    return { valid: false, reason: 'expired' };
+  }
+  return { valid: true, storeId, jewellerId, issuedAt };
 }
 
 export const PACKAGE_NAME = '@luxematch/tenant';

@@ -4,12 +4,14 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
-import { LayoutDashboard, Package, BarChart3, Settings, ArrowLeft, Menu, Lightbulb, ShoppingBag, Lock } from "lucide-react";
+import { LayoutDashboard, Package, BarChart3, Settings, ArrowLeft, Menu, Lightbulb, ShoppingBag, Lock, Gem, Truck } from "lucide-react";
 
 const navItems = [
   { label: "Dashboard", href: "/jeweller/dashboard", icon: LayoutDashboard },
   { label: "Products", href: "/jeweller/products", icon: Package },
   { label: "Orders", href: "/jeweller/orders", icon: ShoppingBag },
+  { label: "Manufacturer Catalog", href: "/jeweller/manufacturer-catalog", icon: Gem },
+  { label: "B2B Orders", href: "/jeweller/b2b-orders", icon: Truck },
   { label: "Analytics", href: "/jeweller/analytics", icon: BarChart3 },
   { label: "Intelligence", href: "/jeweller/intelligence", icon: Lightbulb },
   { label: "Settings", href: "/jeweller/settings", icon: Settings },
@@ -38,12 +40,20 @@ export default function JewellerLayout({ children }: { children: React.ReactNode
   // unlock screen. One-tap "leave jeweller mode" for shared shop devices.
   async function lockShopMode() {
     setLocking(true);
+    let wasStoreSession = false;
+    try {
+      const storeRes = await fetch('/api/store/me', { cache: 'no-store' });
+      wasStoreSession = storeRes.ok;
+    } catch {
+      wasStoreSession = false;
+    }
     try {
       await fetch('/api/shop/lock', { method: 'POST' });
+      await fetch('/api/store/logout', { method: 'POST' });
     } catch {
       /* even if the request fails, redirect — the cookie TTL still expires */
     } finally {
-      router.push('/jeweller/unlock');
+      router.push(wasStoreSession ? '/store/login' : '/jeweller/unlock');
       router.refresh();
     }
   }
@@ -66,7 +76,7 @@ export default function JewellerLayout({ children }: { children: React.ReactNode
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-1">
         {navItems.map(({ label, href, icon: Icon }) => {
-          const active = pathname === href;
+          const active = pathname === href || pathname.startsWith(href + "/");
           return (
             <Link key={href} href={href}>
               <div

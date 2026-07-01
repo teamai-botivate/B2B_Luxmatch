@@ -27,6 +27,10 @@ function collectionName(): string {
   return getServerEnv().QDRANT_COLLECTION;
 }
 
+function manufacturerCollectionName(): string {
+  return getServerEnv().QDRANT_MANUFACTURER_COLLECTION;
+}
+
 // ────────────────────────────────────────────────────────────────────────────
 // Payload contract
 //
@@ -65,6 +69,31 @@ export type ScoredProduct = {
   slug: string;
   score: number;
   hasTryOn: boolean;
+};
+
+export type ManufacturerProductPayload = {
+  manufacturer_product_id: string;
+  manufacturer_id: string;
+  category: string | null;
+  metal: string | null;
+  purity: string | null;
+  occasion_tags: string[];
+  style_tags: string[];
+};
+
+export type ManufacturerCatalogFilter = {
+  manufacturerId?: string;
+  category?: string;
+  metal?: string;
+  purity?: string;
+  occasionTags?: string[];
+  styleTags?: string[];
+};
+
+export type ScoredManufacturerProduct = {
+  manufacturerProductId: string;
+  manufacturerId: string;
+  score: number;
 };
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -114,6 +143,45 @@ export async function ensureCollection(): Promise<void> {
   }
 }
 
+export async function ensureManufacturerCollection(): Promise<void> {
+  const qdrant = getQdrantClient();
+  const name = manufacturerCollectionName();
+
+  const collections = await qdrant.getCollections();
+  const exists = collections.collections.some((c) => c.name === name);
+
+  if (!exists) {
+    await qdrant.createCollection(name, {
+      vectors: { size: EMBEDDING_DIM, distance: 'Cosine' },
+    });
+  }
+
+  const fieldsToIndex: Array<{
+    field_name: string;
+    field_schema: 'keyword';
+  }> = [
+    { field_name: 'manufacturer_product_id', field_schema: 'keyword' },
+    { field_name: 'manufacturer_id', field_schema: 'keyword' },
+    { field_name: 'category', field_schema: 'keyword' },
+    { field_name: 'metal', field_schema: 'keyword' },
+    { field_name: 'purity', field_schema: 'keyword' },
+    { field_name: 'occasion_tags', field_schema: 'keyword' },
+    { field_name: 'style_tags', field_schema: 'keyword' },
+  ];
+
+  for (const f of fieldsToIndex) {
+    try {
+      await qdrant.createPayloadIndex(name, {
+        field_name: f.field_name,
+        field_schema: f.field_schema,
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (!/already exists|conflict/i.test(msg)) throw err;
+    }
+  }
+}
+
 // ────────────────────────────────────────────────────────────────────────────
 // Upserts and deletes
 // ────────────────────────────────────────────────────────────────────────────
@@ -149,6 +217,33 @@ export async function deleteProductVector(productId: string): Promise<void> {
   await qdrant.delete(collectionName(), {
     wait: true,
     points: [productId],
+  });
+}
+
+export async function upsertManufacturerProductVector(opts: {
+  productId: string;
+  vector: number[];
+  payload: ManufacturerProductPayload;
+}): Promise<void> {
+  if (opts.vector.length !== EMBEDDING_DIM) {
+    throw new Error(
+      `Vector length ${opts.vector.length} does not match expected ${EMBEDDING_DIM}`,
+    );
+  }
+  if (opts.payload.manufacturer_product_id !== opts.productId) {
+    throw new Error('payload.manufacturer_product_id must match productId');
+  }
+  const qdrant = getQdrantClient();
+  await ensureManufacturerCollection();
+  await qdrant.upsert(manufacturerCollectionName(), {
+    wait: true,
+    points: [
+      {
+        id: opts.productId,
+        vector: opts.vector,
+        payload: opts.payload as unknown as Record<string, unknown>,
+      },
+    ],
   });
 }
 
@@ -194,6 +289,31 @@ export function buildSearchMustFilter(filter: SearchFilter): QdrantCondition[] {
   return must;
 }
 
+function buildManufacturerSearchMustFilter(
+  filter: ManufacturerCatalogFilter = {},
+): QdrantCondition[] {
+  const must: QdrantCondition[] = [];
+  if (filter.manufacturerId) {
+    must.push({ key: 'manufacturer_id', match: { value: filter.manufacturerId } });
+  }
+  if (filter.category) {
+    must.push({ key: 'category', match: { value: filter.category } });
+  }
+  if (filter.metal) {
+    must.push({ key: 'metal', match: { value: filter.metal } });
+  }
+  if (filter.purity) {
+    must.push({ key: 'purity', match: { value: filter.purity } });
+  }
+  if (filter.occasionTags?.length) {
+    must.push({ key: 'occasion_tags', match: { any: filter.occasionTags } });
+  }
+  if (filter.styleTags?.length) {
+    must.push({ key: 'style_tags', match: { any: filter.styleTags } });
+  }
+  return must;
+}
+
 export async function searchByVector(opts: {
   vector: number[];
   filter: SearchFilter;
@@ -222,6 +342,37 @@ export async function searchByVector(opts: {
       slug: payload.slug,
       score: hit.score,
       hasTryOn: payload.has_tryon,
+    };
+  });
+}
+
+export async function searchManufacturerCatalog(opts: {
+  vector: number[];
+  filter?: ManufacturerCatalogFilter;
+  limit?: number;
+}): Promise<ScoredManufacturerProduct[]> {
+  if (opts.vector.length !== EMBEDDING_DIM) {
+    throw new Error(
+      `Vector length ${opts.vector.length} does not match expected ${EMBEDDING_DIM}`,
+    );
+  }
+  const qdrant = getQdrantClient();
+  const limit = Math.min(opts.limit ?? 20, 100);
+  const must = buildManufacturerSearchMustFilter(opts.filter);
+
+  const result = await qdrant.search(manufacturerCollectionName(), {
+    vector: opts.vector,
+    limit,
+    with_payload: true,
+    filter: must.length ? { must: must as unknown as never } : undefined,
+  });
+
+  return result.map((hit) => {
+    const payload = hit.payload as ManufacturerProductPayload;
+    return {
+      manufacturerProductId: payload.manufacturer_product_id,
+      manufacturerId: payload.manufacturer_id,
+      score: hit.score,
     };
   });
 }

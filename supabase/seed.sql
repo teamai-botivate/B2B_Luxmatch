@@ -288,3 +288,112 @@ insert into public.product_tryon_assets (
    'https://placehold.co/1024x512/png?text=Necklace', 'necklace',
    0.5, 0.05, 1.0, 180, 60, true)
 on conflict do nothing;
+
+-- B2B demo data (DEV ONLY)
+-- Manufacturer login: admin@atplusjewellers.com / manufacturer123
+-- Store login: store@aurumheritage.com / store123
+
+insert into public.manufacturers (
+  id, name, email, password_hash, is_active
+) values (
+  '10000000-0000-0000-0000-000000000001',
+  'AT Plus Jewellers HQ',
+  'admin@atplusjewellers.com',
+  '$2b$10$AbrpCyX7AnR0yiXkjISK7O1uirPvXtQ5IMvkTa367tCQq9HMFbwYC',
+  true
+) on conflict (id) do update set
+  name = excluded.name,
+  email = excluded.email,
+  password_hash = excluded.password_hash,
+  is_active = excluded.is_active,
+  updated_at = now();
+
+insert into public.stores (
+  id, jeweller_id, manufacturer_id, name, email, password_hash, city, phone, is_active
+) values (
+  '20000000-0000-0000-0000-000000000001',
+  '00000000-0000-0000-0000-00000000d3e1',
+  '10000000-0000-0000-0000-000000000001',
+  'Aurum Heritage Store',
+  'store@aurumheritage.com',
+  '$2b$10$UYmli4.f/f0k8pve26LWOuoGARAYViiDJRVjUjUkVAg7tXMDuXc6e',
+  'Jaipur',
+  '+91 98290 12345',
+  true
+) on conflict (id) do update set
+  jeweller_id = excluded.jeweller_id,
+  manufacturer_id = excluded.manufacturer_id,
+  name = excluded.name,
+  email = excluded.email,
+  password_hash = excluded.password_hash,
+  city = excluded.city,
+  phone = excluded.phone,
+  is_active = excluded.is_active,
+  updated_at = now();
+
+insert into public.manufacturer_products (
+  id, manufacturer_id, sku, name, category, description, weight_grams,
+  base_price, metal, purity, gemstones, occasion_tags, style_tags,
+  min_order_qty, status
+) values
+  ('30000000-0000-0000-0000-000000000001',
+   '10000000-0000-0000-0000-000000000001',
+   'ATP-NK-001', 'Polki Collar Design', 'necklaces',
+   'Manufacturer catalog design for a bridal polki collar.',
+   72.500, 185000, 'gold', '22K',
+   ARRAY['polki','pearl'], ARRAY['wedding','festival'], ARRAY['heritage','statement'],
+   1, 'active'),
+  ('30000000-0000-0000-0000-000000000002',
+   '10000000-0000-0000-0000-000000000001',
+   'ATP-ER-002', 'Meenakari Jhumka Design', 'earrings',
+   'Wholesale jhumka design with meenakari enamel and kundan accents.',
+   16.800, 42000, 'gold', '22K',
+   ARRAY['kundan'], ARRAY['wedding','festival'], ARRAY['traditional','meenakari'],
+   2, 'active'),
+  ('30000000-0000-0000-0000-000000000003',
+   '10000000-0000-0000-0000-000000000001',
+   'ATP-RG-003', 'Minimal Diamond Band Design', 'rings',
+   'Daily-wear ring design for fast replenishment orders.',
+   4.200, 28000, 'gold', '18K',
+   ARRAY['diamond'], ARRAY['daily','gift'], ARRAY['minimal'],
+   3, 'active')
+on conflict (id) do update set
+  sku = excluded.sku,
+  name = excluded.name,
+  category = excluded.category,
+  description = excluded.description,
+  weight_grams = excluded.weight_grams,
+  base_price = excluded.base_price,
+  metal = excluded.metal,
+  purity = excluded.purity,
+  gemstones = excluded.gemstones,
+  occasion_tags = excluded.occasion_tags,
+  style_tags = excluded.style_tags,
+  min_order_qty = excluded.min_order_qty,
+  status = excluded.status,
+  updated_at = now();
+
+insert into public.manufacturer_product_images (
+  id, product_id, cloudinary_public_id, secure_url, is_primary, is_tryon, jewellery_type, sort_order
+) values
+  ('40000000-0000-0000-0000-000000000001',
+   '30000000-0000-0000-0000-000000000001',
+   'seed/b2b/polki-collar',
+   'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=1200',
+   true, false, null, 0),
+  ('40000000-0000-0000-0000-000000000002',
+   '30000000-0000-0000-0000-000000000002',
+   'seed/b2b/meenakari-jhumka',
+   'https://images.unsplash.com/photo-1535632787350-4e68ef0ac584?w=1200',
+   true, false, null, 0),
+  ('40000000-0000-0000-0000-000000000003',
+   '30000000-0000-0000-0000-000000000003',
+   'seed/b2b/minimal-band',
+   'https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=1200',
+   true, false, null, 0)
+on conflict (id) do update set
+  secure_url = excluded.secure_url,
+  is_primary = excluded.is_primary,
+  is_tryon = excluded.is_tryon,
+  jewellery_type = excluded.jewellery_type,
+  sort_order = excluded.sort_order;

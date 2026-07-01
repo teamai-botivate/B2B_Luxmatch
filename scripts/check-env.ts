@@ -10,9 +10,10 @@ type Var = { name: string; required: boolean; note?: string };
 
 const VARS: Var[] = [
   // Tenancy
-  { name: 'SHOP_JEWELLER_ID', required: true, note: 'per-device shop id (provision-shop)' },
+  { name: 'SHOP_JEWELLER_ID', required: false, note: 'per-device shop id; leave unset for B2B store-cookie mode' },
   { name: 'LM_PIN_COOKIE_SECRET', required: true, note: '>= 32 chars' },
   { name: 'LM_PIN_COOKIE_TTL_SECONDS', required: false },
+  { name: 'LM_STORE_COOKIE_TTL_SECONDS', required: false, note: 'defaults to 28800' },
   // Supabase
   { name: 'NEXT_PUBLIC_SUPABASE_URL', required: true },
   { name: 'NEXT_PUBLIC_SUPABASE_ANON_KEY', required: true },
@@ -29,6 +30,10 @@ const VARS: Var[] = [
   // Embedder
   { name: 'EMBEDDER_URL', required: true, note: 'OpenCLIP FastAPI sidecar' },
   { name: 'EMBEDDER_API_KEY', required: false, note: 'optional bearer token' },
+  // B2B
+  { name: 'MANUFACTURER_COOKIE_SECRET', required: false, note: 'required for manufacturer portal' },
+  { name: 'LM_MANUFACTURER_COOKIE_TTL_SECONDS', required: false, note: 'defaults to 28800' },
+  { name: 'QDRANT_MANUFACTURER_COLLECTION', required: false, note: 'defaults to luxematch_manufacturer_products' },
 ];
 
 function mask(v: string): string {

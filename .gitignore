@@ -1,5 +1,8 @@
 # Dependencies
 node_modules/
+.pnpm-store/
+.npm/
+.yarn/
 
 # Build outputs
 dist/
@@ -7,6 +10,7 @@ build/
 .next/
 out/
 .turbo/
+apps/web/.next/
 
 # Environment files
 .env
@@ -33,6 +37,20 @@ Thumbs.db
 
 # Coverage
 coverage/
+.nyc_output/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+apps/embedder/.venv/
+
+# Generated/local tooling
 plan.txt
 .vercel
 .env*
+*.local

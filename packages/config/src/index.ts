@@ -1,8 +1,9 @@
 import { z } from 'zod';
 
 const ServerEnvSchema = z.object({
-  // Shop tenancy — set per-device at install time by scripts/provision-shop.ts
-  SHOP_JEWELLER_ID: z.string().uuid('SHOP_JEWELLER_ID must be a UUID'),
+  // Shop tenancy — set per-device at install time by scripts/provision-shop.ts.
+  // Optional in B2B multi-store mode; jeweller_id is resolved from lm_store cookie instead.
+  SHOP_JEWELLER_ID: z.string().uuid('SHOP_JEWELLER_ID must be a UUID').optional(),
   LM_PIN_COOKIE_SECRET: z
     .string()
     .min(32, 'LM_PIN_COOKIE_SECRET must be at least 32 chars'),
@@ -37,6 +38,16 @@ const ServerEnvSchema = z.object({
   ALLOWED_ORIGINS: z.string().optional(),
   // Standard Node hint — used to decide whether CORS rejects unknown origins.
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  // B2B: Manufacturer auth
+  MANUFACTURER_COOKIE_SECRET: z
+    .string()
+    .min(32, 'MANUFACTURER_COOKIE_SECRET must be at least 32 chars')
+    .optional(),
+  LM_MANUFACTURER_COOKIE_TTL_SECONDS: z.coerce.number().int().positive().default(28_800),
+  // B2B: Store session duration (store cookies reuse LM_PIN_COOKIE_SECRET)
+  LM_STORE_COOKIE_TTL_SECONDS: z.coerce.number().int().positive().default(28_800),
+  // B2B: Qdrant collection for manufacturer product catalog (global, no jeweller_id filter)
+  QDRANT_MANUFACTURER_COLLECTION: z.string().min(1).default('luxematch_manufacturer_products'),
 });
 
 const ClientEnvSchema = z.object({
