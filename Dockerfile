@@ -65,4 +65,4 @@ COPY --from=builder /app/apps ./apps
 COPY --from=builder /app/packages ./packages
 
 EXPOSE 3000
-CMD ["sh", "-c", "pnpm --filter @luxematch/web start -- -H 0.0.0.0 -p ${PORT:-3000}"]
+CMD ["sh", "-c", "pnpm --filter @luxematch/web exec next start -H 0.0.0.0 -p ${PORT:-3000}"]
