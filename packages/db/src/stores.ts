@@ -80,7 +80,6 @@ export async function listStoresByManufacturer(
 
 export type CreateStoreInput = {
   manufacturerId: string;
-  jewellerId: string;
   name: string;
   email: string;
   password: string;
@@ -90,12 +89,33 @@ export type CreateStoreInput = {
 
 export async function createStore(input: CreateStoreInput): Promise<StorePublic> {
   const sb = getSupabaseServer();
+
+  // Auto-create a jewellers row for this new store — no manual UUID needed.
+  const slug = input.name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 80);
+  const uniqueSlug = `${slug}-${Math.random().toString(36).slice(2, 8)}`;
+
+  const { data: jeweller, error: jewellerError } = await sb
+    .from('jewellers')
+    .insert({
+      slug: uniqueSlug,
+      store_name: input.name,
+      city: input.city ?? null,
+      phone: input.phone ?? null,
+    })
+    .select('id')
+    .single();
+  if (jewellerError) throw new Error(`createStore (jeweller): ${jewellerError.message}`);
+
   const passwordHash = await hash(input.password, 10);
   const { data, error } = await sb
     .from('stores')
     .insert({
       manufacturer_id: input.manufacturerId,
-      jeweller_id: input.jewellerId,
+      jeweller_id: jeweller.id,
       name: input.name,
       email: input.email.toLowerCase().trim(),
       password_hash: passwordHash,

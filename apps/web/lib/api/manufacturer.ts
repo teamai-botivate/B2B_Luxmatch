@@ -221,7 +221,6 @@ manufacturerRoutes.get('/stores', async (c) => {
 });
 
 const CreateStoreBody = z.object({
-  jewellerId: z.string().uuid(),
   name: z.string().min(1).max(160),
   email: z.string().email(),
   password: z.string().min(6),

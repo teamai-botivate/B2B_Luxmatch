@@ -15,7 +15,6 @@ function StoreModal({
   onSaved: () => void;
 }) {
   const [form, setForm] = useState({
-    jewellerId: '',
     name: '',
     email: '',
     password: '',
@@ -38,7 +37,6 @@ function StoreModal({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          jewellerId: form.jewellerId,
           name: form.name,
           email: form.email,
           password: form.password,
@@ -75,16 +73,6 @@ function StoreModal({
         </div>
 
         <form onSubmit={save} className="space-y-4 px-5 py-4">
-          <div>
-            <label className="text-xs font-medium text-muted-foreground">Jeweller ID *</label>
-            <Input
-              className="mt-1"
-              value={form.jewellerId}
-              onChange={(e) => set('jewellerId', e.target.value)}
-              placeholder="Existing jewellers.id UUID"
-              required
-            />
-          </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <label className="text-xs font-medium text-muted-foreground">Store Name *</label>
@@ -238,7 +226,6 @@ export default function ManufacturerStoresPage() {
               <tr className="border-b bg-muted/40">
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Store</th>
                 <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground sm:table-cell">City</th>
-                <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground md:table-cell">Jeweller ID</th>
                 <th className="px-4 py-3 text-center font-medium text-muted-foreground">Status</th>
                 <th className="px-4 py-3 text-right font-medium text-muted-foreground">Action</th>
               </tr>
@@ -252,9 +239,6 @@ export default function ManufacturerStoresPage() {
                   </td>
                   <td className="hidden px-4 py-3 text-muted-foreground sm:table-cell">
                     {store.city ?? '-'}
-                  </td>
-                  <td className="hidden px-4 py-3 font-mono text-xs text-muted-foreground md:table-cell">
-                    {store.jeweller_id}
                   </td>
                   <td className="px-4 py-3 text-center">
                     <span
