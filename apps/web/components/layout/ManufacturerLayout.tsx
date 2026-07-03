@@ -56,7 +56,7 @@ export default function ManufacturerLayout({ children }: { children: React.React
               Manufacturer Portal
             </p>
             <p className="text-sm font-semibold text-foreground truncate leading-tight">
-              AT Plus Jewellers
+              AT Jewellers
             </p>
           </div>
         </div>
@@ -127,7 +127,7 @@ export default function ManufacturerLayout({ children }: { children: React.React
             Manufacturer Portal
           </span>
           <span className="hidden sm:inline text-xs font-medium bg-primary/10 text-primary px-2 py-0.5 rounded-full">
-            AT Plus Jewellers
+            AT Jewellers
           </span>
         </header>
 

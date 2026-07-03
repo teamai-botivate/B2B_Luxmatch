@@ -21,8 +21,8 @@ Seed/demo credentials:
 
 | Actor                    | URL                        | Email / PIN                   | Password          |
 | ------------------------ | -------------------------- | ----------------------------- | ----------------- |
-| Manufacturer             | `/manufacturer/login`    | `admin@atplusjewellers.com` | `manufacturer123` |
-| Store/Retailer           | `/store/login`           | `store@aurumheritage.com`   | `store123`        |
+| Manufacturer             | `/manufacturer/login`    | `admin@atjewellers.com`     | `manufacturer123` |
+| Store/Retailer           | `/store/login`           | `store@atjewellers.com`     | `store123`        |
 | Jeweller device PIN mode | `/jeweller/unlock`       | PIN `123456`                | none              |
 | Customer (kiosk)         | No login — guest checkout | name + phone on `/kiosk-checkout` | none         |
 
