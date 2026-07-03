@@ -21,6 +21,7 @@ export type ManufacturerProductRow = {
   style_tags: string[];
   min_order_qty: number;
   status: ManufacturerProductStatus;
+  has_tryon: boolean;
   created_at: string;
   updated_at: string;
 };
@@ -616,6 +617,31 @@ export async function fulfillB2BOrder(orderId: string): Promise<FulfillB2BOrderR
       }));
       const { error: tryonError } = await sb.from('product_tryon_assets').insert(tryonAssets);
       if (tryonError) throw new Error(`fulfillB2BOrder try-on copy: ${tryonError.message}`);
+    } else if (product.has_tryon) {
+      // Copy from dedicated manufacturer try-on asset (uploaded via B20 flow)
+      const { data: mfrAsset } = await sb
+        .from('product_tryon_assets')
+        .select('*')
+        .eq('manufacturer_product_id', product.id)
+        .eq('is_active', true)
+        .maybeSingle();
+      if (mfrAsset) {
+        const row = mfrAsset as Record<string, unknown>;
+        const { error: tryonCopyError } = await sb.from('product_tryon_assets').insert({
+          product_id: productId,
+          cloudinary_public_id: row.cloudinary_public_id ?? null,
+          asset_url: row.asset_url,
+          jewellery_type: row.jewellery_type,
+          pivot_x: row.pivot_x,
+          pivot_y: row.pivot_y,
+          x_offset: row.x_offset,
+          y_offset: row.y_offset,
+          scale_multiplier: row.scale_multiplier,
+          rotation_offset_deg: row.rotation_offset_deg,
+          is_active: true,
+        });
+        if (tryonCopyError) throw new Error(`fulfillB2BOrder try-on asset copy: ${tryonCopyError.message}`);
+      }
     }
   }
 

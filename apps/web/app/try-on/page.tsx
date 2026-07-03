@@ -2,12 +2,13 @@
 
 import type { Calibration, JewelleryType } from '@luxematch/ar-engine';
 import type { ProductWithImages, TryOnProduct } from '@luxematch/db';
-import { Camera, ChevronUp, RotateCcw, Sparkles, X } from 'lucide-react';
+import { Camera, ChevronUp, RotateCcw, ShoppingBag, Sparkles, X } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { ARViewport, type ARViewportHandle } from '@/components/ar/ARViewport';
+import { useGuestCart } from '@/hooks/use-guest-cart';
 import { trackEvent } from '@/lib/analytics';
 import { CLOUDINARY_READY_SHOWCASE_AR_PRODUCTS } from '@/lib/showcase-ar-assets';
 
@@ -73,6 +74,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 export default function TryOnPage() {
   const viewportRef = useRef<ARViewportHandle>(null);
+  const guestCart = useGuestCart();
 
   const [arProducts, setArProducts] = useState<TryOnProduct[] | null>(null);
   const [allProducts, setAllProducts] = useState<ProductWithImages[] | null>(null);
@@ -83,9 +85,11 @@ export default function TryOnPage() {
   const [browseOpen, setBrowseOpen] = useState(false);
   const [browseTab, setBrowseTab] = useState<'ar' | 'all'>('ar');
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+  const [addedToCart, setAddedToCart] = useState(false);
 
   // ── Initial data load: AR-ready first (we need it for the bottom strip),
   //    full catalogue lazily when the user opens "Browse all".
+  //    Real DB products take priority; showcase used only when DB returns empty.
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -97,9 +101,12 @@ export default function TryOnPage() {
         if (cancelled) return;
         if ('error' in json) {
           setLoadError(json.error.message);
+          setArProducts(CLOUDINARY_READY_SHOWCASE_AR_PRODUCTS);
           return;
         }
-        setArProducts([...CLOUDINARY_READY_SHOWCASE_AR_PRODUCTS, ...json.data.products]);
+        // Use real products if available; fall back to showcase when none
+        const real = json.data.products;
+        setArProducts(real.length > 0 ? real : CLOUDINARY_READY_SHOWCASE_AR_PRODUCTS);
       } catch (e) {
         if (!cancelled) setArProducts(CLOUDINARY_READY_SHOWCASE_AR_PRODUCTS);
       }
@@ -108,6 +115,21 @@ export default function TryOnPage() {
       cancelled = true;
     };
   }, []);
+
+  // ── Auto-select product from URL param (?product=<id>)
+  useEffect(() => {
+    if (!arProducts) return;
+    const params = new URLSearchParams(window.location.search);
+    const productId = params.get('product');
+    if (!productId) return;
+    const found = arProducts.find((p) => p.id === productId);
+    if (found) {
+      const asset = pickPrimaryAsset(found);
+      if (asset) void onSelect(found.id, asset);
+    }
+  // onSelect is stable via useCallback; arProducts changes once after load
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [arProducts]);
 
   const loadAllProducts = useCallback(async () => {
     if (allProducts !== null) return;
@@ -166,6 +188,27 @@ export default function TryOnPage() {
   function onReset() {
     setSelection(null);
     setCaptureUrl(null);
+    setAddedToCart(false);
+  }
+
+  function onAddToCart() {
+    if (!selection) return;
+    const product = arProducts?.find((p) => p.id === selection.productId);
+    if (!product || !UUID_RE.test(product.id)) {
+      setToast('This is a demo piece — browse the catalog to order.');
+      return;
+    }
+    guestCart.add({
+      productId: product.id,
+      name: product.name,
+      sku: null,
+      imageUrl: product.primary_image_url,
+      category: null,
+      metal: null,
+      unitPrice: 0,
+    });
+    setAddedToCart(true);
+    setToast('Added to bag! Complete your order at checkout.');
   }
 
   // ── Rows for the browser drawer ───────────────────────────────────────────
@@ -244,6 +287,19 @@ export default function TryOnPage() {
           >
             <RotateCcw className="h-4 w-4 text-white" />
           </button>
+          {selection && UUID_RE.test(selection.productId) && (
+            <button
+              onClick={onAddToCart}
+              className={`flex h-9 items-center gap-2 rounded-full px-4 text-xs font-medium transition-opacity hover:opacity-90 ${
+                addedToCart
+                  ? 'bg-green-500 text-white'
+                  : 'bg-white/20 text-white hover:bg-white/30'
+              }`}
+            >
+              <ShoppingBag className="h-4 w-4" />
+              {addedToCart ? 'Added ✓' : 'Add to Bag'}
+            </button>
+          )}
           <button
             onClick={onCapture}
             disabled={!selection}

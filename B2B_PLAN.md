@@ -79,8 +79,57 @@ Store controls `arrived_at_store → delivered_to_customer`.
 | B16 | Store dashboard tracks customer kiosk orders + handover statuses | Medium | Yes |
 | B17 | Store owner catalog ordering supports customer-assisted/restock orders | Low | Existing B8/B9 extension |
 | B18 | Update customer-facing UI labels/branding: store name + LuxMatch + Powered by Botivate | Low | Yes |
+| B19 | /portal staff login selector + customer auth deprecated | Low | Yes |
+| B20 | AR Try-On asset management — manufacturer uploads transparent PNG per product; try-on button shown only when asset exists; filter in all three portals | Medium | Yes |
 
 Start implementation from **B11**. Do not rewrite manufacturer product upload/catalog unless a field is required to display/order existing products.
+
+---
+
+## B20 — AR Try-On Asset Management (implementation details)
+
+### Goal
+Manufacturer uploads a transparent-background PNG for any product. That flag propagates through the system so:
+- Customer storefront shows "Try On" button **only** on products with an asset
+- All three portals (manufacturer/store/customer) show an "AR Try-On" badge/filter
+- B2B order fulfillment auto-copies the try-on asset to the store's product inventory
+
+### Database changes (migration 0007_tryon_assets.sql)
+```sql
+-- Flag on manufacturer_products
+ALTER TABLE manufacturer_products ADD COLUMN has_tryon boolean NOT NULL DEFAULT false;
+
+-- Extend product_tryon_assets to support manufacturer products directly
+-- product_id becomes nullable; manufacturer_product_id is the alternative FK
+ALTER TABLE product_tryon_assets
+  ADD COLUMN manufacturer_product_id uuid REFERENCES manufacturer_products(id) ON DELETE CASCADE,
+  ALTER COLUMN product_id DROP NOT NULL;
+
+CREATE INDEX idx_tryon_assets_mfr_product
+  ON product_tryon_assets(manufacturer_product_id)
+  WHERE manufacturer_product_id IS NOT NULL;
+```
+
+### API changes
+```
+POST /api/manufacturer/products/:id/tryon-asset   — upload transparent PNG, set has_tryon=true
+DELETE /api/manufacturer/products/:id/tryon-asset  — remove asset, set has_tryon=false
+GET /api/manufacturer/products                     — include has_tryon in response
+GET /api/store/catalog                             — include has_tryon + tryon asset_url/jewellery_type
+GET /api/products (customer)                       — include has_tryon
+```
+
+### UI changes
+| Portal | Change |
+|--------|--------|
+| Manufacturer products page | "AR Try-On" section in add/edit modal — transparent PNG upload + jewellery_type select |
+| Manufacturer products list | "AR" badge on rows with has_tryon=true |
+| Store manufacturer-catalog | "AR" badge + "Try-On Only" filter toggle |
+| Customer ProductCard | Try-On button shown only when product.hasTryOn === true |
+| Customer try-on page | Real DB products take priority over showcase; showcase shown only when no real data |
+
+### fulfillB2BOrder change
+When copying manufacturer product to store inventory: if `has_tryon=true`, also copy the `product_tryon_assets` row (with `product_id` = new store product id, same asset_url + calibration).
 
 ---
 

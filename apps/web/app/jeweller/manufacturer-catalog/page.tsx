@@ -1,7 +1,7 @@
 'use client';
 
 import type { ManufacturerProductWithImages } from '@luxematch/db';
-import { Gem, Loader2, Package, Search, ShoppingCart } from 'lucide-react';
+import { Camera, Gem, Loader2, Package, Search, ShoppingCart } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
@@ -25,6 +25,7 @@ export default function ManufacturerCatalogPage() {
   const [products, setProducts] = useState<ManufacturerProductWithImages[]>([]);
   const [category, setCategory] = useState('all');
   const [query, setQuery] = useState('');
+  const [filterTryon, setFilterTryon] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [flash, setFlash] = useState<string | null>(null);
@@ -118,7 +119,7 @@ export default function ManufacturerCatalogPage() {
           </Button>
         </div>
 
-        <div className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1">
+        <div className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1 items-center">
           {categories.map((item) => (
             <button
               key={item}
@@ -132,6 +133,17 @@ export default function ManufacturerCatalogPage() {
               {item}
             </button>
           ))}
+          <button
+            type="button"
+            onClick={() => setFilterTryon((v) => !v)}
+            className={`shrink-0 flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium border transition-colors ${
+              filterTryon
+                ? 'bg-primary text-primary-foreground border-primary'
+                : 'bg-muted text-muted-foreground border-transparent hover:bg-muted/80'
+            }`}
+          >
+            <Camera className="h-3 w-3" /> AR Try-On
+          </button>
         </div>
 
         {flash && (
@@ -156,7 +168,9 @@ export default function ManufacturerCatalogPage() {
           </div>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {products.map((product) => {
+            {products
+              .filter((p) => !filterTryon || p.has_tryon)
+              .map((product) => {
               const primary = product.images.find((i) => i.is_primary) ?? product.images[0];
               return (
                 <div key={product.id} className="overflow-hidden rounded-xl border bg-card">
@@ -172,6 +186,13 @@ export default function ManufacturerCatalogPage() {
                     ) : (
                       <div className="flex h-full items-center justify-center">
                         <Package className="h-8 w-8 text-muted-foreground/50" />
+                      </div>
+                    )}
+                    {product.has_tryon && (
+                      <div className="absolute top-2 right-2">
+                        <span className="flex items-center gap-0.5 rounded-full bg-primary/90 px-1.5 py-0.5 text-[10px] font-semibold text-primary-foreground backdrop-blur-sm">
+                          <Camera className="h-2.5 w-2.5" /> AR
+                        </span>
                       </div>
                     )}
                   </div>

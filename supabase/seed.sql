@@ -48,7 +48,7 @@ insert into public.jewellers (
   '00000000-0000-0000-0000-00000000d3e1',
   'at-jewellers',
   'AT Jewellers',
-  'Delhi',
+  'Chhattisgarh',
   '08AAAAA0000A1Z5',
   'AT Jewellers',
   '+91 98290 12345',

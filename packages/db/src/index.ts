@@ -105,8 +105,12 @@ export {
   getManufacturerByEmail,
   getManufacturerById,
   verifyManufacturerPassword,
+  addManufacturerTryOnAsset,
+  removeManufacturerTryOnAsset,
+  getManufacturerTryOnAsset,
   type ManufacturerRow,
   type ManufacturerPublic,
+  type ManufacturerTryOnAssetInput,
 } from './manufacturers';
 
 export {

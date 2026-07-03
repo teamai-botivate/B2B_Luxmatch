@@ -2,6 +2,9 @@ import { getServerEnv } from '@luxematch/config';
 import { generateManufacturerSignedUploadParams } from '@luxematch/cloudinary';
 import {
   addManufacturerProductImage,
+  addManufacturerTryOnAsset,
+  removeManufacturerTryOnAsset,
+  getManufacturerTryOnAsset,
   createManufacturerProduct,
   deleteManufacturerProduct,
   getManufacturerById,
@@ -297,6 +300,83 @@ manufacturerRoutes.post(
     return sendData(c, image, 201);
   },
 );
+
+// ── Try-On Assets ─────────────────────────────────────────────────────────────
+
+const AddTryOnAssetBody = z.object({
+  assetUrl: z.string().url(),
+  cloudinaryPublicId: z.string().optional(),
+  jewelleryType: z.enum(['necklace', 'earring_left', 'earring_right', 'ring_index', 'ring_middle', 'bangle']),
+  pivotX: z.number().min(0).max(1).optional(),
+  pivotY: z.number().min(0).max(1).optional(),
+  xOffset: z.number().optional(),
+  yOffset: z.number().optional(),
+  scaleMultiplier: z.number().positive().optional(),
+  rotationOffsetDeg: z.number().optional(),
+});
+
+// POST /api/manufacturer/products/:id/tryon-asset/sign
+// Returns signed Cloudinary upload params for the tryon transparent PNG
+manufacturerRoutes.post('/products/:id/tryon-asset/sign', async (c) => {
+  const product = await getManufacturerProductById(c.req.param('id'));
+  if (!product) return sendError(c, 'not_found', 'Product not found', 404);
+  if (product.manufacturer_id !== c.get('manufacturerId')) {
+    return sendError(c, 'forbidden', 'Not your product', 403);
+  }
+  return sendData(
+    c,
+    generateManufacturerSignedUploadParams({ manufacturerId: c.get('manufacturerId') }),
+  );
+});
+
+// POST /api/manufacturer/products/:id/tryon-asset
+manufacturerRoutes.post(
+  '/products/:id/tryon-asset',
+  zValidator('json', AddTryOnAssetBody),
+  async (c) => {
+    const product = await getManufacturerProductById(c.req.param('id'));
+    if (!product) return sendError(c, 'not_found', 'Product not found', 404);
+    if (product.manufacturer_id !== c.get('manufacturerId')) {
+      return sendError(c, 'forbidden', 'Not your product', 403);
+    }
+    const body = c.req.valid('json');
+    await addManufacturerTryOnAsset({
+      manufacturerProductId: c.req.param('id'),
+      assetUrl: body.assetUrl,
+      cloudinaryPublicId: body.cloudinaryPublicId ?? null,
+      jewelleryType: body.jewelleryType,
+      pivotX: body.pivotX,
+      pivotY: body.pivotY,
+      xOffset: body.xOffset,
+      yOffset: body.yOffset,
+      scaleMultiplier: body.scaleMultiplier,
+      rotationOffsetDeg: body.rotationOffsetDeg,
+    });
+    return sendData(c, { ok: true });
+  },
+);
+
+// GET /api/manufacturer/products/:id/tryon-asset
+manufacturerRoutes.get('/products/:id/tryon-asset', async (c) => {
+  const product = await getManufacturerProductById(c.req.param('id'));
+  if (!product) return sendError(c, 'not_found', 'Product not found', 404);
+  if (product.manufacturer_id !== c.get('manufacturerId')) {
+    return sendError(c, 'forbidden', 'Not your product', 403);
+  }
+  const asset = await getManufacturerTryOnAsset(c.req.param('id'));
+  return sendData(c, asset);
+});
+
+// DELETE /api/manufacturer/products/:id/tryon-asset
+manufacturerRoutes.delete('/products/:id/tryon-asset', async (c) => {
+  const product = await getManufacturerProductById(c.req.param('id'));
+  if (!product) return sendError(c, 'not_found', 'Product not found', 404);
+  if (product.manufacturer_id !== c.get('manufacturerId')) {
+    return sendError(c, 'forbidden', 'Not your product', 403);
+  }
+  await removeManufacturerTryOnAsset(c.req.param('id'));
+  return sendData(c, { ok: true });
+});
 
 // ── Kiosk / Guest Orders (manufacturer view) ──────────────────────────────────
 

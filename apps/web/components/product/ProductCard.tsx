@@ -124,7 +124,7 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
             </button>
             {product.hasTryOn && (
               <button
-                onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/try-on"); }}
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/try-on?product=${product.id}`); }}
                 className="flex items-center justify-center rounded-lg bg-black/[0.72] p-2 backdrop-blur-sm transition-colors hover:bg-black/[0.85]"
                 aria-label="Try on"
                 data-testid={`button-try-on-${product.id}`}
