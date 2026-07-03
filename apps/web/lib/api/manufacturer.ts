@@ -18,6 +18,9 @@ import {
   createStore,
   listStoresByManufacturer,
   updateStoreStatus,
+  updateStore,
+  updateStorePassword,
+  deleteStore,
   getGuestOrdersByManufacturer,
   getGuestOrderWithItems,
   updateGuestOrderStatus,
@@ -260,6 +263,63 @@ manufacturerRoutes.patch(
     return sendData(c, store);
   },
 );
+
+const UpdateStoreBody = z.object({
+  name: z.string().min(1).max(160).optional(),
+  email: z.string().email().optional(),
+  city: z.string().optional(),
+  phone: z.string().optional(),
+});
+
+// PATCH /api/manufacturer/stores/:id — edit store details
+manufacturerRoutes.patch(
+  '/stores/:id',
+  zValidator('json', UpdateStoreBody),
+  async (c) => {
+    try {
+      const store = await updateStore(
+        c.get('manufacturerId'),
+        c.req.param('id'),
+        c.req.valid('json'),
+      );
+      return sendData(c, store);
+    } catch (err) {
+      return sendError(c, 'bad_request', (err as Error).message, 400);
+    }
+  },
+);
+
+const UpdateStorePasswordBody = z.object({
+  password: z.string().min(6),
+});
+
+// PUT /api/manufacturer/stores/:id/password — reset store login password
+manufacturerRoutes.put(
+  '/stores/:id/password',
+  zValidator('json', UpdateStorePasswordBody),
+  async (c) => {
+    try {
+      await updateStorePassword(
+        c.get('manufacturerId'),
+        c.req.param('id'),
+        c.req.valid('json').password,
+      );
+      return sendData(c, { ok: true });
+    } catch (err) {
+      return sendError(c, 'bad_request', (err as Error).message, 400);
+    }
+  },
+);
+
+// DELETE /api/manufacturer/stores/:id — delete store + its jewellers row
+manufacturerRoutes.delete('/stores/:id', async (c) => {
+  try {
+    await deleteStore(c.get('manufacturerId'), c.req.param('id'));
+    return sendData(c, { ok: true });
+  } catch (err) {
+    return sendError(c, 'bad_request', (err as Error).message, 400);
+  }
+});
 
 const AddProductImageBody = z.object({
   cloudinaryPublicId: z.string().min(1),

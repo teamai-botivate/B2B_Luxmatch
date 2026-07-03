@@ -81,8 +81,36 @@ Store controls `arrived_at_store → delivered_to_customer`.
 | B18 | Update customer-facing UI labels/branding: store name + LuxMatch + Powered by Botivate | Low | Yes |
 | B19 | /portal staff login selector + customer auth deprecated | Low | Yes |
 | B20 | AR Try-On asset management — manufacturer uploads transparent PNG per product; try-on button shown only when asset exists; filter in all three portals | Medium | Yes |
+| B21 | Store CRUD for manufacturer — edit store details (name/email/city/phone), reset store password, delete store; full UI in manufacturer portal | Low | Yes |
 
 Start implementation from **B11**. Do not rewrite manufacturer product upload/catalog unless a field is required to display/order existing products.
+
+---
+
+## B21 — Store CRUD for Manufacturer (implementation details)
+
+### Goal
+Manufacturer can fully manage store accounts: edit name/email/city/phone, reset store login password, delete a store (which also removes the auto-created `jewellers` row).
+
+### DB helpers added (`packages/db/src/stores.ts`)
+- `updateStore(manufacturerId, storeId, input)` — patches stores table, syncs `jewellers.store_name` when name changes
+- `updateStorePassword(manufacturerId, storeId, newPassword)` — bcrypt hash + update `password_hash`
+- `deleteStore(manufacturerId, storeId)` — deletes store row, then deletes the auto-created `jewellers` row
+
+### API routes added (`apps/web/lib/api/manufacturer.ts`)
+```
+PATCH  /api/manufacturer/stores/:id           — edit name/email/city/phone (Zod validated)
+PUT    /api/manufacturer/stores/:id/password  — reset password (min 6 chars)
+DELETE /api/manufacturer/stores/:id           — delete store + jewellers row
+```
+
+### UI (`apps/web/app/manufacturer/stores/page.tsx`)
+Full rewrite:
+- Edit button (pencil icon) → modal pre-populated with existing store data
+- Key icon → reset-password modal with new + confirm fields
+- Trash icon → `window.confirm()` prompt → DELETE call
+- Activate/deactivate toggle retained
+- Responsive table: name + email always visible; city + phone hidden on small screens
 
 ---
 

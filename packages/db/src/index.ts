@@ -121,9 +121,13 @@ export {
   listStoresByManufacturer,
   createStore,
   updateStoreStatus,
+  updateStore,
+  updateStorePassword,
+  deleteStore,
   type StoreRow,
   type StorePublic,
   type CreateStoreInput,
+  type UpdateStoreInput,
 } from './stores';
 
 export {

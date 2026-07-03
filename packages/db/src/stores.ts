@@ -145,3 +145,89 @@ export async function updateStoreStatus(
   if (error) throw new Error(`updateStoreStatus: ${error.message}`);
   return data as StorePublic;
 }
+
+export type UpdateStoreInput = {
+  name?: string;
+  email?: string;
+  city?: string;
+  phone?: string;
+};
+
+export async function updateStore(
+  manufacturerId: string,
+  storeId: string,
+  input: UpdateStoreInput,
+): Promise<StorePublic> {
+  const sb = getSupabaseServer();
+  const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (input.name !== undefined) patch.name = input.name;
+  if (input.email !== undefined) patch.email = input.email.toLowerCase().trim();
+  if (input.city !== undefined) patch.city = input.city || null;
+  if (input.phone !== undefined) patch.phone = input.phone || null;
+
+  const { data, error } = await sb
+    .from('stores')
+    .update(patch)
+    .eq('id', storeId)
+    .eq('manufacturer_id', manufacturerId)
+    .select('id, jeweller_id, manufacturer_id, name, email, city, phone, logo_url, tagline, website_url, is_active, created_at, updated_at')
+    .single();
+  if (error) throw new Error(`updateStore: ${error.message}`);
+
+  // Keep jewellers.store_name in sync when name changes
+  if (input.name !== undefined) {
+    const storeRow = data as StorePublic;
+    if (storeRow.jeweller_id) {
+      await sb
+        .from('jewellers')
+        .update({ store_name: input.name, updated_at: new Date().toISOString() })
+        .eq('id', storeRow.jeweller_id);
+    }
+  }
+
+  return data as StorePublic;
+}
+
+export async function updateStorePassword(
+  manufacturerId: string,
+  storeId: string,
+  newPassword: string,
+): Promise<void> {
+  const sb = getSupabaseServer();
+  const passwordHash = await hash(newPassword, 10);
+  const { error } = await sb
+    .from('stores')
+    .update({ password_hash: passwordHash, updated_at: new Date().toISOString() })
+    .eq('id', storeId)
+    .eq('manufacturer_id', manufacturerId);
+  if (error) throw new Error(`updateStorePassword: ${error.message}`);
+}
+
+export async function deleteStore(
+  manufacturerId: string,
+  storeId: string,
+): Promise<void> {
+  const sb = getSupabaseServer();
+  // Fetch jeweller_id before deleting so we can clean up the jewellers row
+  const { data: store } = await sb
+    .from('stores')
+    .select('jeweller_id')
+    .eq('id', storeId)
+    .eq('manufacturer_id', manufacturerId)
+    .maybeSingle();
+
+  const { error } = await sb
+    .from('stores')
+    .delete()
+    .eq('id', storeId)
+    .eq('manufacturer_id', manufacturerId);
+  if (error) throw new Error(`deleteStore: ${error.message}`);
+
+  // Clean up the auto-created jewellers row (cascade handles child rows)
+  if (store && (store as { jeweller_id: string | null }).jeweller_id) {
+    await sb
+      .from('jewellers')
+      .delete()
+      .eq('id', (store as { jeweller_id: string }).jeweller_id);
+  }
+}
