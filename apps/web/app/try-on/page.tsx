@@ -4,7 +4,7 @@ import type { Calibration, JewelleryType } from '@luxematch/ar-engine';
 import type { ProductWithImages, TryOnProduct } from '@luxematch/db';
 import { Camera, ChevronUp, RotateCcw, ShoppingBag, Sparkles, X } from 'lucide-react';
 import Image from 'next/image';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { ARViewport, type ARViewportHandle } from '@/components/ar/ARViewport';
@@ -75,6 +75,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 export default function TryOnPage() {
   const viewportRef = useRef<ARViewportHandle>(null);
   const guestCart = useGuestCart();
+  const router = useRouter();
 
   const [arProducts, setArProducts] = useState<TryOnProduct[] | null>(null);
   const [allProducts, setAllProducts] = useState<ProductWithImages[] | null>(null);
@@ -191,6 +192,18 @@ export default function TryOnPage() {
     setAddedToCart(false);
   }
 
+  function handleClose() {
+    const params = new URLSearchParams(window.location.search);
+    const back = params.get('back');
+    if (back) {
+      router.push(back);
+    } else if (window.history.length > 1) {
+      router.back();
+    } else {
+      router.push('/catalog');
+    }
+  }
+
   function onAddToCart() {
     if (!selection) return;
     const product = arProducts?.find((p) => p.id === selection.productId);
@@ -273,11 +286,13 @@ export default function TryOnPage() {
     <div className="fixed inset-0 flex flex-col overflow-hidden bg-[#0f0f1a]" data-testid="try-on-page">
       {/* Top bar — compact so the viewport gets the real estate. */}
       <header className="flex items-center justify-between px-4 py-2 flex-shrink-0">
-        <Link href="/" aria-label="Close try-on">
-          <button className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 transition-colors hover:bg-white/20">
-            <X className="h-4 w-4 text-white" />
-          </button>
-        </Link>
+        <button
+          onClick={handleClose}
+          aria-label="Close try-on"
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 transition-colors hover:bg-white/20"
+        >
+          <X className="h-4 w-4 text-white" />
+        </button>
         <div className="text-sm font-medium text-white/80">Virtual Try-On</div>
         <div className="flex items-center gap-2">
           <button

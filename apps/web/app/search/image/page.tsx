@@ -117,7 +117,7 @@ export default function ImageSearchPage() {
                       return (
                         <Link
                           key={`${item.product.id}-${index}`}
-                          href={`/products/${item.product.slug}`}
+                          href={`/catalog/${item.product.slug}`}
                           className="group overflow-hidden rounded-2xl border bg-card transition hover:-translate-y-0.5 hover:shadow-md"
                           data-testid={`visual-result-${index}`}
                         >
