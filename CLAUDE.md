@@ -43,9 +43,21 @@ All core phases (-1→12) + e-commerce (E1–E3) + B2B phases B1–B9 are landed
 - **Customer dashboard** — `/account` is a real dashboard: editable name, stats (orders/saved/addresses), recent orders, saved addresses, sticky quick-links, and a **profile picture** (see Customer profile pictures below).
 - **Customer profile pictures (DP)** — file in Cloudinary `luxematch/<jewellerId>/avatars/` (new `avatars` bucket), URL+public_id in `customers.avatar_url`/`avatar_public_id` (migration `0004_customer_avatar.sql`, **not yet applied** — gap #3). Customer-gated flow: `POST /api/customer/avatar/sign` → direct Cloudinary upload → `POST /api/customer/avatar`; `DELETE` clears it. `/me` now reads name+avatar fresh from the DB so post-login changes show without re-issuing the cookie.
 
-**B2B progress:** B1 (migration `0005_b2b_platform.sql`, B2B tables + fulfillment columns + manufacturer image try-on flags) ✅ · B2 (DB helpers: `packages/db/src/manufacturers.ts`, `stores.ts`, `b2b.ts`) ✅ · B3 (cookie auth: `issueManufacturerCookie`/`verifyManufacturerCookie`/`issueStoreCookie`/`verifyStoreCookie` in `@luxematch/tenant`) ✅ · B4 (config makes `SHOP_JEWELLER_ID` optional and adds B2B env vars) ✅ · B5 (page/API middleware guards for manufacturer + store) ✅ · B6 (B2B API routes in `apps/web/lib/api/manufacturer.ts`, `store.ts`, route mounts) ✅ · B7 manufacturer portal UI ✅ (layout, login, dashboard, catalog/products with image upload, stores, orders + tracking) · B8 store portal UI ✅ (store login, manufacturer catalog, session B2B cart, order create/history/detail/cancel, JewellerLayout nav) · B9 core fulfillment ✅ (delivered B2B orders create/update store inventory, copy catalog images, copy marked try-on PNGs, track `fulfilled_at`/`fulfilled_product_ids`) · B10 tenancy refactor partial (store cookie is now checked before env in page middleware, `tenantMiddleware`, and `pinGuard`; native `/search/image` uses tenant-scoped LuxeMatch search; still needs full browser smoke-test and remaining non-request/script/build surfaces).
+**B2B progress:** B1 (migration `0005_b2b_platform.sql`, B2B tables + fulfillment columns + manufacturer image try-on flags) ✅ · B2 (DB helpers: `packages/db/src/manufacturers.ts`, `stores.ts`, `b2b.ts`) ✅ · B3 (cookie auth: `issueManufacturerCookie`/`verifyManufacturerCookie`/`issueStoreCookie`/`verifyStoreCookie` in `@luxematch/tenant`) ✅ · B4 (config makes `SHOP_JEWELLER_ID` optional and adds B2B env vars) ✅ · B5 (page/API middleware guards for manufacturer + store) ✅ · B6 (B2B API routes in `apps/web/lib/api/manufacturer.ts`, `store.ts`, route mounts) ✅ · B7 manufacturer portal UI ✅ (layout, login, dashboard, catalog/products with image upload, stores, orders + tracking) · B8 store portal UI ✅ (store login, manufacturer catalog, session B2B cart, order create/history/detail/cancel, JewellerLayout nav) · B9 core fulfillment ✅ (delivered B2B orders create/update store inventory, copy catalog images, copy marked try-on PNGs, track `fulfilled_at`/`fulfilled_product_ids`) · B10 tenancy refactor partial (store cookie is now checked before env in page middleware, `tenantMiddleware`, and `pinGuard`; native `/search/image` uses tenant-scoped LuxeMatch search; still needs full browser smoke-test and remaining non-request/script/build surfaces) · **B11–B18 complete** (see below).
 
-**NEXT:** Start **B11** from `B2B_PLAN.md`: remove customer-login dependency from the in-store purchase path and build guest customer cart/checkout that creates manufacturer-facing B2B orders with `store_id` and customer details. Keep manufacturer product upload/catalog/design features intact. Then continue B12-B18: store signup/profile branding, guest cart/session, manufacturer/store order dashboards, store owner catalog ordering, and "Store Name + LuxMatch + Powered by Botivate" customer-facing branding. Also redeploy/smoke-test Render + HF embedder when touching deployment. Do **not** touch try-on/AR showcase assets unless explicitly asked. AWS migration parked.
+**B11–B18 complete:** Guest kiosk order flow fully replaces customer-login dependency for in-store purchases:
+- **B11 (guest cart + checkout):** `useGuestCart` / `useGuestCartCount` in `apps/web/hooks/use-guest-cart.ts` — sessionStorage, no login. `ProductCard` + `ProductDetailPanel` use guest cart; cart link → `/kiosk-checkout`. Guest checkout at `/kiosk-checkout` (name, phone, email optional, pickup/delivery toggle, address, notes) → `POST /api/kiosk/orders` → returns `{ id, orderNumber }` → success page `/kiosk-checkout/success`.
+- **B12 (store profile branding):** `/jeweller/store-profile` page — reads `GET /api/store/me`, saves `logo_url`/`tagline`/`website_url` via `PATCH /api/store/branding`. Branding columns added to `stores` table in migration `0006_guest_orders.sql`.
+- **B13 (customer-facing branding):** AppHeader welcome strip shows `StoreName · LuxMatch` + `Powered by Botivate` (right). Footer: "Powered by Botivate". No teal; pearl/gold/velvet system unchanged.
+- **B14 (guest checkout → manufacturer order):** `POST /api/kiosk/orders` — resolves jewellerId from `lm_store` cookie or `SHOP_JEWELLER_ID` env, resolves store + manufacturer, prices from DB, inserts `guest_orders` + `guest_order_items` + first status history row.
+- **B15 (manufacturer kiosk-orders dashboard):** `/manufacturer/kiosk-orders` — shows all guest orders with **store name prominently highlighted**, expandable detail, advance-status buttons (placed→confirmed→packed→shipped→delivered).
+- **B16 (store kiosk-orders dashboard):** `/jeweller/kiosk-orders` — store sees only its own guest orders with expandable detail.
+- **B17 (store owner catalog ordering):** Already covered by B8 (`/jeweller/b2b-orders` + `/jeweller/manufacturer-catalog`).
+- **B18 (branding):** Done in B13 above.
+
+**Migration required:** Apply `supabase/migrations/0006_guest_orders.sql` in Supabase SQL editor — creates `guest_orders`, `guest_order_items`, `guest_order_status_history` tables and adds `logo_url`/`tagline`/`website_url` to `stores`.
+
+**NEXT:** Apply `0006_guest_orders.sql` migration · finish B10 browser smoke-test (`SHOP_JEWELLER_ID` unset, store-cookie-first tenancy end-to-end) · redeploy to Render · verify HF embedder `/health` + live Qdrant search. AWS migration parked.
 
 ## Commands
 
@@ -91,7 +103,7 @@ packages/
   tenant/        SHOP_JEWELLER_ID + PIN cookie + manufacturer cookie + store cookie (all Edge-safe HMAC) + /server (Node scrypt)
   types/         cross-package zod schemas
   ui/            EMPTY placeholder — real UI lives in apps/web/components
-supabase/migrations/  0001_init.sql · 0002_ecommerce.sql · 0003_security_advisor.sql · 0004_customer_avatar.sql · 0005_b2b_platform.sql ; seed.sql (demo jeweller + 12 products + 3 tryon assets, PIN 123456)
+supabase/migrations/  0001_init.sql · 0002_ecommerce.sql · 0003_security_advisor.sql · 0004_customer_avatar.sql · 0005_b2b_platform.sql · 0006_guest_orders.sql (guest_orders + guest_order_items + guest_order_status_history + stores branding columns — **apply this next**) ; seed.sql (demo jeweller + 12 products + 3 tryon assets, PIN 123456)
 scripts/         provision-shop · reindex · seed-intelligence · seasonal-rollup · check-env · smoke-test · run-migration.mjs (env-loaded demo seeder)
 apps/web/public/All_jewelleries/   ~46 temp transparent AR PNGs
 apps/web/lib/showcase-ar-assets.ts 44 hardcoded showcase products prepended to /api/tryon/products
@@ -175,8 +187,21 @@ GET  /api/store/me                         store-gated
 GET  /api/store/catalog                    store-gated — browse active manufacturer products
 GET  /api/store/catalog/:id                store-gated — single manufacturer product
 POST /api/store/orders                     store-gated — place B2B order (prices resolved from DB, never trusted from client)
+POST /api/store/orders                     store-gated — place B2B order (prices resolved from DB, never trusted from client)
 GET  /api/store/orders                     store-gated — this store's B2B orders
 GET  /api/store/orders/:id                 store-gated — with items + history
+PATCH /api/store/branding                  store-gated — update logo_url/tagline/website_url
+GET  /api/store/kiosk-orders               store-gated — this store's guest kiosk orders
+GET  /api/store/kiosk-orders/:id           store-gated — with items + history
+
+# Kiosk / Guest orders (public — no auth required)
+POST /api/kiosk/orders                     public — place guest order (jewellerId from lm_store cookie or SHOP_JEWELLER_ID env)
+GET  /api/kiosk/orders/:id                 public — receipt read (safe public fields only)
+
+# Manufacturer kiosk-orders view
+GET  /api/manufacturer/kiosk-orders        manufacturer-gated — all guest orders for this manufacturer (shows store name)
+GET  /api/manufacturer/kiosk-orders/:id    manufacturer-gated — with items + history
+PATCH /api/manufacturer/kiosk-orders/:id   manufacturer-gated — advance status
 ```
 
 ## Frontend data status
@@ -188,7 +213,7 @@ Most customer pages hit real APIs (catalog, detail, try-on, cart, checkout, orde
 - **`/compare` + `/saved`** — `CompareContext`/`SavedItemsContext` on **`sessionStorage`** (`luxematch_compare`/`luxematch_saved`, max 4 compare). Intentional kiosk reset-between-customers; no `saved_items` table.
 - **`/checkout/success`** — URL-param only; checkout sends a confirmation email when `SMTP_*` env is set.
 
-Cart hooks (all `apps/web/hooks/use-cart.ts`): `useCart()` (full fetch — /cart, /checkout), `useAddToCart()` (POST-only — cards/detail), `useCartCount()` (global listener).
+**Guest kiosk cart** (no login): `apps/web/hooks/use-guest-cart.ts` — `useGuestCart()` (add/update/remove/clear, sessionStorage `luxematch_guest_cart`) · `useGuestCartCount()` (badge-only, cross-tab sync). ProductCard + ProductDetailPanel use guest cart; AppHeader cart → `/kiosk-checkout`. The old `useAddToCart` / `useCartCount` hooks remain in `use-cart.ts` for the legacy customer-auth checkout flow (`/cart`, `/checkout`) which is still mounted but not the primary in-store path.
 
 ## Customer UI direction
 
@@ -288,23 +313,24 @@ Applies to e-commerce too: `customers`/`cart_items`/`orders`/`branches` all carr
 
 ## Known gaps / production blockers (priority order)
 
-1. **Secret rotation** — old Supabase service-role, Cloudinary secret, Qdrant keys were exposed in git history / sibling scripts. `run-migration.mjs` is env-loaded now, but leaked dashboard secrets still need rotating.
-2. **Push/deploy local `production` commits** — P1–P3, email OTP, Security Advisor work is committed locally only.
-3. **Apply pending migrations** in Supabase SQL editor: `0003_security_advisor.sql` (explicit `service_role` policies + fixed function `search_path`; no anon/authenticated grants — rerun the linter after) and `0004_customer_avatar.sql` (customer DP columns — until applied, avatar save/delete error on the unknown column; `/me` degrades to `avatar_url=null`).
-4. **OTP email on a personal Gmail (dev only)** — works E2E but Gmail caps ~500/day, spam risk, not a real sender. Switch to Resend/Brevo + verified domain before real customers. OTP is 8 digits; app accepts 6–8, don't re-narrow.
-5. **Order confirmation email** — checkout sends via optional `SMTP_*` (nodemailer, separate from Supabase Auth SMTP); set in prod env, ideally same provider as #4.
-6. **Product image mapping quality** — real Cloudinary images imported + displayed, but `jewellery_search/*` sources had no metadata so the 12 products were mapped sequentially. Upload per-product photos via the jeweller flow, or add an explicit mapping layer + rerun the importer. Don't touch try-on/AR.
-7. **Embedder live verification** — Hugging Face Docker Space and endpoint are prepared, but `/health`, text/image embedding, Qdrant indexing, and tenant-scoped search still need live smoke tests.
-8. **B10 not complete yet** — store-cookie-first tenancy is implemented in main middleware/API guards, but must be browser-smoked with `SHOP_JEWELLER_ID` unset and audited for SSR/build-time/script paths that still require env tenancy.
-9. **B2B embedding/search bridge needs live smoke** — manufacturer Qdrant helpers, `POST /api/embeddings/manufacturer/:id`, fulfilled-product indexing, and native `/search/image` are coded and typechecked. Still missing: live embedder/Qdrant smoke and optional Jewellery_AI `/add-image` bridge metadata.
-10. **`luxematch-web` on Render free plan** — idle spin-down = cold-start blank kiosk.
-11. **Hardcoded `LUXE10` discount** — no discount table.
-12. **Test coverage** — tenancy guards exist; checkout/order-email + full auth flows + B2B login/order/fulfillment flows lack integration tests.
-13. **Stale docs** — `docs/architecture.md`, `docs/api-contracts.md`, `README.md` (Gemini/Vercel/old schema); `apps/Readme.md` empty.
-14. **Empty `@luxematch/ui`** — placeholder; populate or remove.
+1. **Apply migration `0006_guest_orders.sql`** — guest kiosk order flow is coded but the tables don't exist until this runs. Apply in Supabase SQL editor. Creates `guest_orders`, `guest_order_items`, `guest_order_status_history` and adds `logo_url`/`tagline`/`website_url` to `stores`.
+2. **Secret rotation** — old Supabase service-role, Cloudinary secret, Qdrant keys were exposed in git history / sibling scripts. `run-migration.mjs` is env-loaded now, but leaked dashboard secrets still need rotating.
+3. **Push/deploy local `production` commits** — all B11–B18 work + prior P1–P3, email OTP, Security Advisor work is committed locally only. Redeploy to Render after migration is applied.
+4. **Apply `0004_customer_avatar.sql`** if still pending (customer DP columns — until applied, avatar save/delete errors on unknown column; `/me` degrades to `avatar_url=null`).
+5. **OTP email on a personal Gmail (dev only)** — works E2E but Gmail caps ~500/day, spam risk, not a real sender. Switch to Resend/Brevo + verified domain before real customers. OTP is 8 digits; app accepts 6–8, don't re-narrow.
+6. **Order confirmation email** — checkout sends via optional `SMTP_*` (nodemailer, separate from Supabase Auth SMTP); set in prod env, ideally same provider as #5.
+7. **Product image mapping quality** — real Cloudinary images imported + displayed, but `jewellery_search/*` sources had no metadata so the 12 products were mapped sequentially. Upload per-product photos via the jeweller flow, or add an explicit mapping layer + rerun the importer. Don't touch try-on/AR.
+8. **Embedder live verification** — Hugging Face Docker Space and endpoint are prepared, but `/health`, text/image embedding, Qdrant indexing, and tenant-scoped search still need live smoke tests.
+9. **B10 not complete yet** — store-cookie-first tenancy is implemented in main middleware/API guards, but must be browser-smoked with `SHOP_JEWELLER_ID` unset and audited for SSR/build-time/script paths that still require env tenancy.
+10. **B2B embedding/search bridge needs live smoke** — manufacturer Qdrant helpers, `POST /api/embeddings/manufacturer/:id`, fulfilled-product indexing, and native `/search/image` are coded and typechecked. Still missing: live embedder/Qdrant smoke and optional Jewellery_AI `/add-image` bridge metadata.
+11. **`luxematch-web` on Render free plan** — idle spin-down = cold-start blank kiosk.
+12. **Hardcoded `LUXE10` discount** — no discount table.
+13. **Test coverage** — tenancy guards exist; kiosk guest order flow, B2B login/order/fulfillment flows lack integration tests.
+14. **Stale docs** — `docs/architecture.md`, `docs/api-contracts.md`, `README.md` (Gemini/Vercel/old schema); `apps/Readme.md` empty.
+15. **Empty `@luxematch/ui`** — placeholder; populate or remove.
 
 ## Phase status
 
-Done (✅): -1/0.5/1 scaffold+tenancy · 2 design system · 3 schema+catalog · 4 Cloudinary uploads · 5 OpenCLIP+Qdrant · 6 AR engine · 7 try-on calibration · 8 dashboard+CRUD+analytics · 9.5 intelligence · E1 customer auth/cart/checkout/orders/branches · E2 catalog→checkout wiring · E3 jeweller order mgmt · 9 style quiz · 10 analytics+smoke+vitest+health · 11 deploy config+CORS · 12 PIN hardening · P1 security · P2 kiosk correctness · P3 durable PIN limit+tenancy tests · Stage 3 email OTP+order email · Security Advisor migration · Email OTP live (custom SMTP, 6–8 digit) · Storefront real `product_images` + 12 Cloudinary photos imported · customer cookie-decode fix + sign-in/sign-up + account dashboard + profile pictures (Cloudinary `avatars` + migration `0004`) + cart/checkout/account redesign · customer UI/UX refinements + compare alignment + catalog hover cleanup + mobile profile responsiveness · **B1** migration `0005_b2b_platform.sql` · **B2** DB helpers (manufacturers.ts, stores.ts, b2b.ts) · **B3** cookie auth (manufacturer + store HMAC cookies in `@luxematch/tenant`) · **B4** optional shop env + B2B env vars · **B5** page/API guards · **B6** B2B API routes · **B7** manufacturer portal UI · **B8** store portal UI · **B9** core fulfillB2BOrder.
+Done (✅): -1/0.5/1 scaffold+tenancy · 2 design system · 3 schema+catalog · 4 Cloudinary uploads · 5 OpenCLIP+Qdrant · 6 AR engine · 7 try-on calibration · 8 dashboard+CRUD+analytics · 9.5 intelligence · E1 customer auth/cart/checkout/orders/branches · E2 catalog→checkout wiring · E3 jeweller order mgmt · 9 style quiz · 10 analytics+smoke+vitest+health · 11 deploy config+CORS · 12 PIN hardening · P1 security · P2 kiosk correctness · P3 durable PIN limit+tenancy tests · Stage 3 email OTP+order email · Security Advisor migration · Email OTP live (custom SMTP, 6–8 digit) · Storefront real `product_images` + 12 Cloudinary photos imported · customer cookie-decode fix + sign-in/sign-up + account dashboard + profile pictures (Cloudinary `avatars` + migration `0004`) + cart/checkout/account redesign · customer UI/UX refinements + compare alignment + catalog hover cleanup + mobile profile responsiveness · **B1** migration `0005_b2b_platform.sql` · **B2** DB helpers (manufacturers.ts, stores.ts, b2b.ts) · **B3** cookie auth (manufacturer + store HMAC cookies in `@luxematch/tenant`) · **B4** optional shop env + B2B env vars · **B5** page/API guards · **B6** B2B API routes · **B7** manufacturer portal UI · **B8** store portal UI · **B9** core fulfillB2BOrder · **B10** partial (main middleware + API guards) · **B11** guest kiosk cart (`use-guest-cart.ts`) + checkout (`/kiosk-checkout`) + `POST /api/kiosk/orders` · **B12** store profile branding page (`/jeweller/store-profile`) + `PATCH /api/store/branding` · **B13** AppHeader branding (store name · LuxMatch · Powered by Botivate) + Footer credit · **B14** guest orders → manufacturer via `guest_orders` table + migration `0006_guest_orders.sql` · **B15** manufacturer kiosk-orders dashboard (`/manufacturer/kiosk-orders`) with store identity + status advance · **B16** store kiosk-orders dashboard (`/jeweller/kiosk-orders`) · **B17** already done (B8 store owner catalog ordering) · **B18** done in B13.
 
-Next (⬜): redeploy the corrected Render web runtime · verify the Hugging Face embedder `/health` and live Qdrant search · finish **B10** browser smoke-test + remaining tenancy audit · optional Jewellery_AI `/add-image` bridge metadata · apply `0004_customer_avatar.sql` if still pending · rotate exposed secrets · upload accurate per-product photos · cleanup (discount table, stale docs, empty `@luxematch/ui`). Updated B2B migration/repair and demo manufacturer/store seed are applied. Parked: AWS S3+CloudFront+EC2 migration.
+Next (⬜): **apply `0006_guest_orders.sql`** in Supabase SQL editor (blocker for all guest order functionality) · redeploy to Render (all B11–B18 changes are local only) · finish **B10** browser smoke-test with `SHOP_JEWELLER_ID` unset · verify Hugging Face embedder `/health` + live Qdrant search · apply `0004_customer_avatar.sql` if still pending · rotate exposed secrets · upload accurate per-product photos · cleanup (discount table, stale docs, empty `@luxematch/ui`). Parked: AWS S3+CloudFront+EC2 migration.
