@@ -107,6 +107,10 @@ export default function Footer() {
             <span>Powered by Botivate</span>
             <span className="mx-2">·</span>
             <span>© 2025 LuxeMatch. All rights reserved.</span>
+            <span className="mx-2">·</span>
+            <Link href="/portal">
+              <span className="text-white/20 hover:text-white/40 transition-colors cursor-pointer text-xs">Staff Portal</span>
+            </Link>
           </div>
         </div>
       </div>

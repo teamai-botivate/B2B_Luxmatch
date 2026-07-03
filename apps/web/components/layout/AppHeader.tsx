@@ -4,13 +4,12 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
-import { Search, Heart, GitCompare, Menu, Sparkles, LayoutDashboard, ShoppingBag, User } from "lucide-react";
+import { Search, Heart, GitCompare, Menu, Sparkles, LayoutDashboard, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSavedItems } from "@/contexts/SavedItemsContext";
 import { useCompare } from "@/contexts/CompareContext";
 import { useShop } from "@/hooks/use-shop";
 import { useGuestCartCount } from "@/hooks/use-guest-cart";
-import { useCustomer } from "@/hooks/use-customer";
 import MobileNav from "./MobileNav";
 
 const navLinks = [
@@ -33,7 +32,6 @@ export default function AppHeader() {
   const { compareItems } = useCompare();
   const shop = useShop();
   const cartCount = useGuestCartCount();
-  const { customer } = useCustomer();
 
   useEffect(() => {
     setMounted(true);
@@ -163,19 +161,6 @@ export default function AppHeader() {
                   <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 text-[10px] font-semibold bg-primary text-primary-foreground rounded-full flex items-center justify-center">
                     {cartCount}
                   </span>
-                )}
-              </button>
-            </Link>
-
-            {/* Account */}
-            <Link href={customer ? '/account' : '/login'}>
-              <button
-                className="relative rounded-xl p-2 transition-colors hover:bg-black/5"
-                aria-label="Account"
-              >
-                <User className="w-4 h-4 text-muted-foreground hover:text-foreground transition-colors" />
-                {mounted && customer && (
-                  <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 border-2 border-background" />
                 )}
               </button>
             </Link>
