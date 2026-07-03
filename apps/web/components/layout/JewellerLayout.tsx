@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
-import { LayoutDashboard, Package, BarChart3, Settings, ArrowLeft, Menu, Lightbulb, ShoppingBag, Lock, Gem, Truck } from "lucide-react";
+import { LayoutDashboard, Package, BarChart3, Settings, ArrowLeft, Menu, Lightbulb, ShoppingBag, Lock, Gem, Truck, Users, Store } from "lucide-react";
 
 const navItems = [
   { label: "Dashboard", href: "/jeweller/dashboard", icon: LayoutDashboard },
@@ -12,8 +12,10 @@ const navItems = [
   { label: "Orders", href: "/jeweller/orders", icon: ShoppingBag },
   { label: "Manufacturer Catalog", href: "/jeweller/manufacturer-catalog", icon: Gem },
   { label: "B2B Orders", href: "/jeweller/b2b-orders", icon: Truck },
+  { label: "Kiosk Orders", href: "/jeweller/kiosk-orders", icon: Users },
   { label: "Analytics", href: "/jeweller/analytics", icon: BarChart3 },
   { label: "Intelligence", href: "/jeweller/intelligence", icon: Lightbulb },
+  { label: "Store Profile", href: "/jeweller/store-profile", icon: Store },
   { label: "Settings", href: "/jeweller/settings", icon: Settings },
 ];
 

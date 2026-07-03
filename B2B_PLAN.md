@@ -4,8 +4,89 @@
 > Manufacturer uploads a global design catalog → Stores browse & order from it → End customers shop at each store via visual search + AR try-on.
 >
 > **Rule:** Catalog app (`../Catalog`) is retired once this plan is complete. All its features live here.
-> **Rule:** Existing customer flow (cart, checkout, orders, AR, search) is NOT touched.
+> **Rule:** Manufacturer catalog/product upload/design management stays as-is unless a new order flow needs read-only data from it.
+> **Rule:** Customer account login is now deprecated for the B2B in-store flow. Customers should order as guests from the store device.
 > **Rule:** Device-mode deployments (single `SHOP_JEWELLER_ID` in env) keep working throughout.
+
+---
+
+## Current Product Direction (Post-B1-B10)
+
+The B1-B10 platform work created the manufacturer portal, store portal, B2B catalog, B2B order foundations, and cookie-based store tenancy. The next work changes the customer purchase model:
+
+```
+Customer does not login.
+Customer uses the store device/kiosk.
+Customer browses/searches/tries jewellery and adds items to a cart.
+Customer fills a short order form.
+Order is created directly for the manufacturer.
+Store can see and track the order because every order stores store_id.
+Manufacturer can see exactly which store the order came from.
+Store hands over/delivers the jewellery to the customer after fulfillment.
+```
+
+Branding hierarchy for customer-facing screens:
+
+```
+Primary: <Store Name>
+Product/platform: LuxMatch
+Credit: Powered by Botivate
+```
+
+AT Jewellers/LuxMatch owns the software platform. Registered stores should see their own store name as the primary retail identity.
+
+### New Order Sources
+
+```
+customer_kiosk_order
+  Created by an end customer on a store device.
+  Requires customer name, phone, address/pickup preference, and notes.
+  Goes directly to the manufacturer.
+  Store tracks status and handles customer handover.
+
+store_owner_order
+  Created by a logged-in store owner from the manufacturer catalog.
+  Customer fields are optional.
+  Used for customer-assisted orders or store restock.
+```
+
+### Target Order Status Flow
+
+```
+pending
+accepted
+in_production
+packed
+shipped_to_store
+arrived_at_store
+customer_notified
+delivered_to_customer
+cancelled
+```
+
+Manufacturer controls `pending → shipped_to_store`.
+Store controls `arrived_at_store → delivered_to_customer`.
+
+### Required Next Phases
+
+| Phase | What | Risk | Touches existing code? |
+|-------|------|------|------------------------|
+| B11 | Remove customer-login dependency from cart/checkout | High | Yes |
+| B12 | Store public signup/login polish + store profile branding | Medium | Yes |
+| B13 | Guest cart/session model for in-store customers | Medium | Yes |
+| B14 | Guest checkout form creates manufacturer B2B order | High | Yes |
+| B15 | Manufacturer order dashboard shows store + customer source details | Medium | Yes |
+| B16 | Store dashboard tracks customer kiosk orders + handover statuses | Medium | Yes |
+| B17 | Store owner catalog ordering supports customer-assisted/restock orders | Low | Existing B8/B9 extension |
+| B18 | Update customer-facing UI labels/branding: store name + LuxMatch + Powered by Botivate | Low | Yes |
+
+Start implementation from **B11**. Do not rewrite manufacturer product upload/catalog unless a field is required to display/order existing products.
+
+---
+
+## Legacy B1-B10 Plan Status
+
+The section below documents the completed/mostly completed B1-B10 implementation. Keep it for history and schema/API context, but new work should follow the post-B1-B10 phases above.
 
 ---
 

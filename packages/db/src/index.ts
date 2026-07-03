@@ -154,4 +154,24 @@ export {
   type FulfillB2BOrderResult,
 } from './b2b';
 
+export {
+  placeGuestOrder,
+  updateGuestOrderStatus,
+  getGuestOrdersByStore,
+  getGuestOrdersByManufacturer,
+  getGuestOrderWithItems,
+  getStoreBranding,
+  updateStoreBranding,
+  type GuestOrderRow,
+  type GuestOrderItemRow,
+  type GuestOrderStatusHistoryRow,
+  type GuestOrderWithItems,
+  type GuestOrderStatus,
+  type GuestOrderSource,
+  type PlaceGuestOrderInput,
+  type PlaceGuestOrderItemInput,
+  type StoreBranding,
+  type StoreProfile,
+} from './guest-orders';
+
 export const PACKAGE_NAME = '@luxematch/db';

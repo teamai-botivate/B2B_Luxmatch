@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { useSavedItems } from "@/contexts/SavedItemsContext";
 import { useCompare } from "@/contexts/CompareContext";
 import { useShop } from "@/hooks/use-shop";
-import { useCartCount } from "@/hooks/use-cart";
+import { useGuestCartCount } from "@/hooks/use-guest-cart";
 import { useCustomer } from "@/hooks/use-customer";
 import MobileNav from "./MobileNav";
 
@@ -32,7 +32,7 @@ export default function AppHeader() {
   const { savedItems } = useSavedItems();
   const { compareItems } = useCompare();
   const shop = useShop();
-  const cartCount = useCartCount();
+  const cartCount = useGuestCartCount();
   const { customer } = useCustomer();
 
   useEffect(() => {
@@ -70,17 +70,21 @@ export default function AppHeader() {
             generic line when the shop API is unreachable so the layout
             stays stable. */}
         <div
-          className="truncate bg-[#191511] px-3 py-1.5 text-center text-xs tracking-wider text-[#e4cf8f] md:px-6 lg:px-12"
+          className="bg-[#191511] px-3 py-1.5 text-xs tracking-wider text-[#e4cf8f] md:px-6 lg:px-12 flex items-center justify-between gap-2"
           data-testid="shop-welcome-strip"
         >
-          {shop ? (
-            <>
-              Welcome to <span className="font-semibold text-[#f8e7af]">{shop.store_name}</span>
-              {shop.city ? <span className="text-[#c9b98b]"> · {shop.city}</span> : null}
-            </>
-          ) : (
-            <span className="text-[#c9b98b]">Welcome to LuxeMatch</span>
-          )}
+          <span className="truncate">
+            {shop ? (
+              <>
+                <span className="font-semibold text-[#f8e7af]">{shop.store_name}</span>
+                {shop.city ? <span className="text-[#c9b98b]"> · {shop.city}</span> : null}
+                <span className="text-[#7a6a48] ml-1.5">· LuxMatch</span>
+              </>
+            ) : (
+              <span className="text-[#c9b98b]">LuxMatch</span>
+            )}
+          </span>
+          <span className="flex-shrink-0 text-[#5a4f38]">Powered by Botivate</span>
         </div>
         <div className="mx-auto flex h-16 max-w-[1400px] items-center justify-between gap-2 px-3 sm:px-4 md:px-6 lg:px-12">
           {/* Logo */}
@@ -149,7 +153,7 @@ export default function AppHeader() {
             </Link>
 
             {/* Cart */}
-            <Link href="/cart">
+            <Link href="/kiosk-checkout">
               <button
                 className="relative p-2 rounded-xl hover:bg-accent transition-colors"
                 aria-label="Cart"

@@ -104,7 +104,7 @@ export default function Footer() {
           </div>
           <div className="flex items-center gap-1.5 text-sm text-white/40">
             <Sparkles className="w-3.5 h-3.5 text-[#C9A84C]" />
-            <span>Powered by AI</span>
+            <span>Powered by Botivate</span>
             <span className="mx-2">·</span>
             <span>© 2025 LuxeMatch. All rights reserved.</span>
           </div>

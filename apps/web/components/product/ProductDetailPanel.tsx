@@ -11,7 +11,7 @@ import { Product } from "@/lib/mock-data";
 import { useShop } from "@/hooks/use-shop";
 import { useSavedItems } from "@/contexts/SavedItemsContext";
 import { useCompare } from "@/contexts/CompareContext";
-import { useAddToCart } from "@/hooks/use-cart";
+import { useGuestCart } from "@/hooks/use-guest-cart";
 import { trackEvent } from "@/lib/analytics";
 
 interface ProductDetailPanelProps {
@@ -22,7 +22,7 @@ export default function ProductDetailPanel({ product }: ProductDetailPanelProps)
   const router = useRouter();
   const { isSaved, toggleSave } = useSavedItems();
   const { isCompared, toggleCompare } = useCompare();
-  const addToCart = useAddToCart();
+  const guestCart = useGuestCart();
   const shop = useShop();
   const [adding, setAdding] = useState(false);
   const [added, setAdded] = useState(false);
@@ -36,17 +36,21 @@ export default function ProductDetailPanel({ product }: ProductDetailPanelProps)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product.id]);
 
-  async function handleAddToCart() {
+  function handleAddToCart() {
     setAdding(true);
-    const ok = await addToCart(product.id);
+    guestCart.add({
+      productId: product.id,
+      name: product.name,
+      sku: null,
+      imageUrl: product.images?.[0]?.url ?? null,
+      category: product.category ?? null,
+      metal: product.metal ?? null,
+      unitPrice: product.price,
+    });
     setAdding(false);
-    if (ok) {
-      setAdded(true);
-      trackEvent('cart_add', { productId: product.id });
-      setTimeout(() => setAdded(false), 2000);
-    } else {
-      router.push('/login');
-    }
+    setAdded(true);
+    trackEvent('cart_add', { productId: product.id });
+    setTimeout(() => setAdded(false), 2000);
   }
 
   const specs = [
@@ -89,7 +93,7 @@ export default function ProductDetailPanel({ product }: ProductDetailPanelProps)
       <div className="flex gap-3">
         <Button
           className="flex-1 rounded-full bg-primary text-primary-foreground hover:opacity-90 transition-all hover:scale-[1.02] flex items-center gap-2"
-          onClick={() => void handleAddToCart()}
+          onClick={() => handleAddToCart()}
           disabled={adding}
           data-testid="button-add-to-cart"
         >
@@ -98,7 +102,7 @@ export default function ProductDetailPanel({ product }: ProductDetailPanelProps)
         </Button>
         <Button
           className="flex-1 rounded-full border border-primary text-primary bg-primary/5 hover:bg-primary/10 transition-all flex items-center gap-2"
-          onClick={() => { void handleAddToCart().then(() => router.push('/checkout')); }}
+          onClick={() => { handleAddToCart(); router.push('/kiosk-checkout'); }}
           disabled={adding}
           data-testid="button-buy-now"
         >

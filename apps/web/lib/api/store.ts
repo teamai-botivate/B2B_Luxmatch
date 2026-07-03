@@ -8,6 +8,9 @@ import {
   getB2BOrdersByStore,
   getB2BOrderWithItems,
   updateB2BOrderStatus,
+  getGuestOrdersByStore,
+  getGuestOrderWithItems,
+  updateStoreBranding,
   type ManufacturerProductFilters,
 } from '@luxematch/db';
 import { issueStoreCookie, STORE_COOKIE_NAME } from '@luxematch/tenant';
@@ -194,4 +197,41 @@ storeRoutes.delete('/orders/:id', async (c) => {
   }
   await updateB2BOrderStatus(c.req.param('id'), 'cancelled', 'Cancelled by store');
   return sendData(c, { ok: true });
+});
+
+// ── Store branding ────────────────────────────────────────────────────────────
+
+const BrandingBody = z.object({
+  logo_url: z.string().url().optional().or(z.literal('')),
+  tagline: z.string().max(160).optional(),
+  website_url: z.string().url().optional().or(z.literal('')),
+});
+
+// PATCH /api/store/branding — update store branding fields
+storeRoutes.patch('/branding', zValidator('json', BrandingBody), async (c) => {
+  const body = c.req.valid('json');
+  await updateStoreBranding(c.get('storeId'), {
+    logo_url: body.logo_url || null,
+    tagline: body.tagline || null,
+    website_url: body.website_url || null,
+  });
+  return sendData(c, { ok: true });
+});
+
+// ── Kiosk / Guest Orders (store view) ────────────────────────────────────────
+
+// GET /api/store/kiosk-orders  — store sees only its own guest orders
+storeRoutes.get('/kiosk-orders', async (c) => {
+  const orders = await getGuestOrdersByStore(c.get('storeId'));
+  return sendData(c, orders);
+});
+
+// GET /api/store/kiosk-orders/:id
+storeRoutes.get('/kiosk-orders/:id', async (c) => {
+  const order = await getGuestOrderWithItems(c.req.param('id'));
+  if (!order) return sendError(c, 'not_found', 'Order not found', 404);
+  if (order.store_id !== c.get('storeId')) {
+    return sendError(c, 'forbidden', 'Not your order', 403);
+  }
+  return sendData(c, order);
 });

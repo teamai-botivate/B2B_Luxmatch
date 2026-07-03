@@ -12,7 +12,11 @@ A **B2B jewellery platform** with three actors:
 
 1. **Manufacturer** — global admin. Uploads product designs, manages a catalog, receives and fulfills B2B orders from stores. Portal at `/manufacturer/`.
 2. **Store (Retailer)** — tenant-isolated via `jeweller_id`. Logs in, browses manufacturer catalog, places B2B orders, runs its own storefront for end customers. Portal extensions at `/jeweller/` + `/store/login`.
-3. **End Customer** — visits the store kiosk, searches by photo, AR try-on, cart → orders. Flow unchanged from original LuxeMatch.
+3. **End Customer** — visits the store kiosk, searches by photo, AR try-on, adds items to cart, fills a short guest order form. Customer login/account is deprecated for the B2B in-store flow.
+
+**Current product decision:** customer orders should go directly to the manufacturer, not to a separate customer-account order system. Every order must carry `manufacturer_id`, `store_id`, store identity/contact snapshot, customer details, order source, and status history. The store can see and track orders from its own `store_id`; the manufacturer can see which store each order came from.
+
+Branding hierarchy for customer-facing pages: primary = registered store name, product/platform = LuxMatch, credit = `Powered by Botivate`. Manufacturer product upload/catalog/design management stays intact; only auth, cart/checkout, and order-routing flows change next.
 
 Originally single-store-per-device (`SHOP_JEWELLER_ID` env). **B2B mode** is now being built: `SHOP_JEWELLER_ID` is optional in config; `storeGuard` middleware resolves `jewellerId` from the `lm_store` cookie instead. `getShopJewellerIdOptional()` returns undefined when blank; routes that need it use `storeGuard` which overwrites `shopJewellerId` from the cookie payload — all existing DB helpers work transparently.
 
@@ -20,7 +24,7 @@ New Supabase project: `xcvlswahgglygqfewolf`. `plan.txt` / `B2B_PLAN.md` are the
 
 ## Build state
 
-All core phases (-1→12) + e-commerce (E1–E3) + B2B phases B1–B9 are landed in code; B10 tenancy refactor is started but not fully proven end-to-end. Highlights:
+All core phases (-1→12) + e-commerce (E1–E3) + B2B phases B1–B9 are landed in code; B10 tenancy refactor is started but not fully proven end-to-end. The next product phase is B11+ from `B2B_PLAN.md`: remove customer-login dependency and replace customer checkout with guest kiosk orders sent directly to the manufacturer. Highlights:
 
 - **Inventory intelligence (9.5)** — heuristic recs on `/jeweller/dashboard` + `/jeweller/intelligence`.
 - **E-commerce** — Supabase Auth email OTP, cart, checkout, orders, multi-branch. Migrations `0002_ecommerce.sql` + `0003_security_advisor.sql`.
@@ -41,7 +45,7 @@ All core phases (-1→12) + e-commerce (E1–E3) + B2B phases B1–B9 are landed
 
 **B2B progress:** B1 (migration `0005_b2b_platform.sql`, B2B tables + fulfillment columns + manufacturer image try-on flags) ✅ · B2 (DB helpers: `packages/db/src/manufacturers.ts`, `stores.ts`, `b2b.ts`) ✅ · B3 (cookie auth: `issueManufacturerCookie`/`verifyManufacturerCookie`/`issueStoreCookie`/`verifyStoreCookie` in `@luxematch/tenant`) ✅ · B4 (config makes `SHOP_JEWELLER_ID` optional and adds B2B env vars) ✅ · B5 (page/API middleware guards for manufacturer + store) ✅ · B6 (B2B API routes in `apps/web/lib/api/manufacturer.ts`, `store.ts`, route mounts) ✅ · B7 manufacturer portal UI ✅ (layout, login, dashboard, catalog/products with image upload, stores, orders + tracking) · B8 store portal UI ✅ (store login, manufacturer catalog, session B2B cart, order create/history/detail/cancel, JewellerLayout nav) · B9 core fulfillment ✅ (delivered B2B orders create/update store inventory, copy catalog images, copy marked try-on PNGs, track `fulfilled_at`/`fulfilled_product_ids`) · B10 tenancy refactor partial (store cookie is now checked before env in page middleware, `tenantMiddleware`, and `pinGuard`; native `/search/image` uses tenant-scoped LuxeMatch search; still needs full browser smoke-test and remaining non-request/script/build surfaces).
 
-**NEXT:** Redeploy the current Docker revision and smoke-test the Render web service against the Hugging Face embedder. Then finish B10 properly: run browser smoke tests with `SHOP_JEWELLER_ID` unset, verify store login unlocks all `/jeweller/*` pages and customer/public tenant APIs, and audit server-rendered/build-time paths and scripts that still assume env tenancy. The updated B2B migration/repair and demo manufacturer/store seed have been applied. Remaining production work includes live Qdrant embedding/search smoke tests, `0004_customer_avatar.sql` if still pending, transactional SMTP, secret rotation, and accurate per-product photos. Do **not** touch try-on/AR showcase assets unless explicitly asked. AWS migration parked.
+**NEXT:** Start **B11** from `B2B_PLAN.md`: remove customer-login dependency from the in-store purchase path and build guest customer cart/checkout that creates manufacturer-facing B2B orders with `store_id` and customer details. Keep manufacturer product upload/catalog/design features intact. Then continue B12-B18: store signup/profile branding, guest cart/session, manufacturer/store order dashboards, store owner catalog ordering, and "Store Name + LuxMatch + Powered by Botivate" customer-facing branding. Also redeploy/smoke-test Render + HF embedder when touching deployment. Do **not** touch try-on/AR showcase assets unless explicitly asked. AWS migration parked.
 
 ## Commands
 

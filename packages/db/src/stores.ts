@@ -11,6 +11,9 @@ export type StoreRow = {
   password_hash: string;
   city: string | null;
   phone: string | null;
+  logo_url: string | null;
+  tagline: string | null;
+  website_url: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -34,7 +37,7 @@ export async function getStoreById(id: string): Promise<StorePublic | null> {
   const sb = getSupabaseServer();
   const { data, error } = await sb
     .from('stores')
-    .select('id, jeweller_id, manufacturer_id, name, email, city, phone, is_active, created_at, updated_at')
+    .select('id, jeweller_id, manufacturer_id, name, email, city, phone, logo_url, tagline, website_url, is_active, created_at, updated_at')
     .eq('id', id)
     .maybeSingle();
   if (error) throw new Error(`getStoreById: ${error.message}`);
@@ -45,7 +48,7 @@ export async function getStoreByJewellerId(jewellerId: string): Promise<StorePub
   const sb = getSupabaseServer();
   const { data, error } = await sb
     .from('stores')
-    .select('id, jeweller_id, manufacturer_id, name, email, city, phone, is_active, created_at, updated_at')
+    .select('id, jeweller_id, manufacturer_id, name, email, city, phone, logo_url, tagline, website_url, is_active, created_at, updated_at')
     .eq('jeweller_id', jewellerId)
     .maybeSingle();
   if (error) throw new Error(`getStoreByJewellerId: ${error.message}`);
@@ -68,7 +71,7 @@ export async function listStoresByManufacturer(
   const sb = getSupabaseServer();
   const { data, error } = await sb
     .from('stores')
-    .select('id, jeweller_id, manufacturer_id, name, email, city, phone, is_active, created_at, updated_at')
+    .select('id, jeweller_id, manufacturer_id, name, email, city, phone, logo_url, tagline, website_url, is_active, created_at, updated_at')
     .eq('manufacturer_id', manufacturerId)
     .order('created_at', { ascending: false });
   if (error) throw new Error(`listStoresByManufacturer: ${error.message}`);
@@ -100,7 +103,7 @@ export async function createStore(input: CreateStoreInput): Promise<StorePublic>
       phone: input.phone ?? null,
       is_active: true,
     })
-    .select('id, jeweller_id, manufacturer_id, name, email, city, phone, is_active, created_at, updated_at')
+    .select('id, jeweller_id, manufacturer_id, name, email, city, phone, logo_url, tagline, website_url, is_active, created_at, updated_at')
     .single();
   if (error) throw new Error(`createStore: ${error.message}`);
   return data as StorePublic;
@@ -117,7 +120,7 @@ export async function updateStoreStatus(
     .update({ is_active: isActive, updated_at: new Date().toISOString() })
     .eq('id', storeId)
     .eq('manufacturer_id', manufacturerId)
-    .select('id, jeweller_id, manufacturer_id, name, email, city, phone, is_active, created_at, updated_at')
+    .select('id, jeweller_id, manufacturer_id, name, email, city, phone, logo_url, tagline, website_url, is_active, created_at, updated_at')
     .single();
   if (error) throw new Error(`updateStoreStatus: ${error.message}`);
   return data as StorePublic;

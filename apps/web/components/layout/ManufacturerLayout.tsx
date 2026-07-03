@@ -11,12 +11,14 @@ import {
   Menu,
   Factory,
   Store,
+  Users,
 } from 'lucide-react';
 
 const navItems = [
   { label: 'Dashboard', href: '/manufacturer/dashboard', icon: LayoutDashboard },
   { label: 'Catalog', href: '/manufacturer/catalog', icon: Package },
   { label: 'Orders', href: '/manufacturer/orders', icon: ShoppingBag },
+  { label: 'Kiosk Orders', href: '/manufacturer/kiosk-orders', icon: Users },
   { label: 'Stores', href: '/manufacturer/stores', icon: Store },
 ];
 

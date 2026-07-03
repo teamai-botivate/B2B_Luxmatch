@@ -15,7 +15,11 @@ import {
   createStore,
   listStoresByManufacturer,
   updateStoreStatus,
+  getGuestOrdersByManufacturer,
+  getGuestOrderWithItems,
+  updateGuestOrderStatus,
   type B2BOrderStatus,
+  type GuestOrderStatus,
 } from '@luxematch/db';
 import { issueManufacturerCookie, MANUFACTURER_COOKIE_NAME } from '@luxematch/tenant';
 import { zValidator } from '@hono/zod-validator';
@@ -292,5 +296,51 @@ manufacturerRoutes.post(
       isPrimary: body.isPrimary ?? product.images.length === 0,
     });
     return sendData(c, image, 201);
+  },
+);
+
+// ── Kiosk / Guest Orders (manufacturer view) ──────────────────────────────────
+
+// GET /api/manufacturer/kiosk-orders
+manufacturerRoutes.get('/kiosk-orders', async (c) => {
+  const orders = await getGuestOrdersByManufacturer(c.get('manufacturerId'));
+  return sendData(c, orders);
+});
+
+// GET /api/manufacturer/kiosk-orders/:id
+manufacturerRoutes.get('/kiosk-orders/:id', async (c) => {
+  const order = await getGuestOrderWithItems(c.req.param('id'));
+  if (!order) return sendError(c, 'not_found', 'Order not found', 404);
+  if (order.manufacturer_id !== c.get('manufacturerId')) {
+    return sendError(c, 'forbidden', 'Not your order', 403);
+  }
+  return sendData(c, order);
+});
+
+const UpdateKioskOrderStatusBody = z.object({
+  status: z.enum(['confirmed', 'packed', 'shipped', 'delivered', 'cancelled']),
+  note: z.string().optional(),
+  trackingNumber: z.string().optional(),
+});
+
+// PATCH /api/manufacturer/kiosk-orders/:id
+manufacturerRoutes.patch(
+  '/kiosk-orders/:id',
+  zValidator('json', UpdateKioskOrderStatusBody),
+  async (c) => {
+    const order = await getGuestOrderWithItems(c.req.param('id'));
+    if (!order) return sendError(c, 'not_found', 'Order not found', 404);
+    if (order.manufacturer_id !== c.get('manufacturerId')) {
+      return sendError(c, 'forbidden', 'Not your order', 403);
+    }
+    const { status, note, trackingNumber } = c.req.valid('json');
+    await updateGuestOrderStatus(
+      c.req.param('id'),
+      status as GuestOrderStatus,
+      note,
+      'manufacturer',
+      trackingNumber,
+    );
+    return sendData(c, { ok: true });
   },
 );

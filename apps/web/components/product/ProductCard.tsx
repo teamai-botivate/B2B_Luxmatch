@@ -10,7 +10,7 @@ import { productImageUrl } from "@/lib/catalog-adapter";
 import { formatINR } from "@/lib/format";
 import { useSavedItems } from "@/contexts/SavedItemsContext";
 import { useCompare } from "@/contexts/CompareContext";
-import { useAddToCart } from "@/hooks/use-cart";
+import { useGuestCart } from "@/hooks/use-guest-cart";
 import { trackEvent } from "@/lib/analytics";
 
 interface ProductCardProps {
@@ -25,23 +25,27 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
   const router = useRouter();
   const { isSaved, toggleSave } = useSavedItems();
   const { isCompared, toggleCompare } = useCompare();
-  const addToCart = useAddToCart();
+  const guestCart = useGuestCart();
   const saved = isSaved(product.id);
   const compared = isCompared(product.id);
 
-  async function handleAddToCart(e: React.MouseEvent) {
+  function handleAddToCart(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
     setAdding(true);
-    const ok = await addToCart(product.id);
+    guestCart.add({
+      productId: product.id,
+      name: product.name,
+      sku: null,
+      imageUrl: product.images[0]?.url ?? null,
+      category: product.category ?? null,
+      metal: product.metal ?? null,
+      unitPrice: product.price,
+    });
     setAdding(false);
-    if (ok) {
-      setAdded(true);
-      trackEvent('cart_add', { productId: product.id });
-      setTimeout(() => setAdded(false), 2000);
-    } else {
-      router.push('/login');
-    }
+    setAdded(true);
+    trackEvent('cart_add', { productId: product.id });
+    setTimeout(() => setAdded(false), 2000);
   }
 
   return (
