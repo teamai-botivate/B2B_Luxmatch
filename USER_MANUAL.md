@@ -19,12 +19,12 @@ python -m uvicorn embedder:app --port 8001
 
 Seed/demo credentials:
 
-| Actor                    | URL                        | Email / PIN                   | Password          |
-| ------------------------ | -------------------------- | ----------------------------- | ----------------- |
-| Manufacturer             | `/manufacturer/login`    | `admin@atjewellers.com`     | `manufacturer123` |
-| Store/Retailer           | `/store/login`           | `store@atjewellers.com`     | `store123`        |
-| Jeweller device PIN mode | `/jeweller/unlock`       | PIN `123456`                | none              |
-| Customer (kiosk)         | No login — guest checkout | name + phone on `/kiosk-checkout` | none         |
+| Actor                    | URL                        | Email / PIN                          | Password       |
+| ------------------------ | -------------------------- | ------------------------------------ | -------------- |
+| Manufacturer             | `/manufacturer/login`    | `admin@atplusjewellers.com`        | `Admin@123`  |
+| Store/Retailer           | `/store/login`           | `store@aurumheritage.com`          | `Store@123`  |
+| Jeweller device PIN mode | `/jeweller/unlock`       | PIN `123456`                       | none           |
+| Customer (kiosk)         | No login — guest checkout | name + phone on `/kiosk-checkout`  | none           |
 
 > **Staff Portal entry point (live site):** Go to any page → scroll to footer → click **Staff Portal**. This opens `/portal` where you choose Store Owner Login or Manufacturer Login.
 
@@ -50,7 +50,6 @@ LuxeMatch has three actors:
    - Receives B2B orders from stores.
    - Receives kiosk orders from end customers (via stores).
    - Updates B2B order and kiosk order status.
-
 2. **Store / Retailer**
 
    - Logs in using store email/password at `/store/login` or via `/portal`.
@@ -58,7 +57,6 @@ LuxeMatch has three actors:
    - After manufacturer delivery, products appear in the store's customer-facing inventory.
    - Views kiosk orders placed by walk-in customers.
    - Manages store branding (store name shown to customers).
-
 3. **End Customer**
 
    - Uses the store kiosk/site — **no login required**.
@@ -68,11 +66,11 @@ LuxeMatch has three actors:
 
 ## Authentication And Authorization
 
-| Cookie              | Who gets it    | Created by                       | Used for                                    | Tenant source              |
-| ------------------- | -------------- | -------------------------------- | ------------------------------------------- | -------------------------- |
-| `lm_manufacturer` | Manufacturer   | `/api/manufacturer/login`      | Manufacturer portal/API                     | `manufacturerId`         |
-| `lm_store`        | Store/Retailer | `/api/store/login`             | Store B2B portal + B2B mode jeweller routes | `jewellerId` inside cookie |
-| `lm_pin`          | Staff/device   | `/api/shop/unlock`             | Jeweller back-office                        | `SHOP_JEWELLER_ID`       |
+| Cookie              | Who gets it    | Created by                  | Used for                                    | Tenant source                |
+| ------------------- | -------------- | --------------------------- | ------------------------------------------- | ---------------------------- |
+| `lm_manufacturer` | Manufacturer   | `/api/manufacturer/login` | Manufacturer portal/API                     | `manufacturerId`           |
+| `lm_store`        | Store/Retailer | `/api/store/login`        | Store B2B portal + B2B mode jeweller routes | `jewellerId` inside cookie |
+| `lm_pin`          | Staff/device   | `/api/shop/unlock`        | Jeweller back-office                        | `SHOP_JEWELLER_ID`         |
 
 > **Customer login/signup is deprecated.** Customers order as guests. The `/login` and `/signup` routes redirect to home.
 
@@ -101,7 +99,7 @@ Enter:
 
 ```text
 admin@atplusjewellers.com
-manufacturer123
+Admin@123
 ```
 
 Click **Sign in**.
@@ -170,23 +168,22 @@ Database:
 /manufacturer/stores
 ```
 
-- **Add Store**: creates a new store login linked to a jeweller tenant.
-- Toggle: activate/deactivate store account.
+Full CRUD available via action icons on each row:
 
-Add Store form fields:
+| Icon | Action | What it does |
+|------|--------|-------------|
+| **Add Store** button | Create | New store login + auto-creates linked `jewellers` row |
+| Pencil icon | Edit | Edit store name, email, city, phone |
+| Key icon | Reset password | Set a new login password (min 6 chars) |
+| Trash icon | Delete | Removes store + linked `jewellers` row permanently |
+| Toggle icon | Activate/Deactivate | Enable or disable store login |
 
-- Store Name, Email, Password, Jeweller ID, City, Phone
-
-Demo linked jeweller ID:
-
-```text
-00000000-0000-0000-0000-00000000d3e1
-```
+Add Store form fields: Store Name, Email, Password, City, Phone
 
 Database:
 
 - `stores.id` — store account ID
-- `stores.jeweller_id` → `jewellers.id`
+- `stores.jeweller_id` → `jewellers.id` (auto-created on Add, auto-deleted on Delete)
 - `stores.manufacturer_id` → `manufacturers.id`
 
 ### 5. Manage B2B Orders (Store Restock)
@@ -203,14 +200,14 @@ Order detail:
 
 Status flow — manufacturer controls:
 
-| Current status | Button shown         | Effect                                          |
-| -------------- | -------------------- | ----------------------------------------------- |
-| `pending`    | **Confirm Order**    | Accept order                                    |
-| `confirmed`  | **Mark Packed**      | Preparing                                       |
-| `packed`     | **Mark Shipped**     | Add tracking number (optional)                  |
-| `shipped`    | **Mark Delivered**   | Triggers `fulfillB2BOrder()` → store inventory |
-| `delivered`  | —                    | Done                                            |
-| `cancelled`  | —                    | Closed                                          |
+| Current status | Button shown             | Effect                                           |
+| -------------- | ------------------------ | ------------------------------------------------ |
+| `pending`    | **Confirm Order**  | Accept order                                     |
+| `confirmed`  | **Mark Packed**    | Preparing                                        |
+| `packed`     | **Mark Shipped**   | Add tracking number (optional)                   |
+| `shipped`    | **Mark Delivered** | Triggers`fulfillB2BOrder()` → store inventory |
+| `delivered`  | —                       | Done                                             |
+| `cancelled`  | —                       | Closed                                           |
 
 **Mark Delivered** triggers:
 
@@ -261,7 +258,7 @@ Enter:
 
 ```text
 store@aurumheritage.com
-store123
+Store@123
 ```
 
 Click **Sign in**.
@@ -372,8 +369,11 @@ Database:
 /try-on
 ```
 
-- Pick AR-ready product, start camera, capture.
-- Only shows products for current `jeweller_id`.
+- Pick AR-ready product (those with a transparent PNG uploaded by manufacturer), start camera, capture.
+- **Try On** button on product cards is shown only when `has_tryon=true` — if no PNG uploaded, button is hidden.
+- Clicking Try On on a product card opens try-on with that product pre-selected.
+- **Add to Bag** button appears in try-on header when a real product is selected — adds to guest cart.
+- X (close) button returns to the originating product page, not home.
 
 ### 4. Guest Checkout (No Login)
 
@@ -472,29 +472,29 @@ SHOP_JEWELLER_ID env → API context shopJewellerId
 
 ### Global Manufacturer Tables
 
-| Table                               | Purpose                            | Key fields                                                    |
-| ----------------------------------- | ---------------------------------- | ------------------------------------------------------------- |
-| `manufacturers`                   | Manufacturer accounts              | `id`, `email`, `password_hash`                          |
-| `manufacturer_products`           | Global wholesale catalog           | `id`, `manufacturer_id`, `sku`, `status`              |
-| `manufacturer_product_images`     | Catalog + try-on images            | `product_id`, `secure_url`, `is_primary`, `is_tryon`  |
-| `manufacturer_product_embeddings` | Manufacturer Qdrant indexing state | `product_id`, `qdrant_point_id`, `indexed_at`           |
+| Table                               | Purpose                            | Key fields                                                   |
+| ----------------------------------- | ---------------------------------- | ------------------------------------------------------------ |
+| `manufacturers`                   | Manufacturer accounts              | `id`, `email`, `password_hash`                         |
+| `manufacturer_products`           | Global wholesale catalog           | `id`, `manufacturer_id`, `sku`, `status`             |
+| `manufacturer_product_images`     | Catalog + try-on images            | `product_id`, `secure_url`, `is_primary`, `is_tryon` |
+| `manufacturer_product_embeddings` | Manufacturer Qdrant indexing state | `product_id`, `qdrant_point_id`, `indexed_at`          |
 
 ### Store / B2B Tables
 
-| Table                        | Purpose                               | Key fields                                                              |
-| ---------------------------- | ------------------------------------- | ----------------------------------------------------------------------- |
-| `stores`                   | Store login linked to jeweller tenant | `id`, `jeweller_id`, `manufacturer_id`, `email`, `logo_url`     |
-| `b2b_orders`               | Store restock order to manufacturer   | `id`, `store_id`, `jeweller_id`, `manufacturer_id`, `status`  |
-| `b2b_order_items`          | B2B order lines                       | `b2b_order_id`, `manufacturer_product_id`, `quantity`             |
-| `b2b_order_status_history` | B2B audit trail                       | `b2b_order_id`, `status`, `note`                                  |
+| Table                        | Purpose                               | Key fields                                                             |
+| ---------------------------- | ------------------------------------- | ---------------------------------------------------------------------- |
+| `stores`                   | Store login linked to jeweller tenant | `id`, `jeweller_id`, `manufacturer_id`, `email`, `logo_url`  |
+| `b2b_orders`               | Store restock order to manufacturer   | `id`, `store_id`, `jeweller_id`, `manufacturer_id`, `status` |
+| `b2b_order_items`          | B2B order lines                       | `b2b_order_id`, `manufacturer_product_id`, `quantity`            |
+| `b2b_order_status_history` | B2B audit trail                       | `b2b_order_id`, `status`, `note`                                 |
 
 ### Kiosk / Guest Order Tables
 
-| Table                          | Purpose                            | Key fields                                                                   |
-| ------------------------------ | ---------------------------------- | ---------------------------------------------------------------------------- |
-| `guest_orders`               | Walk-in customer kiosk orders      | `id`, `store_id`, `manufacturer_id`, `customer_name`, `customer_phone`, `status` |
-| `guest_order_items`          | Kiosk order lines                  | `guest_order_id`, `product_id`, `quantity`, `unit_price_snapshot`      |
-| `guest_order_status_history` | Kiosk order audit trail            | `guest_order_id`, `status`                                               |
+| Table                          | Purpose                       | Key fields                                                                                   |
+| ------------------------------ | ----------------------------- | -------------------------------------------------------------------------------------------- |
+| `guest_orders`               | Walk-in customer kiosk orders | `id`, `store_id`, `manufacturer_id`, `customer_name`, `customer_phone`, `status` |
+| `guest_order_items`          | Kiosk order lines             | `guest_order_id`, `product_id`, `quantity`, `unit_price_snapshot`                    |
+| `guest_order_status_history` | Kiosk order audit trail       | `guest_order_id`, `status`                                                               |
 
 ### Storefront / Inventory Tables
 
@@ -506,20 +506,35 @@ SHOP_JEWELLER_ID env → API context shopJewellerId
 | `product_tryon_assets` | AR try-on assets              | `product_id`, `asset_url`, `jewellery_type`    |
 | `product_embeddings`   | Store product Qdrant indexing | `product_id`, `qdrant_point_id`                  |
 
-## Pending Migration (Apply Before Testing Guest Orders)
+## Pending Migrations (Apply in Supabase SQL Editor)
 
-Migration `0006_guest_orders.sql` must be applied in Supabase SQL editor before the kiosk order flow works end-to-end:
+Apply in this order if not already done:
+
+### 0006_guest_orders.sql — Guest kiosk order tables
 
 ```text
 supabase/migrations/0006_guest_orders.sql
 ```
 
-This creates:
+Creates: `guest_orders`, `guest_order_items`, `guest_order_status_history`
+Adds: `logo_url`, `tagline`, `website_url` to `stores`
 
-- `guest_orders`
-- `guest_order_items`
-- `guest_order_status_history`
-- Adds `logo_url`, `tagline`, `website_url` to `stores`
+> If you get "policy already exists" error, run only the safe idempotent patch (DROP POLICY IF EXISTS + recreate) — see Common Errors below.
+
+### 0007_tryon_assets.sql — AR Try-On asset management
+
+```text
+supabase/migrations/0007_tryon_assets.sql
+```
+
+Adds: `has_tryon` flag to `manufacturer_products`
+Extends: `product_tryon_assets` to support manufacturer products directly (before B2B fulfillment)
+
+### Live DB city update
+
+```sql
+UPDATE jewellers SET city = 'Chhattisgarh' WHERE slug = 'at-jewellers';
+```
 
 ## Test Checklist
 
@@ -530,6 +545,7 @@ Run in Supabase SQL editor in order:
 1. `0004_customer_avatar.sql` (if not applied)
 2. `0005_b2b_platform.sql` (if not applied)
 3. `0006_guest_orders.sql` ← required for kiosk order flow
+4. `0007_tryon_assets.sql` ← required for AR try-on asset management
 
 Verify:
 
@@ -539,6 +555,8 @@ select id, email, jeweller_id from stores;
 select id, name, status from manufacturer_products limit 5;
 select table_name from information_schema.tables
 where table_name in ('guest_orders','guest_order_items','guest_order_status_history');
+select column_name from information_schema.columns
+where table_name = 'manufacturer_products' and column_name = 'has_tryon';
 ```
 
 ### B. Portal Entry Test
@@ -589,13 +607,43 @@ order by updated_at desc;
 
 ## Common Errors
 
-### Policy Already Exists
+### Policy Already Exists (0005)
 
 ```text
 policy "service role all manufacturers" already exists
 ```
 
 Fix: Run `0005_b2b_repair_existing.sql` then rerun `0005_b2b_platform.sql`.
+
+### Policy Already Exists (0006)
+
+```text
+policy "service role all guest_orders" already exists
+```
+
+The tables already exist but policies failed. Run this safe patch instead of the full migration:
+
+```sql
+ALTER TABLE stores
+  ADD COLUMN IF NOT EXISTS logo_url text,
+  ADD COLUMN IF NOT EXISTS tagline text,
+  ADD COLUMN IF NOT EXISTS website_url text;
+
+ALTER TABLE guest_orders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE guest_order_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE guest_order_status_history ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "service role all guest_orders" ON guest_orders;
+DROP POLICY IF EXISTS "service role all guest_order_items" ON guest_order_items;
+DROP POLICY IF EXISTS "service role all guest_order_status_history" ON guest_order_status_history;
+
+CREATE POLICY "service role all guest_orders"
+  ON guest_orders FOR ALL TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "service role all guest_order_items"
+  ON guest_order_items FOR ALL TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "service role all guest_order_status_history"
+  ON guest_order_status_history FOR ALL TO service_role USING (true) WITH CHECK (true);
+```
 
 ### Guest Orders Table Does Not Exist
 
