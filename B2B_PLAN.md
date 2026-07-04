@@ -1,5 +1,29 @@
 # LuxeMatch B2B Platform — Implementation Plan
 
+> **For agents/AI assistants:** Read `AGENT_GUIDE.md` first — it gives you a faster, denser orientation to the whole system. This file is the detailed implementation plan (B1–B21). Most of it is already built; look at the "Current Implementation Status" section below before starting any work.
+
+---
+
+## Current Implementation Status (as of 2026-07-04)
+
+**All B1–B21 phases are complete in code.** This plan is largely historical — use it for context on _why_ things are built the way they are, and for the detailed DB schema / API contract specs that CLAUDE.md summarises.
+
+| Phase range | Status |
+|-------------|--------|
+| B1–B9 | ✅ Complete and deployed |
+| B10 | ⚠️ Partial — main middleware done, full browser smoke-test pending |
+| B11–B19 | ✅ Complete (guest kiosk cart, checkout, order flow, portal selector, customer auth deprecated) |
+| B20 | ✅ Complete (AR try-on asset management, has_tryon flag, manufacturer PNG upload) |
+| B21 | ✅ Complete (store CRUD: edit/reset-password/delete for manufacturer) |
+
+**Migrations to apply (not yet run in Supabase):**
+- `0006_guest_orders.sql` — guest_orders tables + stores branding columns
+- `0007_tryon_assets.sql` — has_tryon on manufacturer_products + manufacturer_product_id on product_tryon_assets
+
+**What's next:** Apply the two migrations → redeploy to Render → B10 browser smoke-test. See CLAUDE.md "Phase status" for the full next list.
+
+---
+
 > **Scope:** Evolve LuxeMatch from a single-store kiosk into a B2B jewellery platform.
 > Manufacturer uploads a global design catalog → Stores browse & order from it → End customers shop at each store via visual search + AR try-on.
 >
