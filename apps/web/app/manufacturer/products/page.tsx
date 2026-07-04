@@ -51,7 +51,7 @@ function ProductModal({
     basePrice: product?.base_price?.toString() ?? '',
     description: product?.description ?? '',
     minOrderQty: product?.min_order_qty?.toString() ?? '1',
-    status: (product?.status ?? 'draft') as Status,
+    status: (product?.status ?? 'active') as Status,
   });
   const [saving, setSaving] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -315,8 +315,8 @@ function ProductModal({
                 value={form.status}
                 onChange={(e) => set('status', e.target.value as Status)}
               >
-                <option value="draft">Draft</option>
                 <option value="active">Active</option>
+                <option value="draft">Draft</option>
                 <option value="archived">Archived</option>
               </select>
             </div>
