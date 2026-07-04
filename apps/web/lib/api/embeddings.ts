@@ -103,6 +103,51 @@ export async function indexProductForJeweller(jewellerId: string, productId: str
   return { ok: true as const, productId: product.id };
 }
 
+export async function indexManufacturerProduct(manufacturerId: string, productId: string) {
+  const product = await getManufacturerProductById(productId);
+  if (!product || product.manufacturer_id !== manufacturerId) {
+    return { ok: false as const, code: 'not_found', message: 'Manufacturer product not found' };
+  }
+  const primaryImage =
+    product.images.find((img) => img.is_primary && !img.is_tryon) ??
+    product.images.find((img) => !img.is_tryon);
+  if (!primaryImage) {
+    return { ok: false as const, code: 'no_image', message: 'No catalog image yet' };
+  }
+
+  const res = await fetch(primaryImage.secure_url);
+  if (!res.ok) {
+    return { ok: false as const, code: 'upstream_failed', message: `Image fetch failed: ${res.status}` };
+  }
+  const buf = Buffer.from(await res.arrayBuffer());
+  const vector = await embedImage(buf);
+
+  const payload: ManufacturerProductPayload = {
+    manufacturer_product_id: product.id,
+    manufacturer_id: product.manufacturer_id,
+    category: product.category,
+    metal: product.metal,
+    purity: product.purity,
+    occasion_tags: product.occasion_tags ?? [],
+    style_tags: product.style_tags ?? [],
+  };
+  await upsertManufacturerProductVector({ productId: product.id, vector, payload });
+  await trackManufacturerProductEmbedding({
+    productId: product.id,
+    imageUrl: primaryImage.secure_url,
+    dimensions: EMBEDDING_DIM,
+  });
+  void addManufacturerImageToJewelleryAi({
+    imageBytes: buf,
+    imageUrl: primaryImage.secure_url,
+    publicId: primaryImage.cloudinary_public_id,
+    productId: product.id,
+    manufacturerId: product.manufacturer_id,
+  }).catch((e) => console.warn('[embeddings] Jewellery_AI bridge failed', e));
+
+  return { ok: true as const, productId: product.id };
+}
+
 // ────────────────────────────────────────────────────────────────────────────
 // POST /api/embeddings/product/:id  // PIN GUARD
 //

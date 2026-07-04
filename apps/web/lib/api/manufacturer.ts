@@ -34,7 +34,7 @@ import { deleteCookie, setCookie } from 'hono/cookie';
 import { z } from 'zod';
 
 import { sendData, sendError } from './envelope';
-import { indexProductForJeweller } from './embeddings';
+import { indexProductForJeweller, indexManufacturerProduct } from './embeddings';
 import { manufacturerGuard } from './middleware';
 
 type Vars = { Variables: { manufacturerId: string } };
@@ -128,10 +128,12 @@ const CreateProductBody = z.object({
 // POST /api/manufacturer/products
 manufacturerRoutes.post('/products', zValidator('json', CreateProductBody), async (c) => {
   const body = c.req.valid('json');
-  const product = await createManufacturerProduct({
-    manufacturerId: c.get('manufacturerId'),
-    ...body,
-  });
+  const manufacturerId = c.get('manufacturerId');
+  const product = await createManufacturerProduct({ manufacturerId, ...body });
+  // Fire-and-forget: index into Qdrant once image is available (no-op if no image yet)
+  void indexManufacturerProduct(manufacturerId, product.id).catch((e) =>
+    console.warn('[manufacturer] auto-embed on create failed', e),
+  );
   return sendData(c, product, 201);
 });
 
@@ -139,12 +141,18 @@ const UpdateProductBody = CreateProductBody.partial().omit({ sku: true });
 
 // PATCH /api/manufacturer/products/:id
 manufacturerRoutes.patch('/products/:id', zValidator('json', UpdateProductBody), async (c) => {
-  const existing = await getManufacturerProductById(c.req.param('id'));
+  const manufacturerId = c.get('manufacturerId');
+  const productId = c.req.param('id');
+  const existing = await getManufacturerProductById(productId);
   if (!existing) return sendError(c, 'not_found', 'Product not found', 404);
-  if (existing.manufacturer_id !== c.get('manufacturerId')) {
+  if (existing.manufacturer_id !== manufacturerId) {
     return sendError(c, 'forbidden', 'Not your product', 403);
   }
-  const updated = await updateManufacturerProduct(c.req.param('id'), c.req.valid('json'));
+  const updated = await updateManufacturerProduct(productId, c.req.valid('json'));
+  // Fire-and-forget: re-index after metadata update
+  void indexManufacturerProduct(manufacturerId, productId).catch((e) =>
+    console.warn('[manufacturer] auto-embed on update failed', e),
+  );
   return sendData(c, updated);
 });
 
@@ -357,6 +365,10 @@ manufacturerRoutes.post(
       secureUrl: body.secureUrl,
       isPrimary: body.isPrimary ?? product.images.length === 0,
     });
+    // Fire-and-forget: index into Qdrant now that image is available
+    void indexManufacturerProduct(c.get('manufacturerId'), c.req.param('id')).catch((e) =>
+      console.warn('[manufacturer] auto-embed on image-add failed', e),
+    );
     return sendData(c, image, 201);
   },
 );
