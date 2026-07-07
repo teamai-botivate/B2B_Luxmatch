@@ -135,7 +135,7 @@ export default function StoreRegisterPage() {
         {/* Header */}
         <div className="text-center">
           <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-            Retailer Portal
+            Jewel Factory · Store Registration
           </p>
           <h1 className="mt-2 text-2xl font-medium tracking-tight">Register your store</h1>
           <p className="mt-1 text-sm text-muted-foreground">

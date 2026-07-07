@@ -118,7 +118,7 @@ export default function AddProductPage() {
       });
       const json = (await res.json().catch(() => ({}))) as { error?: { message: string } };
       if (!res.ok) throw new Error(json.error?.message ?? "Product creation failed");
-      toast({ title: "Product created successfully", description: "Your product is now live on LuxeMatch." });
+      toast({ title: "Product created successfully", description: "Your product is now live on Jewel Factory." });
       router.push("/jeweller/products");
     } catch (e) {
       toast({
@@ -145,7 +145,7 @@ export default function AddProductPage() {
           </button>
           <div>
             <h1 className="text-xl md:text-2xl font-medium tracking-tight">Add New Product</h1>
-            <p className="text-xs text-muted-foreground mt-0.5 hidden sm:block">Fill in the details below to list your product on LuxeMatch</p>
+            <p className="text-xs text-muted-foreground mt-0.5 hidden sm:block">Fill in the details below to list your product on Jewel Factory</p>
           </div>
         </div>
 

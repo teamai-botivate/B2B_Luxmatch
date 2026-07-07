@@ -3,6 +3,7 @@
 import CustomerLayout from "@/components/layout/CustomerLayout";
 
 import { useEffect, useState } from "react";
+import { useShop } from "@/hooks/use-shop";
 import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import { ArrowRight, Camera, Sparkles, X } from "lucide-react";
@@ -34,6 +35,7 @@ function adaptCollection(c: {
 
 export default function HomePage() {
   const router = useRouter();
+  const shop = useShop();
   const [featured, setFeatured] = useState<Product[]>([]);
   const [more, setMore] = useState<Product[]>([]);
   const [collections, setCollections] = useState<Collection[]>([]);
@@ -110,7 +112,7 @@ export default function HomePage() {
                 AI jewellery showroom
               </p>
               <h1 className="font-display max-w-2xl text-5xl font-normal leading-[0.98] tracking-normal text-white sm:text-6xl md:text-7xl">
-                LuxeMatch
+                {shop?.store_name ?? 'Jewel Factory'}
               </h1>
               <p className="mt-5 max-w-md text-lg leading-7 text-white/78">
                 Browse the jeweller&apos;s live catalogue, compare certified pieces, and preview favourites with virtual try-on before checkout.

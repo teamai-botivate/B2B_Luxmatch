@@ -3,7 +3,7 @@
 import { Loader2, ShoppingCart, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import JewellerLayout from '@/components/layout/JewellerLayout';
 import { Button } from '@/components/ui/button';
@@ -15,7 +15,28 @@ export default function NewB2BOrderPage() {
   const router = useRouter();
   const cart = useB2BCart();
   const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [addressPrefilled, setAddressPrefilled] = useState(false);
   const [notes, setNotes] = useState('');
+
+  useEffect(() => {
+    fetch('/api/store/me', { credentials: 'include', cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((json: { data?: { fixed_address_street?: string; fixed_address_city?: string; fixed_address_state?: string; fixed_address_pincode?: string; fixed_address_landmark?: string } } | null) => {
+        if (!json?.data) return;
+        const { fixed_address_street, fixed_address_city, fixed_address_state, fixed_address_pincode, fixed_address_landmark } = json.data;
+        if (!fixed_address_street && !fixed_address_city) return;
+        const parts = [
+          fixed_address_street,
+          fixed_address_landmark || null,
+          fixed_address_city,
+          fixed_address_state,
+        ].filter(Boolean);
+        const formatted = parts.join(', ') + (fixed_address_pincode ? ' - ' + fixed_address_pincode : '');
+        setDeliveryAddress(formatted);
+        setAddressPrefilled(true);
+      })
+      .catch(() => {/* ignore — user can fill manually */});
+  }, []);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -140,9 +161,14 @@ export default function NewB2BOrderPage() {
             <textarea
               className="mt-1 min-h-28 w-full resize-none rounded-md border bg-background px-3 py-2 text-sm"
               value={deliveryAddress}
-              onChange={(e) => setDeliveryAddress(e.target.value)}
+              onChange={(e) => { setDeliveryAddress(e.target.value); setAddressPrefilled(false); }}
               placeholder="Store delivery address"
             />
+            {addressPrefilled && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                Pre-filled with your store&apos;s registered delivery address
+              </p>
+            )}
           </div>
           <div>
             <label className="text-xs font-medium text-muted-foreground">Notes</label>

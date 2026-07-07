@@ -62,7 +62,7 @@ export default function MobileNav({ open, onClose }: MobileNavProps) {
             <div className="flex items-center justify-between px-6 py-5 border-b border-border">
               <Image
                 src="/logo-wordmark.png"
-                alt="LuxeMatch"
+                alt="Jewel Factory"
                 width={140}
                 height={28}
                 className="h-7 w-auto object-contain"

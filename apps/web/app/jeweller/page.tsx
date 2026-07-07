@@ -27,7 +27,7 @@ const benefits = [
 const steps = [
   { num: "1", title: "Create Your Store", sub: "Set up your profile in 3 minutes" },
   { num: "2", title: "Upload Products", sub: "Add photos, specs, and transparent PNGs for AR" },
-  { num: "3", title: "Reach Customers", sub: "Your products appear across LuxeMatch instantly" },
+  { num: "3", title: "Reach Customers", sub: "Your products appear across the Jewel Factory platform instantly" },
 ];
 
 const stagger = {
@@ -115,7 +115,7 @@ export default function JewellerEntryPage() {
             viewport={{ once: true }}
             className="text-center mb-12"
           >
-            <p className="text-xs font-bold uppercase tracking-widest text-primary mb-2">Why LuxeMatch</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-primary mb-2">Why Jewel Factory</p>
             <h2 className="text-3xl font-medium tracking-tight">Everything you need to succeed</h2>
           </motion.div>
           <motion.div
@@ -224,7 +224,7 @@ export default function JewellerEntryPage() {
             className="flex flex-col items-center gap-6"
           >
             <h2 className="text-3xl font-medium tracking-tight">Ready to Get Started?</h2>
-            <p className="text-muted-foreground text-sm">Join LuxeMatch today and reach thousands of customers who are actively searching for jewellery like yours.</p>
+            <p className="text-muted-foreground text-sm">Join Jewel Factory today and reach thousands of customers who are actively searching for jewellery like yours.</p>
             <Button
               onClick={handleGetStarted}
               className="rounded-full px-10 py-3 text-sm font-semibold bg-primary text-primary-foreground hover:opacity-90"

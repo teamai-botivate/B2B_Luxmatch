@@ -49,7 +49,7 @@ function StoreLoginForm() {
       <form onSubmit={submit} className="w-full max-w-sm space-y-5 rounded-xl border bg-card p-6 shadow-sm">
         <div className="text-center">
           <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-            Retailer Portal
+            Jewel Factory · Store Portal
           </p>
           <h1 className="mt-2 text-2xl font-medium tracking-tight">Store sign in</h1>
           <p className="mt-1 text-sm text-muted-foreground">

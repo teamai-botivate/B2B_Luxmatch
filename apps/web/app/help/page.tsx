@@ -8,7 +8,7 @@ import { Mail } from "lucide-react";
 
 const FAQS = [
   { q: "How does Virtual Try-On work?", a: "Virtual Try-On uses AI and your camera to overlay jewellery onto your live image. It uses computer vision to detect your face and hands, then renders jewellery in the correct position. No installation required — it runs entirely in your browser." },
-  { q: "Are all jewellers on LuxeMatch verified?", a: "Yes. Every jeweller goes through a verification process. We check BIS hallmarking compliance, business registration, and quality of products before onboarding any seller." },
+  { q: "Are all jewellers on this platform verified?", a: "Yes. Every jeweller goes through a verification process. We check BIS hallmarking compliance, business registration, and quality of products before onboarding any seller." },
   { q: "How do I return a product?", a: "We offer a 30-day hassle-free returns policy. Simply initiate a return from your order page, and we'll arrange a pickup. Refunds are processed within 5–7 business days." },
   { q: "Why is the camera not working for Try-On?", a: "Your browser needs camera permission for Virtual Try-On. See the camera permissions section below for step-by-step instructions for your browser." },
   { q: "What does BIS Hallmarked mean?", a: "BIS Hallmark is a certification from the Bureau of Indian Standards that guarantees the purity of gold, silver, and platinum jewellery. A hallmarked piece assures you that it meets the purity standard claimed." },
@@ -47,7 +47,7 @@ export default function HelpPage() {
         {/* Camera Permissions */}
         <section className="mb-12">
           <h2 className="text-xl font-medium mb-5">Camera Permissions</h2>
-          <p className="text-sm text-muted-foreground mb-6">LuxeMatch&apos;s Virtual Try-On feature needs camera access. Here&apos;s how to enable it:</p>
+          <p className="text-sm text-muted-foreground mb-6">The Virtual Try-On feature needs camera access. Here&apos;s how to enable it:</p>
           <div className="space-y-4">
             {CAMERA_STEPS.map(({ browser, steps }) => (
               <div key={browser} className="rounded-2xl border border-border p-5">

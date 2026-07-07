@@ -27,8 +27,11 @@ import {
   getGuestOrdersByManufacturer,
   getGuestOrderWithItems,
   updateGuestOrderStatus,
+  listCustomDesignOrdersByManufacturer,
+  updateCustomDesignOrderStatus,
   type B2BOrderStatus,
   type GuestOrderStatus,
+  type CustomDesignOrderStatus,
 } from '@luxematch/db';
 import { issueManufacturerCookie, MANUFACTURER_COOKIE_NAME } from '@luxematch/tenant';
 import { zValidator } from '@hono/zod-validator';
@@ -515,3 +518,33 @@ manufacturerRoutes.post('/store-registrations/:id/reject', async (c) => {
   const store = await rejectStoreRegistration(c.req.param('id'));
   return sendData(c, store);
 });
+
+// ── Custom design orders (C17) ────────────────────────────────────────────────
+
+// GET /api/manufacturer/custom-designs — list all sanitized custom design orders
+manufacturerRoutes.get('/custom-designs', manufacturerGuard, async (c) => {
+  const orders = await listCustomDesignOrdersByManufacturer(c.get('manufacturerId'));
+  return sendData(c, orders);
+});
+
+// PATCH /api/manufacturer/custom-designs/:id — advance order status
+const UpdateCustomDesignStatusBody = z.object({
+  status: z.enum(['pending', 'confirmed', 'in_production', 'packed', 'shipped', 'delivered', 'cancelled']),
+  trackingNumber: z.string().optional(),
+});
+
+manufacturerRoutes.patch(
+  '/custom-designs/:id',
+  manufacturerGuard,
+  zValidator('json', UpdateCustomDesignStatusBody),
+  async (c) => {
+    const { status, trackingNumber } = c.req.valid('json');
+    const order = await updateCustomDesignOrderStatus(
+      c.get('manufacturerId'),
+      c.req.param('id'),
+      status as CustomDesignOrderStatus,
+      trackingNumber,
+    );
+    return sendData(c, order);
+  },
+);

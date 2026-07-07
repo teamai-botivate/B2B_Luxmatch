@@ -214,11 +214,9 @@ export default function TryOnPage() {
     guestCart.add({
       productId: product.id,
       name: product.name,
-      sku: null,
+      designNumber: null,
       imageUrl: product.primary_image_url,
       category: null,
-      metal: null,
-      unitPrice: 0,
     });
     setAddedToCart(true);
     setToast('Added to bag! Complete your order at checkout.');

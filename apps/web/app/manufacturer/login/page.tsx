@@ -51,7 +51,7 @@ export default function ManufacturerLoginPage() {
       >
         <div className="text-center">
           <span className="text-2xl font-semibold">
-            <span style={{ color: '#C9A84C' }}>Luxe</span>Match
+            <span style={{ color: '#C9A84C' }}>Jewel</span> Factory
           </span>
           <p className="mt-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
             Manufacturer Portal

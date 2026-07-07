@@ -393,6 +393,7 @@ export async function placeB2BOrder(input: PlaceB2BOrderInput): Promise<B2BOrder
       notes: input.notes ?? null,
       total_items: totalItems,
       total_amount: totalAmount,
+      pending_manager_approval: true,
     })
     .select()
     .single();
@@ -437,6 +438,7 @@ export async function getB2BOrdersByManufacturer(manufacturerId: string): Promis
     .from('b2b_orders')
     .select('*')
     .eq('manufacturer_id', manufacturerId)
+    .neq('pending_manager_approval', true)
     .order('created_at', { ascending: false });
   if (error) throw new Error(`getB2BOrdersByManufacturer: ${error.message}`);
   return (data ?? []) as B2BOrderRow[];
@@ -651,4 +653,45 @@ export async function fulfillB2BOrder(orderId: string): Promise<FulfillB2BOrderR
   if (markerError) throw new Error(`fulfillB2BOrder marker update: ${markerError.message}`);
 
   return { createdProductIds, updatedProductIds };
+}
+
+// ─── Manager approval helpers for B2B orders ──────────────────────────────────
+
+export async function approveB2BOrder(
+  orderId: string,
+  approvedById: string,
+): Promise<void> {
+  const sb = getSupabaseServer();
+  const { error } = await sb
+    .from('b2b_orders')
+    .update({
+      pending_manager_approval: false,
+      manager_approved_by: approvedById,
+      manager_approved_at: new Date().toISOString(),
+    })
+    .eq('id', orderId);
+  if (error) throw new Error(`approveB2BOrder: ${error.message}`);
+}
+
+export async function rejectB2BOrder(orderId: string): Promise<void> {
+  const sb = getSupabaseServer();
+  const { error } = await sb
+    .from('b2b_orders')
+    .update({ status: 'cancelled', pending_manager_approval: false })
+    .eq('id', orderId);
+  if (error) throw new Error(`rejectB2BOrder: ${error.message}`);
+}
+
+export async function getB2BOrdersPendingByStore(
+  storeId: string,
+): Promise<B2BOrderRow[]> {
+  const sb = getSupabaseServer();
+  const { data, error } = await sb
+    .from('b2b_orders')
+    .select('*')
+    .eq('store_id', storeId)
+    .eq('pending_manager_approval', true)
+    .order('created_at', { ascending: false });
+  if (error) throw new Error(`getB2BOrdersPendingByStore: ${error.message}`);
+  return (data ?? []) as B2BOrderRow[];
 }

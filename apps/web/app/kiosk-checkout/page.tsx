@@ -9,7 +9,6 @@ import CustomerLayout from '@/components/layout/CustomerLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useGuestCart } from '@/hooks/use-guest-cart';
-import { formatINR } from '@/lib/format';
 
 type DeliveryMode = 'delivery' | 'pickup';
 
@@ -129,13 +128,10 @@ export default function KioskCheckoutPage() {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{item.name}</p>
                     <p className="text-xs text-muted-foreground">
-                      Qty: {item.quantity} × {formatINR(item.unitPrice)}
+                      Qty: {item.quantity}
                     </p>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className="text-sm font-semibold tabular-nums">
-                      {formatINR(item.unitPrice * item.quantity)}
-                    </span>
                     <button
                       type="button"
                       onClick={() => cart.remove(item.productId)}
@@ -150,7 +146,7 @@ export default function KioskCheckoutPage() {
             </div>
             <div className="flex items-center justify-between px-4 py-3 border-t bg-muted/10">
               <span className="text-sm font-semibold">Total</span>
-              <span className="text-base font-bold tabular-nums">{formatINR(cart.totals.amount)}</span>
+              <span className="text-base font-bold tabular-nums">{cart.totals.count} item{cart.totals.count !== 1 ? 's' : ''} selected</span>
             </div>
           </section>
 

@@ -8,11 +8,9 @@ const SYNC_EVENT = 'luxematch:guest-cart';
 export type GuestCartItem = {
   productId: string;
   name: string;
-  sku: string | null;
+  designNumber: string | null;
   imageUrl: string | null;
   category: string | null;
-  metal: string | null;
-  unitPrice: number;
   quantity: number;
 };
 
@@ -40,7 +38,7 @@ function calcTotals(items: GuestCartItem[]): GuestCartTotals {
   return items.reduce(
     (acc, i) => ({
       count: acc.count + i.quantity,
-      amount: acc.amount + i.unitPrice * i.quantity,
+      amount: 0,
     }),
     { count: 0, amount: 0 },
   );

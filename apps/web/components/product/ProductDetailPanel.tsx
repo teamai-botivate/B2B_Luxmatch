@@ -41,11 +41,9 @@ export default function ProductDetailPanel({ product }: ProductDetailPanelProps)
     guestCart.add({
       productId: product.id,
       name: product.name,
-      sku: null,
+      designNumber: null,
       imageUrl: product.images?.[0]?.url ?? null,
       category: product.category ?? null,
-      metal: product.metal ?? null,
-      unitPrice: product.price,
     });
     setAdding(false);
     setAdded(true);

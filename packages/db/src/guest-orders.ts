@@ -138,6 +138,8 @@ export async function placeGuestOrder(
       status: 'placed',
       total_items: totalItems,
       total_amount: totalAmount,
+      pending_store_approval: true,
+      forwarded_to_manufacturer: false,
     })
     .select('*')
     .single();
@@ -227,6 +229,7 @@ export async function getGuestOrdersByManufacturer(
     .from('guest_orders')
     .select('*')
     .eq('manufacturer_id', manufacturerId)
+    .neq('pending_store_approval', true)
     .order('created_at', { ascending: false });
   if (status) q = q.eq('status', status);
   const { data, error } = await q;
@@ -298,6 +301,48 @@ export async function getStoreBranding(
     .maybeSingle();
   if (error) throw new Error(`getStoreBranding: ${error.message}`);
   return data as StoreProfile | null;
+}
+
+// ── Manager approval helpers for kiosk orders ─────────────────────────────────
+
+export async function getGuestOrdersByStorePending(
+  storeId: string,
+): Promise<GuestOrderRow[]> {
+  const sb = getSupabaseServer();
+  const { data, error } = await sb
+    .from('guest_orders')
+    .select('*')
+    .eq('store_id', storeId)
+    .eq('pending_store_approval', true)
+    .order('created_at', { ascending: false });
+  if (error) throw new Error(`getGuestOrdersByStorePending: ${error.message}`);
+  return (data ?? []) as GuestOrderRow[];
+}
+
+export async function approveKioskOrder(
+  orderId: string,
+  approvedById: string,
+): Promise<void> {
+  const sb = getSupabaseServer();
+  const { error } = await sb
+    .from('guest_orders')
+    .update({
+      pending_store_approval: false,
+      store_approved_by: approvedById,
+      store_approved_at: new Date().toISOString(),
+      forwarded_to_manufacturer: true,
+    })
+    .eq('id', orderId);
+  if (error) throw new Error(`approveKioskOrder: ${error.message}`);
+}
+
+export async function rejectKioskOrder(orderId: string): Promise<void> {
+  const sb = getSupabaseServer();
+  const { error } = await sb
+    .from('guest_orders')
+    .update({ status: 'cancelled', pending_store_approval: false })
+    .eq('id', orderId);
+  if (error) throw new Error(`rejectKioskOrder: ${error.message}`);
 }
 
 export async function updateStoreBranding(

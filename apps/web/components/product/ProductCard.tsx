@@ -7,7 +7,6 @@ import { Heart, GitCompare, Camera, Award, ShoppingBag } from "lucide-react";
 import { motion } from "motion/react";
 import { Product } from "@/lib/mock-data";
 import { productImageUrl } from "@/lib/catalog-adapter";
-import { formatINR } from "@/lib/format";
 import { useSavedItems } from "@/contexts/SavedItemsContext";
 import { useCompare } from "@/contexts/CompareContext";
 import { useGuestCart } from "@/hooks/use-guest-cart";
@@ -36,11 +35,9 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
     guestCart.add({
       productId: product.id,
       name: product.name,
-      sku: null,
+      designNumber: null,
       imageUrl: product.images[0]?.url ?? null,
       category: product.category ?? null,
-      metal: product.metal ?? null,
-      unitPrice: product.price,
     });
     setAdding(false);
     setAdded(true);
@@ -152,13 +149,7 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
             <Heart className={`w-4 h-4 transition-all ${saved ? "fill-[#C9A84C] text-[#C9A84C] scale-110" : "text-muted-foreground hover:text-foreground"}`} />
           </button>
         </div>
-        <p className="text-xs text-muted-foreground">{product.category} · {product.metal} {product.purity}</p>
-        <p className="text-[15px] font-semibold text-foreground" data-testid={`text-price-${product.id}`}>
-          {formatINR(product.price)}
-          {product.originalPrice && (
-            <span className="ml-2 text-xs font-normal text-muted-foreground line-through">{formatINR(product.originalPrice)}</span>
-          )}
-        </p>
+        <p className="text-xs text-muted-foreground">{product.category} · Gold {product.purity}</p>
       </div>
     </motion.div>
   );

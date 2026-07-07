@@ -41,7 +41,7 @@ function SuccessContent() {
         </div>
 
         <p className="text-xs text-muted-foreground">
-          Powered by Botivate
+          Powered by AT Jewellers
         </p>
       </div>
     </CustomerLayout>

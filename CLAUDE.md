@@ -137,15 +137,15 @@ ADD COLUMN forwarded_to_manufacturer boolean DEFAULT false
 | C9 | Owner: add/delete managers settings panel (`/jeweller/managers`) | ✅ Done |
 | C10 | Auto design number `JF-XXXX` shown in product form + catalog table | ✅ Done |
 | C11 | Remove price + metal from manufacturer product form + API + catalog | ✅ Done |
-| C12 | Customer kiosk → manufacturer catalog (replace store inventory view) | ⬜ Next |
-| C13 | Customer order → store first (manager approval) → manufacturer | ⬜ |
-| C14 | Manager approval gate on store B2B catalog orders | ⬜ |
-| C15 | Custom design request form on customer kiosk | ⬜ |
-| C16 | Manager portal: custom requests view + approve/forward/reject | ⬜ |
-| C17 | Custom design → manufacturer (sanitized, privacy-safe) | ⬜ |
-| C18 | Store fixed address auto-fill on all outgoing orders | ⬜ |
-| C19 | Store branding on kiosk (logo + naam + AT Jewellers footer) | ⬜ |
-| C20 | Jewel Factory branding on portal/login/title pages | ⬜ |
+| C12 | Customer kiosk → manufacturer catalog (replace store inventory view) | ✅ Done |
+| C13 | Customer order → store first (manager approval) → manufacturer | ✅ Done |
+| C14 | Manager approval gate on store B2B catalog orders | ✅ Done |
+| C15 | Custom design request form on customer kiosk | ✅ Done |
+| C16 | Manager portal: custom requests view + approve/forward/reject | ✅ Done |
+| C17 | Custom design → manufacturer (sanitized, privacy-safe) | ✅ Done |
+| C18 | Store fixed address auto-fill on all outgoing orders | ✅ Done |
+| C19 | Store branding on kiosk (logo + naam + AT Jewellers footer) | ✅ Done |
+| C20 | Jewel Factory branding on portal/login/title pages | ✅ Done |
 
 ## Build state
 
@@ -475,7 +475,7 @@ Applies to e-commerce too: `customers`/`cart_items`/`orders`/`branches` all carr
 
 Done (✅): -1/0.5/1 scaffold+tenancy · 2 design system · 3 schema+catalog · 4 Cloudinary uploads · 5 OpenCLIP+Qdrant · 6 AR engine · 7 try-on calibration · 8 dashboard+CRUD+analytics · 9.5 intelligence · E1 customer auth/cart/checkout/orders/branches · E2 catalog→checkout wiring · E3 jeweller order mgmt · 9 style quiz · 10 analytics+smoke+vitest+health · 11 deploy config+CORS · 12 PIN hardening · P1 security · P2 kiosk correctness · P3 durable PIN limit+tenancy tests · Stage 3 email OTP+order email · Security Advisor migration · Email OTP live (custom SMTP, 6–8 digit) · Storefront real `product_images` + 12 Cloudinary photos imported · customer cookie-decode fix + sign-in/sign-up + account dashboard + profile pictures (Cloudinary `avatars` + migration `0004`) + cart/checkout/account redesign · customer UI/UX refinements + compare alignment + catalog hover cleanup + mobile profile responsiveness · **B1** migration `0005_b2b_platform.sql` · **B2** DB helpers (manufacturers.ts, stores.ts, b2b.ts) · **B3** cookie auth (manufacturer + store HMAC cookies in `@luxematch/tenant`) · **B4** optional shop env + B2B env vars · **B5** page/API guards · **B6** B2B API routes · **B7** manufacturer portal UI · **B8** store portal UI · **B9** core fulfillB2BOrder · **B10** partial (main middleware + API guards) · **B11** guest kiosk cart (`use-guest-cart.ts`) + checkout (`/kiosk-checkout`) + `POST /api/kiosk/orders` · **B12** store profile branding page (`/jeweller/store-profile`) + `PATCH /api/store/branding` · **B13** AppHeader branding (store name · LuxMatch · Powered by Botivate) + Footer credit · **B14** guest orders → manufacturer via `guest_orders` table + migration `0006_guest_orders.sql` · **B15** manufacturer kiosk-orders dashboard (`/manufacturer/kiosk-orders`) with store identity + status advance · **B16** store kiosk-orders dashboard (`/jeweller/kiosk-orders`) · **B17** already done (B8 store owner catalog ordering) · **B18** done in B13 · **B19** `/portal` staff login selector + customer auth deprecated (`/login`/`/signup` redirect to `/`, AppHeader account icon removed, MobileNav Sign In link removed, footer "Staff Portal" link added) · **B20** AR try-on asset management (manufacturer transparent PNG upload, `has_tryon` flag, conditional Try On button, AR badge + filter in all portals, fulfillB2BOrder auto-copies try-on asset, try-on page auto-selects from URL param + Add to Bag button, migration `0007_tryon_assets.sql`) · **B21** store CRUD for manufacturer (edit name/email/city/phone, reset password, delete store + jewellers row; full UI in manufacturer portal stores page) · **nav fixes** image search links `/products/` → `/catalog/` (was 404); try-on X button returns to originating product page via `?back=` param; ProductCard try-on passes `?product=<id>&back=/catalog/<slug>` · **password eye icon** manufacturer + store login pages (lucide-react Eye/EyeOff) · **docs** `AGENT_GUIDE.md` (agent orientation), `TRYON_IMAGE_GUIDE.md` (transparent PNG specs), `docs/schema/` (22 table docs from live DB), `docs/CLIENT_SETUP.md` (fresh client onboarding guide).
 
-C-series (active): **C1–C11** complete ✅ (use-b2b-cart, migration 0008, DB helpers, store-manager cookie, store self-registration, manufacturer pending-approvals UI, manager login + managerGuard, forgot/reset password for owner + manager, owner manager settings panel, auto design number display, price/metal removed from product form/API/catalog) · **C2 migration** written — apply `0008_jewel_factory.sql` in Supabase SQL editor · **C12–C20** see C-Series table above ⬜
+C-series (complete ✅): **C1–C20** all done · C1 use-b2b-cart (no price/metal/sku) · C2 migration 0008_jewel_factory.sql · C3 DB helpers (store_managers, custom_design, password_reset) · C4 store-manager cookie · C5 store self-registration · C6 manufacturer pending-approvals UI · C7 manager login + managerGuard · C8 forgot/reset password (owner + manager) · C9 manager settings panel · C10 auto design number JF-XXXX · C11 price+metal removed from product form/API/catalog · C12 kiosk shows manufacturer catalog (public `/api/kiosk/catalog`) · C13 kiosk orders held for manager approval (`pending_store_approval`) · C14 B2B orders held for manager approval (`pending_manager_approval`) · C15 custom design request form on kiosk · C16 manager portal for custom design requests (approve/forward/reject) · C17 custom design forwarded to manufacturer sanitized (no customer data) · C18 store fixed address auto-fills on B2B order form · C19 store logo + name in kiosk header; "Powered by AT Jewellers" footer · C20 "Jewel Factory" branding on all portal/login/title pages
 
 New API routes added this session:
 - `POST /api/store/register` — public store self-registration
@@ -484,6 +484,12 @@ New API routes added this session:
 - `POST /api/manager/login` / `logout` / `GET /me` — manager auth
 - `GET /api/manager/list` · `POST /api/manager` · `PATCH /api/manager/:id` · `PUT /api/manager/:id/password` · `DELETE /api/manager/:id` — manager CRUD (owner only)
 - `POST /api/manager/forgot-password` / `POST /api/manager/reset-password` — manager password reset
+- `GET /api/kiosk/catalog` — public manufacturer catalog for customer kiosk (no auth)
+- `POST /api/kiosk/custom-design` — customer submits custom design request
+- `GET /api/manager/kiosk-orders/pending` · `POST /api/manager/kiosk-orders/:id/approve` · `/reject` — manager kiosk order approval
+- `GET /api/manager/b2b-orders/pending` · `POST /api/manager/b2b-orders/:id/approve` · `/reject` — manager B2B order approval
+- `GET /api/manager/custom-designs` · `POST /api/manager/custom-designs/:id/approve` · `/reject` — manager custom design workflow
+- `GET /api/manufacturer/custom-designs` · `PATCH /api/manufacturer/custom-designs/:id` — manufacturer custom design orders
 
 New pages added this session:
 - `/store/register` — store self-registration form
@@ -492,7 +498,20 @@ New pages added this session:
 - `/store/manager/forgot-password` · `/store/manager/reset-password` — manager password reset
 - `/jeweller/managers` — owner's manager management settings panel
 - `/manufacturer/store-registrations` — pending store registration approvals
+- `/kiosk/custom-design` — customer custom design request form (kiosk)
+- `/jeweller/pending-approvals` — manager view of pending kiosk + B2B orders needing approval
+- `/jeweller/custom-designs` — manager view of custom design requests (approve/forward/reject)
+- `/manufacturer/custom-designs` — manufacturer view of sanitized custom design orders (no customer data)
+
+**C-series complete (C1–C20):** All Jewel Factory evolution phases done. Key behaviors now in place:
+- Customer kiosk shows manufacturer's full catalog (not store inventory); no price shown anywhere
+- Kiosk orders held for store manager approval before reaching manufacturer (`pending_store_approval: true`)
+- Store B2B orders held for manager approval before reaching manufacturer (`pending_manager_approval: true`)
+- Custom design requests: customer submits on kiosk → manager approves/forwards → sanitized order reaches manufacturer (no customer data)
+- Store fixed address auto-fills on B2B order form
+- Store logo + name shown in kiosk header; "Powered by AT Jewellers" in footer everywhere
+- All portal/login pages use "Jewel Factory" branding; customer pages show store's own name
 
 **Branch note:** All C-series work is on `master` branch (not `production` or `main`). `master` is the new active work branch.
 
-B-series pending (apply in Supabase SQL editor): **`0006_guest_orders.sql`** (guest order tables + stores branding columns) · **`0007_tryon_assets.sql`** (has_tryon + manufacturer try-on assets) · **`0008_jewel_factory.sql`** (C-series: store_managers, custom_design tables, password_reset_tokens, design_number sequence, nullable base_price/metal, manager approval columns). Apply in order: 0006 → 0007 → 0008. Also pending: live DB city update `UPDATE jewellers SET city='Chhattisgarh' WHERE slug='at-jewellers'` · redeploy to Render · B10 smoke-test · HF embedder live verify · rotate exposed secrets. Parked: AWS migration.
+B-series pending (apply in Supabase SQL editor): **`0006_guest_orders.sql`** (guest order tables + stores branding columns) · **`0007_tryon_assets.sql`** (has_tryon + manufacturer try-on assets) · **`0008_jewel_factory.sql`** (C-series: store_managers, custom_design tables, password_reset_tokens, design_number sequence, nullable base_price/metal, manager approval columns). Apply in order: 0006 → 0007 → 0008. Also pending: live DB city update `UPDATE jewellers SET city='Chhattisgarh' WHERE slug='at-jewellers'` · redeploy to Render from `master` · B10 smoke-test · HF embedder live verify · rotate exposed secrets. Parked: AWS migration.

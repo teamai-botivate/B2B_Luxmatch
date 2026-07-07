@@ -44,7 +44,7 @@ export function DocumentTitle() {
   const pathname = usePathname();
 
   useEffect(() => {
-    document.title = `${titleFromPath(pathname)} \\ LuxeMatch`;
+    document.title = `${titleFromPath(pathname)} \\ Jewel Factory`;
   }, [pathname]);
 
   return null;

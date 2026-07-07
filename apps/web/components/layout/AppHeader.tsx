@@ -10,11 +10,13 @@ import { useSavedItems } from "@/contexts/SavedItemsContext";
 import { useCompare } from "@/contexts/CompareContext";
 import { useShop } from "@/hooks/use-shop";
 import { useGuestCartCount } from "@/hooks/use-guest-cart";
+import { useStoreBranding } from "@/hooks/use-store-branding";
 import MobileNav from "./MobileNav";
 
 const navLinks = [
   { label: "Catalog", href: "/catalog" },
   { label: "Collections", href: "/collections" },
+  { label: "Custom Design", href: "/kiosk/custom-design" },
   { label: "Try-On", href: "/try-on" },
   { label: "About", href: "/about" },
 ];
@@ -32,6 +34,7 @@ export default function AppHeader() {
   const { compareItems } = useCompare();
   const shop = useShop();
   const cartCount = useGuestCartCount();
+  const storeBranding = useStoreBranding();
 
   useEffect(() => {
     setMounted(true);
@@ -71,25 +74,32 @@ export default function AppHeader() {
           className="bg-[#191511] px-3 py-1.5 text-xs tracking-wider text-[#e4cf8f] md:px-6 lg:px-12 flex items-center justify-between gap-2"
           data-testid="shop-welcome-strip"
         >
-          <span className="truncate">
+          <span className="flex items-center gap-2 truncate">
+            {storeBranding?.logo_url && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={storeBranding.logo_url}
+                alt="Store logo"
+                className="h-5 max-w-[5rem] object-contain flex-shrink-0"
+              />
+            )}
             {shop ? (
               <>
                 <span className="font-semibold text-[#f8e7af]">{shop.store_name}</span>
                 {shop.city ? <span className="text-[#c9b98b]"> · {shop.city}</span> : null}
-                <span className="text-[#7a6a48] ml-1.5">· LuxMatch</span>
               </>
             ) : (
-              <span className="text-[#c9b98b]">LuxMatch</span>
+              <span className="text-[#c9b98b]">Jewel Factory</span>
             )}
           </span>
-          <span className="flex-shrink-0 text-[#5a4f38]">Powered by Botivate</span>
+          <span className="flex-shrink-0 text-[#5a4f38]">Powered by AT Jewellers</span>
         </div>
         <div className="mx-auto flex h-16 max-w-[1400px] items-center justify-between gap-2 px-3 sm:px-4 md:px-6 lg:px-12">
           {/* Logo */}
           <Link href="/" data-testid="logo-link">
             <Image
               src="/logo-wordmark.png"
-              alt="LuxeMatch"
+              alt="Jewel Factory"
               width={160}
               height={32}
               className="h-7 w-auto cursor-pointer select-none object-contain sm:h-8"

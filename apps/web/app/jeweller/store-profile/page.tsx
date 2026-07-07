@@ -185,7 +185,7 @@ export default function StoreProfilePage() {
 
               <div className="flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
                 <Store className="h-3.5 w-3.5 flex-shrink-0" />
-                Customer-facing pages show: <strong>{store.name}</strong> · LuxMatch · Powered by Botivate
+                Customer-facing pages show: <strong>{store.name}</strong> · Powered by AT Jewellers
               </div>
 
               <Button type="submit" disabled={saving} className="metal-sheen">

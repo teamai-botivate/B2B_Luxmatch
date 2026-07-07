@@ -34,8 +34,8 @@ const columns = [
   {
     heading: "For Jewellers",
     links: [
-      { label: "Join LuxeMatch", href: "/jeweller" },
-      { label: "Onboarding", href: "/jeweller/onboarding" },
+      { label: "Store Portal", href: "/store/login" },
+      { label: "Manufacturer Portal", href: "/manufacturer/login" },
       { label: "Dashboard", href: "/jeweller/dashboard" },
       { label: "Analytics", href: "/jeweller/analytics" },
     ],
@@ -95,7 +95,7 @@ export default function Footer() {
           <div className="flex items-center gap-3">
             <Image
               src="/logo-icon.png"
-              alt="LuxeMatch"
+              alt="Jewel Factory"
               width={36}
               height={36}
               className="h-9 w-auto object-contain"
@@ -104,9 +104,9 @@ export default function Footer() {
           </div>
           <div className="flex items-center gap-1.5 text-sm text-white/40">
             <Sparkles className="w-3.5 h-3.5 text-[#C9A84C]" />
-            <span>Powered by Botivate</span>
+            <span>Powered by AT Jewellers</span>
             <span className="mx-2">·</span>
-            <span>© 2025 LuxeMatch. All rights reserved.</span>
+            <span>© 2025 Jewel Factory. All rights reserved.</span>
             <span className="mx-2">·</span>
             <Link href="/portal">
               <span className="text-white/20 hover:text-white/40 transition-colors cursor-pointer text-xs">Staff Portal</span>

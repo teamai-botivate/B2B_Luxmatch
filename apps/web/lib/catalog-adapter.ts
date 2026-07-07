@@ -175,3 +175,82 @@ export async function fetchProductBySlug(slug: string): Promise<ApiProduct | nul
     return null;
   }
 }
+
+// ── Manufacturer catalog adapter (C12) ──────────────────────────────────────
+
+export type ManufacturerProductImage = {
+  id: string;
+  secure_url: string;
+  is_primary: boolean;
+  is_tryon: boolean;
+  sort_order: number;
+};
+
+export type ManufacturerProduct = {
+  id: string;
+  manufacturer_id: string;
+  sku: string;
+  design_number: string | null;
+  name: string;
+  category: string | null;
+  description: string | null;
+  weight_grams: number | null;
+  purity: string | null;
+  gemstones: string[];
+  occasion_tags: string[];
+  style_tags: string[];
+  status: string;
+  has_tryon: boolean;
+  images: ManufacturerProductImage[];
+};
+
+export function adaptManufacturerProduct(p: ManufacturerProduct): Product {
+  const sortedImages = [...(p.images ?? [])].sort((a, b) => {
+    if (a.is_primary && !b.is_primary) return -1;
+    if (!a.is_primary && b.is_primary) return 1;
+    return a.sort_order - b.sort_order;
+  });
+
+  return {
+    id: p.id,
+    slug: p.design_number ?? p.id,
+    name: p.name,
+    category: (p.category ?? 'Jewellery') as Category,
+    description: p.description ?? '',
+    price: 0,
+    metal: 'Gold',
+    purity: p.purity ?? '',
+    weight: p.weight_grams ? `${p.weight_grams}g` : '',
+    gemstones: p.gemstones?.length ? p.gemstones.join(', ') : undefined,
+    styleTags: p.style_tags ?? [],
+    isFeatured: false,
+    hasTryOn: p.has_tryon,
+    jewellerId: p.manufacturer_id,
+    occasions: (p.occasion_tags ?? []) as Occasion[],
+    images: sortedImages.map((img) => ({
+      id: img.id,
+      url: img.secure_url,
+      alt: p.name,
+    })),
+  };
+}
+
+export async function fetchManufacturerCatalog(params?: {
+  category?: string;
+  search?: string;
+  hasTryOn?: boolean;
+}): Promise<ManufacturerProduct[]> {
+  try {
+    const qs = new URLSearchParams();
+    if (params?.category) qs.set('category', params.category);
+    if (params?.search) qs.set('search', params.search);
+    if (params?.hasTryOn !== undefined) qs.set('hasTryOn', String(params.hasTryOn));
+    const url = `/api/kiosk/catalog${qs.size ? `?${qs}` : ''}`;
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) return [];
+    const json = (await res.json()) as { data?: ManufacturerProduct[] };
+    return json.data ?? [];
+  } catch {
+    return [];
+  }
+}

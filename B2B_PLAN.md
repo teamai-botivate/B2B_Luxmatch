@@ -6,7 +6,7 @@
 
 ## Current Implementation Status (as of 2026-07-07)
 
-**All B1–B21 phases are complete in code. C-series (Jewel Factory evolution) C1–C11 are now complete on the `master` branch.**
+**All B1–B21 phases are complete in code. C-series (Jewel Factory evolution) C1–C20 are ALL complete on the `master` branch.**
 
 ### B-Series Status
 
@@ -18,12 +18,12 @@
 | B20 | ✅ Complete (AR try-on asset management, has_tryon flag, manufacturer PNG upload) |
 | B21 | ✅ Complete (store CRUD: edit/reset-password/delete for manufacturer) |
 
-### C-Series Status (Jewel Factory Evolution — branch: `master`)
+### C-Series Status (Jewel Factory Evolution — branch: `master`) — ALL COMPLETE ✅
 
 | Phase | What | Status |
 |-------|------|--------|
 | C1 | `use-b2b-cart.ts` — remove price/metal/sku, add designNumber/weight/purity | ✅ Done |
-| C2 | Migration `0008_jewel_factory.sql` | ✅ Written — **apply in Supabase SQL editor** |
+| C2 | Migration `0008_jewel_factory.sql` | ✅ Applied |
 | C3 | DB helpers: store_managers, custom_design, password_reset; stores.ts self-reg | ✅ Done |
 | C4 | Store manager cookie `lm_store_manager` in `packages/tenant` | ✅ Done |
 | C5 | Store self-registration (`POST /api/store/register` + `/store/register` page) | ✅ Done |
@@ -33,22 +33,22 @@
 | C9 | Owner manager settings panel (`/jeweller/managers`) | ✅ Done |
 | C10 | Auto design number `JF-XXXX` shown in product form + catalog | ✅ Done |
 | C11 | Remove price + metal from product form, API, catalog | ✅ Done |
-| C12 | Customer kiosk → manufacturer catalog (replace store inventory view) | ⬜ Next |
-| C13 | Customer order → store first (manager approval) → manufacturer | ⬜ |
-| C14 | Manager approval gate on store B2B catalog orders | ⬜ |
-| C15 | Custom design request form on customer kiosk | ⬜ |
-| C16 | Manager portal: custom requests view + approve/forward/reject | ⬜ |
-| C17 | Custom design → manufacturer (sanitized, privacy-safe) | ⬜ |
-| C18 | Store fixed address auto-fill on all outgoing orders | ⬜ |
-| C19 | Store branding on kiosk (logo + naam + AT Jewellers footer) | ⬜ |
-| C20 | Jewel Factory branding on portal/login/title pages | ⬜ |
+| C12 | Customer kiosk → manufacturer catalog via public `GET /api/kiosk/catalog` | ✅ Done |
+| C13 | Kiosk orders held for manager approval (`pending_store_approval: true`) | ✅ Done |
+| C14 | B2B catalog orders held for manager approval (`pending_manager_approval: true`) | ✅ Done |
+| C15 | Custom design request form on kiosk (`/kiosk/custom-design`) | ✅ Done |
+| C16 | Manager portal: custom requests view + approve/forward/reject (`/jeweller/custom-designs`) | ✅ Done |
+| C17 | Custom design forwarded to manufacturer sanitized — no customer data (`custom_design_orders`) | ✅ Done |
+| C18 | Store fixed address auto-fills on B2B order form from `fixed_address_*` columns | ✅ Done |
+| C19 | Store logo + name in kiosk header; "Powered by AT Jewellers" footer everywhere | ✅ Done |
+| C20 | "Jewel Factory" branding on all portal/login/title pages; kiosk shows store's own name | ✅ Done |
 
-**Migrations to apply in Supabase SQL editor (in order):**
-1. `0006_guest_orders.sql` — guest_orders tables + stores branding columns
-2. `0007_tryon_assets.sql` — has_tryon on manufacturer_products + manufacturer try-on assets
-3. `0008_jewel_factory.sql` — C-series: store_managers, custom_design tables, password_reset_tokens, design_number sequence, nullable base_price/metal, manager approval columns on orders
+**Migrations applied in Supabase SQL editor (all done):**
+1. `0006_guest_orders.sql` — guest_orders tables + stores branding columns ✅
+2. `0007_tryon_assets.sql` — has_tryon on manufacturer_products + manufacturer try-on assets ✅
+3. `0008_jewel_factory.sql` — C-series: store_managers, custom_design tables, password_reset_tokens, design_number sequence, nullable base_price/metal, manager approval columns on orders ✅
 
-**What's next:** Apply the three migrations → redeploy to Render → continue C12+ (customer kiosk shows manufacturer catalog, manager approval gates). See CLAUDE.md C-Series Phase Status table for full detail.
+**C-series complete (C1–C20).** All Jewel Factory evolution phases done. Next steps: redeploy to Render from `master` branch → smoke-test B10 tenancy (SHOP_JEWELLER_ID unset) → verify HF embedder `/health` and live Qdrant search → rotate exposed secrets. See CLAUDE.md for full detail.
 
 ---
 

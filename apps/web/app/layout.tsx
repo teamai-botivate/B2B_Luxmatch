@@ -13,11 +13,11 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: 'Home \\ LuxeMatch',
-    template: '%s \\ LuxeMatch',
+    default: 'Home \\ Jewel Factory',
+    template: '%s \\ Jewel Factory',
   },
   description:
-    'Discover premium jewellery with AI-powered search, virtual try-on, and personalised recommendations. India\'s intelligent jewellery marketplace.',
+    'Discover premium jewellery with AI-powered search, virtual try-on, and personalised recommendations. Powered by AT Jewellers.',
   icons: {
     icon: '/logo-icon.png',
     shortcut: '/logo-icon.png',

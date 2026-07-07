@@ -11,7 +11,7 @@ export default function PortalPage() {
       <div className="mb-10 flex flex-col items-center gap-3">
         <Image
           src="/logo-wordmark.png"
-          alt="LuxeMatch"
+          alt="Jewel Factory"
           width={160}
           height={32}
           className="h-8 w-auto object-contain brightness-0 invert opacity-80"
@@ -58,7 +58,7 @@ export default function PortalPage() {
         </p>
       </Link>
 
-      <p className="mt-6 text-[10px] text-[#2a2318] tracking-wider">Powered by Botivate</p>
+      <p className="mt-6 text-[10px] text-[#2a2318] tracking-wider">Powered by AT Jewellers</p>
     </div>
   );
 }

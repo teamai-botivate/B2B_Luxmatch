@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
-import { LayoutDashboard, Package, BarChart3, Settings, ArrowLeft, Menu, Lightbulb, ShoppingBag, Lock, Gem, Truck, Users, Store, UserCog } from "lucide-react";
+import { LayoutDashboard, Package, BarChart3, Settings, ArrowLeft, Menu, Lightbulb, ShoppingBag, Lock, Gem, Truck, Users, Store, UserCog, ClipboardCheck, PencilLine } from "lucide-react";
 
 const navItems = [
   { label: "Dashboard", href: "/jeweller/dashboard", icon: LayoutDashboard },
@@ -13,6 +13,8 @@ const navItems = [
   { label: "Manufacturer Catalog", href: "/jeweller/manufacturer-catalog", icon: Gem },
   { label: "B2B Orders", href: "/jeweller/b2b-orders", icon: Truck },
   { label: "Kiosk Orders", href: "/jeweller/kiosk-orders", icon: Users },
+  { label: "Custom Designs", href: "/jeweller/custom-designs", icon: PencilLine },
+  { label: "Pending Approvals", href: "/jeweller/pending-approvals", icon: ClipboardCheck },
   { label: "Analytics", href: "/jeweller/analytics", icon: BarChart3 },
   { label: "Intelligence", href: "/jeweller/intelligence", icon: Lightbulb },
   { label: "Store Profile", href: "/jeweller/store-profile", icon: Store },
@@ -66,7 +68,7 @@ export default function JewellerLayout({ children }: { children: React.ReactNode
       {/* Header */}
       <div className="px-5 py-4 border-b border-sidebar-border">
         <div className="flex items-center gap-2.5 mb-3">
-          <Image src="/logo-icon.png" alt="LuxeMatch" width={32} height={32} className="h-8 w-8 object-contain flex-shrink-0" />
+          <Image src="/logo-icon.png" alt="Jewel Factory" width={32} height={32} className="h-8 w-8 object-contain flex-shrink-0" />
           <div className="min-w-0">
             <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground leading-none mb-0.5">Jeweller Portal</p>
             <p className="text-sm font-semibold text-foreground truncate leading-tight">

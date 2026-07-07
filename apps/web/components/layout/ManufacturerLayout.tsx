@@ -13,6 +13,7 @@ import {
   Store,
   Users,
   ClipboardList,
+  PencilLine,
 } from 'lucide-react';
 
 export default function ManufacturerLayout({ children }: { children: React.ReactNode }) {
@@ -74,6 +75,7 @@ export default function ManufacturerLayout({ children }: { children: React.React
           { label: 'Catalog', href: '/manufacturer/catalog', icon: Package },
           { label: 'Orders', href: '/manufacturer/orders', icon: ShoppingBag },
           { label: 'Kiosk Orders', href: '/manufacturer/kiosk-orders', icon: Users },
+          { label: 'Custom Designs', href: '/manufacturer/custom-designs', icon: PencilLine },
           { label: 'Stores', href: '/manufacturer/stores', icon: Store },
           { label: 'Store Registrations', href: '/manufacturer/store-registrations', icon: ClipboardList, badge: pendingCount },
         ].map(({ label, href, icon: Icon, badge }) => {

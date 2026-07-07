@@ -11,10 +11,12 @@
 
 import { getServerEnv } from '@luxematch/config';
 import {
-  getProductById,
+  getManufacturerProductById,
+  listManufacturerProducts,
   getStoreByJewellerId,
   placeGuestOrder,
   getGuestOrderWithItems,
+  placeCustomDesignRequest,
   type PlaceGuestOrderItemInput,
 } from '@luxematch/db';
 import {
@@ -113,17 +115,9 @@ kioskRoutes.post(
     const resolvedItems: PlaceGuestOrderItemInput[] = [];
 
     for (const item of body.items) {
-      const product = await getProductById(jewellerId, item.productId);
-      if (!product) {
-        return sendError(c, 'not_found', `Product ${item.productId} not found.`, 404);
-      }
-      if ((product.stock_count ?? 0) < item.quantity) {
-        return sendError(
-          c,
-          'bad_request',
-          `Insufficient stock for "${product.name}". Available: ${product.stock_count ?? 0}.`,
-          400,
-        );
+      const product = await getManufacturerProductById(item.productId);
+      if (!product || product.status !== 'active') {
+        return sendError(c, 'not_found', `Product ${item.productId} not found or unavailable.`, 404);
       }
 
       const primaryImage = product.images.find((img) => img.is_primary) ?? product.images[0] ?? null;
@@ -131,12 +125,12 @@ kioskRoutes.post(
       resolvedItems.push({
         productId: product.id,
         productNameSnapshot: product.name,
-        productSkuSnapshot: product.sku ?? undefined,
-        productImageSnapshot: primaryImage?.url ?? undefined,
-        categorySnapshot: undefined,
+        productSkuSnapshot: product.sku ?? product.design_number ?? undefined,
+        productImageSnapshot: primaryImage?.secure_url ?? undefined,
+        categorySnapshot: product.category ?? undefined,
         metalSnapshot: product.metal ?? undefined,
         quantity: item.quantity,
-        unitPriceSnapshot: Number(product.price_min ?? 0),
+        unitPriceSnapshot: 0,
       });
     }
 
@@ -161,6 +155,72 @@ kioskRoutes.post(
     return sendData(c, { id: order.id, orderNumber: order.order_number }, 201);
   },
 );
+
+// ── GET /api/kiosk/catalog — public manufacturer catalog for customer kiosk ───
+
+const KioskCatalogQuery = z.object({
+  category: z.string().optional(),
+  search: z.string().optional(),
+  hasTryOn: z.string().optional(),
+});
+
+kioskRoutes.get('/catalog', zValidator('query', KioskCatalogQuery), async (c) => {
+  const { category, search, hasTryOn } = c.req.valid('query');
+  const products = await listManufacturerProducts({
+    status: 'active',
+    ...(category ? { category } : {}),
+    ...(search ? { search } : {}),
+  });
+
+  let filtered = products;
+  if (hasTryOn === 'true') {
+    filtered = filtered.filter((p) => p.has_tryon);
+  }
+
+  return sendData(c, filtered);
+});
+
+// ── POST /api/kiosk/custom-design — submit custom design request (C15) ────────
+
+const CustomDesignBody = z.object({
+  customerNaam: z.string().min(1).max(120),
+  customerPhone: z.string().min(7).max(20),
+  category: z.string().min(1).max(80).optional(),
+  weightGrams: z.number().positive().optional(),
+  purity: z.string().max(20).optional(),
+  notes: z.string().max(1000).optional(),
+  referenceImageUrl: z.string().url().optional(),
+});
+
+kioskRoutes.post('/custom-design', zValidator('json', CustomDesignBody), async (c) => {
+  const env = getServerEnv();
+  const storeCookieVal = getCookie(c, STORE_COOKIE_NAME);
+  const ctx = await resolveJewellerId(storeCookieVal, env);
+  if (!ctx) {
+    return sendError(c, 'unauthorized', 'No store session. Log in at /store/login.', 401);
+  }
+
+  const { jewellerId, storeId: cookieStoreId } = ctx;
+  const store = await getStoreByJewellerId(jewellerId);
+  if (!store) {
+    return sendError(c, 'not_found', 'Store not found for this session.', 404);
+  }
+
+  const body = c.req.valid('json');
+  const request = await placeCustomDesignRequest({
+    store_id: store.id,
+    jeweller_id: jewellerId,
+    customer_naam: body.customerNaam,
+    customer_phone: body.customerPhone,
+    category: body.category ?? 'other',
+    weight_grams: body.weightGrams,
+    purity: body.purity,
+    design_notes: body.notes,
+    reference_image_url: body.referenceImageUrl,
+  });
+
+  return sendData(c, { id: request.id }, 201);
+});
 
 // ── GET /api/kiosk/orders/:id — public receipt read ───────────────────────────
 

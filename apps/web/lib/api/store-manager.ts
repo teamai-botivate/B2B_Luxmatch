@@ -10,6 +10,20 @@ import {
   createPasswordResetToken,
   verifyPasswordResetToken,
   consumePasswordResetToken,
+  getGuestOrdersByStorePending,
+  getGuestOrderWithItems,
+  approveKioskOrder,
+  rejectKioskOrder,
+  getB2BOrdersPendingByStore,
+  getB2BOrderWithItems,
+  approveB2BOrder,
+  rejectB2BOrder,
+  listCustomDesignRequests,
+  getCustomDesignRequest,
+  rejectCustomDesignRequest,
+  forwardCustomDesignToManufacturer,
+  getStoreByJewellerId,
+  formatStoreFixedAddress,
 } from '@luxematch/db';
 import { hash } from 'bcryptjs';
 import {
@@ -273,3 +287,104 @@ storeManagerRoutes.post(
     return sendData(c, { ok: true });
   },
 );
+
+// ── Kiosk order approvals (C13) ───────────────────────────────────────────────
+
+// GET /api/manager/kiosk-orders/pending
+storeManagerRoutes.get('/kiosk-orders/pending', managerGuard, async (c) => {
+  const orders = await getGuestOrdersByStorePending(c.get('storeId'));
+  return sendData(c, orders);
+});
+
+// POST /api/manager/kiosk-orders/:id/approve
+storeManagerRoutes.post('/kiosk-orders/:id/approve', managerGuard, async (c) => {
+  const order = await getGuestOrderWithItems(c.req.param('id'));
+  if (!order) return sendError(c, 'not_found', 'Order not found', 404);
+  if (order.store_id !== c.get('storeId')) return sendError(c, 'forbidden', 'Not your order', 403);
+  await approveKioskOrder(order.id, c.get('managerId'));
+  return sendData(c, { ok: true });
+});
+
+// POST /api/manager/kiosk-orders/:id/reject
+storeManagerRoutes.post('/kiosk-orders/:id/reject', managerGuard, async (c) => {
+  const order = await getGuestOrderWithItems(c.req.param('id'));
+  if (!order) return sendError(c, 'not_found', 'Order not found', 404);
+  if (order.store_id !== c.get('storeId')) return sendError(c, 'forbidden', 'Not your order', 403);
+  await rejectKioskOrder(order.id);
+  return sendData(c, { ok: true });
+});
+
+// ── B2B order approvals (C14) ─────────────────────────────────────────────────
+
+// GET /api/manager/b2b-orders/pending
+storeManagerRoutes.get('/b2b-orders/pending', managerGuard, async (c) => {
+  const orders = await getB2BOrdersPendingByStore(c.get('storeId'));
+  return sendData(c, orders);
+});
+
+// POST /api/manager/b2b-orders/:id/approve
+storeManagerRoutes.post('/b2b-orders/:id/approve', managerGuard, async (c) => {
+  const order = await getB2BOrderWithItems(c.req.param('id'));
+  if (!order) return sendError(c, 'not_found', 'Order not found', 404);
+  if (order.store_id !== c.get('storeId')) return sendError(c, 'forbidden', 'Not your order', 403);
+  await approveB2BOrder(order.id, c.get('managerId'));
+  return sendData(c, { ok: true });
+});
+
+// POST /api/manager/b2b-orders/:id/reject
+storeManagerRoutes.post('/b2b-orders/:id/reject', managerGuard, async (c) => {
+  const order = await getB2BOrderWithItems(c.req.param('id'));
+  if (!order) return sendError(c, 'not_found', 'Order not found', 404);
+  if (order.store_id !== c.get('storeId')) return sendError(c, 'forbidden', 'Not your order', 403);
+  await rejectB2BOrder(order.id);
+  return sendData(c, { ok: true });
+});
+
+// ── Custom design requests (C16 + C17) ───────────────────────────────────────
+
+// GET /api/manager/custom-designs — list all custom design requests for this store
+storeManagerRoutes.get('/custom-designs', managerGuard, async (c) => {
+  const requests = await listCustomDesignRequests(c.get('storeId'));
+  return sendData(c, requests);
+});
+
+// POST /api/manager/custom-designs/:id/approve — approve + forward to manufacturer
+storeManagerRoutes.post('/custom-designs/:id/approve', managerGuard, async (c) => {
+  const storeId = c.get('storeId');
+  const requestId = c.req.param('id');
+
+  const request = await getCustomDesignRequest(storeId, requestId);
+  if (!request) return sendError(c, 'not_found', 'Custom design request not found', 404);
+
+  // Resolve store + manufacturer for C17 forwarding
+  const store = await getStoreByJewellerId(c.get('shopJewellerId'));
+  if (!store) return sendError(c, 'not_found', 'Store not found', 404);
+  if (!store.manufacturer_id) {
+    return sendError(c, 'bad_request', 'Store is not linked to a manufacturer', 400);
+  }
+
+  const storeAddress = formatStoreFixedAddress(store);
+
+  await forwardCustomDesignToManufacturer(
+    storeId,
+    requestId,
+    store.manufacturer_id,
+    store.name,
+    storeAddress,
+    c.get('managerId'),
+  );
+
+  return sendData(c, { ok: true });
+});
+
+// POST /api/manager/custom-designs/:id/reject
+storeManagerRoutes.post('/custom-designs/:id/reject', managerGuard, async (c) => {
+  const storeId = c.get('storeId');
+  const requestId = c.req.param('id');
+
+  const request = await getCustomDesignRequest(storeId, requestId);
+  if (!request) return sendError(c, 'not_found', 'Custom design request not found', 404);
+
+  await rejectCustomDesignRequest(storeId, requestId, c.get('managerId'));
+  return sendData(c, { ok: true });
+});

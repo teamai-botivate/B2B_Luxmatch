@@ -10,35 +10,25 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import type { Product } from "@/lib/mock-data";
-import { formatINR } from "@/lib/format";
 import {
-  adaptProduct,
-  fetchCategories,
-  fetchProducts,
-  type ApiCategory,
-  type ApiProduct,
+  adaptManufacturerProduct,
+  fetchManufacturerCatalog,
 } from "@/lib/catalog-adapter";
 
 interface FilterState {
   categories: string[];
-  metals: string[];
-  priceRange: [number, number];
   occasions: string[];
   hasTryOn: boolean;
 }
 
 const defaultFilters: FilterState = {
   categories: [],
-  metals: [],
-  priceRange: [0, 500000],
   occasions: [],
   hasTryOn: false,
 };
 
-const METALS = ["Gold", "White Gold", "Rose Gold", "Silver", "Platinum"];
 const OCCASIONS = ["Wedding", "Daily Wear", "Festival", "Anniversary", "Gift"];
 
 function FilterSection({ title, children, defaultOpen = true }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) {
@@ -65,14 +55,13 @@ function FiltersPanel({
   onChange: (f: FilterState) => void;
   categoryNames: string[];
 }) {
-  const toggle = (key: "categories" | "metals" | "occasions", val: string) => {
+  const toggle = (key: "categories" | "occasions", val: string) => {
     const arr = filters[key];
     onChange({ ...filters, [key]: arr.includes(val) ? arr.filter(x => x !== val) : [...arr, val] });
   };
   const activeCount =
-    filters.categories.length + filters.metals.length + filters.occasions.length +
-    (filters.hasTryOn ? 1 : 0) +
-    (filters.priceRange[0] > 0 || filters.priceRange[1] < 500000 ? 1 : 0);
+    filters.categories.length + filters.occasions.length +
+    (filters.hasTryOn ? 1 : 0);
 
   return (
     <div className="space-y-1">
@@ -97,29 +86,6 @@ function FiltersPanel({
           </div>
         </FilterSection>
       )}
-
-      <div className="border-t border-border" />
-      <FilterSection title="Metal">
-        <div className="space-y-2.5">
-          {METALS.map(m => (
-            <label key={m} className="flex items-center gap-2.5 cursor-pointer">
-              <Checkbox checked={filters.metals.includes(m)} onCheckedChange={() => toggle("metals", m)} />
-              <span className="text-sm">{m}</span>
-            </label>
-          ))}
-        </div>
-      </FilterSection>
-
-      <div className="border-t border-border" />
-      <FilterSection title="Price Range">
-        <div className="space-y-3 px-1">
-          <Slider min={0} max={500000} step={5000} value={filters.priceRange} onValueChange={v => onChange({ ...filters, priceRange: v as [number, number] })} />
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>{formatINR(filters.priceRange[0])}</span>
-            <span>{formatINR(filters.priceRange[1])}</span>
-          </div>
-        </div>
-      </FilterSection>
 
       <div className="border-t border-border" />
       <FilterSection title="Occasion">
@@ -149,36 +115,27 @@ export default function CatalogPage() {
   const [filters, setFilters] = useState<FilterState>(defaultFilters);
   const [sort, setSort] = useState("relevance");
   const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<ApiCategory[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
-      const [cats, { products: rawProducts }] = await Promise.all([
-        fetchCategories(),
-        fetchProducts({ limit: 200 }),
-      ]);
-      setCategories(cats);
-      setProducts(rawProducts.map(p => adaptProduct(p, cats)));
+      const rawProducts = await fetchManufacturerCatalog();
+      setProducts(rawProducts.map(p => adaptManufacturerProduct(p)));
       setLoading(false);
     }
     void load();
   }, []);
 
   const categoryNames = useMemo(() => [...new Set(products.map(p => p.category))].sort(), [products]);
-  const activeFilterCount = filters.categories.length + filters.metals.length + filters.occasions.length + (filters.hasTryOn ? 1 : 0);
+  const activeFilterCount = filters.categories.length + filters.occasions.length + (filters.hasTryOn ? 1 : 0);
 
   const filtered = useMemo(() => {
     let items = products.filter(p => {
       if (filters.categories.length && !filters.categories.includes(p.category)) return false;
-      if (filters.metals.length && !filters.metals.includes(p.metal)) return false;
-      if (p.price < filters.priceRange[0] || p.price > filters.priceRange[1]) return false;
       if (filters.occasions.length && !p.occasions.some(o => filters.occasions.includes(o))) return false;
       if (filters.hasTryOn && !p.hasTryOn) return false;
       return true;
     });
-    if (sort === "price-asc") items = [...items].sort((a, b) => a.price - b.price);
-    if (sort === "price-desc") items = [...items].sort((a, b) => b.price - a.price);
     if (sort === "newest") items = [...items].sort((a, b) => b.id.localeCompare(a.id));
     return items;
   }, [products, filters, sort]);
@@ -192,7 +149,7 @@ export default function CatalogPage() {
               <p className="mb-2 text-xs font-semibold uppercase tracking-[0.24em] text-[#e4cf8f]">Browse</p>
               <h1 className="font-display text-4xl font-normal tracking-normal md:text-6xl">All jewellery</h1>
               <p className="mt-4 text-sm leading-6 text-white/68">
-                Filter by category, metal, occasion, price, or try-on availability across this jeweller&apos;s live catalogue.
+                Filter by category, occasion, or try-on availability across the full jewellery collection.
               </p>
             </div>
           </div>
@@ -227,8 +184,6 @@ export default function CatalogPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="relevance">Relevance</SelectItem>
-                <SelectItem value="price-asc">Price: Low to High</SelectItem>
-                <SelectItem value="price-desc">Price: High to Low</SelectItem>
                 <SelectItem value="newest">Newest First</SelectItem>
               </SelectContent>
             </Select>
