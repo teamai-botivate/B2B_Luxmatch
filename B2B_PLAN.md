@@ -4,9 +4,11 @@
 
 ---
 
-## Current Implementation Status (as of 2026-07-04)
+## Current Implementation Status (as of 2026-07-07)
 
-**All B1–B21 phases are complete in code.** This plan is largely historical — use it for context on _why_ things are built the way they are, and for the detailed DB schema / API contract specs that CLAUDE.md summarises.
+**All B1–B21 phases are complete in code. C-series (Jewel Factory evolution) C1–C11 are now complete on the `master` branch.**
+
+### B-Series Status
 
 | Phase range | Status |
 |-------------|--------|
@@ -16,11 +18,37 @@
 | B20 | ✅ Complete (AR try-on asset management, has_tryon flag, manufacturer PNG upload) |
 | B21 | ✅ Complete (store CRUD: edit/reset-password/delete for manufacturer) |
 
-**Migrations to apply (not yet run in Supabase):**
-- `0006_guest_orders.sql` — guest_orders tables + stores branding columns
-- `0007_tryon_assets.sql` — has_tryon on manufacturer_products + manufacturer_product_id on product_tryon_assets
+### C-Series Status (Jewel Factory Evolution — branch: `master`)
 
-**What's next:** Apply the two migrations → redeploy to Render → B10 browser smoke-test. See CLAUDE.md "Phase status" for the full next list.
+| Phase | What | Status |
+|-------|------|--------|
+| C1 | `use-b2b-cart.ts` — remove price/metal/sku, add designNumber/weight/purity | ✅ Done |
+| C2 | Migration `0008_jewel_factory.sql` | ✅ Written — **apply in Supabase SQL editor** |
+| C3 | DB helpers: store_managers, custom_design, password_reset; stores.ts self-reg | ✅ Done |
+| C4 | Store manager cookie `lm_store_manager` in `packages/tenant` | ✅ Done |
+| C5 | Store self-registration (`POST /api/store/register` + `/store/register` page) | ✅ Done |
+| C6 | Manufacturer pending approvals API + `/manufacturer/store-registrations` page | ✅ Done |
+| C7 | Manager login API + `/store/manager/login` page + `managerGuard` middleware | ✅ Done |
+| C8 | Forgot/reset password — store owner + manager (pages + email APIs) | ✅ Done |
+| C9 | Owner manager settings panel (`/jeweller/managers`) | ✅ Done |
+| C10 | Auto design number `JF-XXXX` shown in product form + catalog | ✅ Done |
+| C11 | Remove price + metal from product form, API, catalog | ✅ Done |
+| C12 | Customer kiosk → manufacturer catalog (replace store inventory view) | ⬜ Next |
+| C13 | Customer order → store first (manager approval) → manufacturer | ⬜ |
+| C14 | Manager approval gate on store B2B catalog orders | ⬜ |
+| C15 | Custom design request form on customer kiosk | ⬜ |
+| C16 | Manager portal: custom requests view + approve/forward/reject | ⬜ |
+| C17 | Custom design → manufacturer (sanitized, privacy-safe) | ⬜ |
+| C18 | Store fixed address auto-fill on all outgoing orders | ⬜ |
+| C19 | Store branding on kiosk (logo + naam + AT Jewellers footer) | ⬜ |
+| C20 | Jewel Factory branding on portal/login/title pages | ⬜ |
+
+**Migrations to apply in Supabase SQL editor (in order):**
+1. `0006_guest_orders.sql` — guest_orders tables + stores branding columns
+2. `0007_tryon_assets.sql` — has_tryon on manufacturer_products + manufacturer try-on assets
+3. `0008_jewel_factory.sql` — C-series: store_managers, custom_design tables, password_reset_tokens, design_number sequence, nullable base_price/metal, manager approval columns on orders
+
+**What's next:** Apply the three migrations → redeploy to Render → continue C12+ (customer kiosk shows manufacturer catalog, manager approval gates). See CLAUDE.md C-Series Phase Status table for full detail.
 
 ---
 
