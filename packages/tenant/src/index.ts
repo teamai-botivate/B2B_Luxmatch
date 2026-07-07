@@ -382,4 +382,85 @@ export async function verifyStoreCookie(
   return { valid: true, storeId, jewellerId, issuedAt };
 }
 
+// ────────────────────────────────────────────────────────────────────────────
+// Store Manager cookie (HMAC-signed, reuses LM_PIN_COOKIE_SECRET)
+//
+// Format: <managerId>.<storeId>.<jewellerId>.<issuedAtMs>.<sigBase64Url>
+// Namespace suffix: ":manager" so no cross-role replay is possible.
+// Carries storeId + jewellerId for zero-DB tenancy resolution in handlers.
+// ────────────────────────────────────────────────────────────────────────────
+
+export const STORE_MANAGER_COOKIE_NAME = 'lm_store_manager';
+
+export type StoreManagerCookieOptions = {
+  secret: string; // pass LM_PIN_COOKIE_SECRET
+  ttlSeconds: number;
+  secure?: boolean;
+};
+
+export type StoreManagerCookieVerification =
+  | { valid: true; managerId: string; storeId: string; jewellerId: string; issuedAt: number }
+  | { valid: false; reason: 'missing' | 'malformed' | 'bad_signature' | 'expired' };
+
+export async function issueStoreManagerCookie(
+  managerId: string,
+  storeId: string,
+  jewellerId: string,
+  opts: StoreManagerCookieOptions,
+): Promise<PinCookie> {
+  const issuedAt = Date.now();
+  const payload = `${managerId}.${storeId}.${jewellerId}.${issuedAt}`;
+  const key = await importHmacKey(opts.secret + ':manager');
+  const sigBuf = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(payload));
+  const sig = b64urlFromBytes(new Uint8Array(sigBuf));
+  return {
+    name: STORE_MANAGER_COOKIE_NAME,
+    value: `${payload}.${sig}`,
+    options: {
+      httpOnly: true,
+      sameSite: 'strict',
+      secure: opts.secure ?? process.env.NODE_ENV === 'production',
+      path: '/',
+      maxAge: opts.ttlSeconds,
+    },
+  };
+}
+
+export async function verifyStoreManagerCookie(
+  value: string | undefined,
+  opts: StoreManagerCookieOptions,
+): Promise<StoreManagerCookieVerification> {
+  if (!value) return { valid: false, reason: 'missing' };
+  const parts = value.split('.');
+  if (parts.length !== 5) return { valid: false, reason: 'malformed' };
+  const [managerId, storeId, jewellerId, issuedAtRaw, providedSig] = parts as [
+    string, string, string, string, string,
+  ];
+  if (!UUID_RE.test(managerId) || !UUID_RE.test(storeId) || !UUID_RE.test(jewellerId)) {
+    return { valid: false, reason: 'malformed' };
+  }
+  const issuedAt = Number(issuedAtRaw);
+  if (!Number.isFinite(issuedAt)) return { valid: false, reason: 'malformed' };
+
+  const key = await importHmacKey(opts.secret + ':manager');
+  const expectedSigBuf = await crypto.subtle.sign(
+    'HMAC',
+    key,
+    new TextEncoder().encode(`${managerId}.${storeId}.${jewellerId}.${issuedAt}`),
+  );
+  let provided: Uint8Array;
+  try {
+    provided = b64urlToBytes(providedSig);
+  } catch {
+    return { valid: false, reason: 'malformed' };
+  }
+  if (!timingSafeEqualBytes(provided, new Uint8Array(expectedSigBuf))) {
+    return { valid: false, reason: 'bad_signature' };
+  }
+  if (Date.now() - issuedAt > opts.ttlSeconds * 1000) {
+    return { valid: false, reason: 'expired' };
+  }
+  return { valid: true, managerId, storeId, jewellerId, issuedAt };
+}
+
 export const PACKAGE_NAME = '@luxematch/tenant';

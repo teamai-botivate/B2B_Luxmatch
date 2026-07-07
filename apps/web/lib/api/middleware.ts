@@ -3,10 +3,12 @@ import {
   MANUFACTURER_COOKIE_NAME,
   PIN_COOKIE_NAME,
   STORE_COOKIE_NAME,
+  STORE_MANAGER_COOKIE_NAME,
   getShopJewellerIdOptional,
   verifyManufacturerCookie,
   verifyPinCookie,
   verifyStoreCookie,
+  verifyStoreManagerCookie,
 } from '@luxematch/tenant';
 import type { MiddlewareHandler } from 'hono';
 import { getCookie } from 'hono/cookie';
@@ -127,5 +129,46 @@ export const storeGuard: MiddlewareHandler<{
   // Overwrite shopJewellerId so all existing DB helpers work transparently.
   c.set('shopJewellerId', result.jewellerId);
   c.set('storeId', result.storeId);
+  await next();
+};
+
+/**
+ * Verifies the lm_store_manager cookie.
+ * Stashes managerId, storeId, and jewellerId (as shopJewellerId) in context.
+ * Also accepts a valid lm_store cookie (owner acting on manager routes).
+ */
+export const managerGuard: MiddlewareHandler<{
+  Variables: { shopJewellerId: string; storeId: string; managerId: string; isOwner: boolean };
+}> = async (c, next) => {
+  const env = getServerEnv();
+
+  // Owner (lm_store cookie) can also access manager-level routes
+  const storeCookie = getCookie(c, STORE_COOKIE_NAME);
+  const storeResult = await verifyStoreCookie(storeCookie, {
+    secret: env.LM_PIN_COOKIE_SECRET,
+    ttlSeconds: env.LM_STORE_COOKIE_TTL_SECONDS,
+  });
+  if (storeResult.valid) {
+    c.set('shopJewellerId', storeResult.jewellerId);
+    c.set('storeId', storeResult.storeId);
+    c.set('managerId', storeResult.storeId); // owner acts as itself
+    c.set('isOwner', true);
+    await next();
+    return;
+  }
+
+  // Manager cookie
+  const managerCookie = getCookie(c, STORE_MANAGER_COOKIE_NAME);
+  const result = await verifyStoreManagerCookie(managerCookie, {
+    secret: env.LM_PIN_COOKIE_SECRET,
+    ttlSeconds: env.LM_STORE_COOKIE_TTL_SECONDS,
+  });
+  if (!result.valid) {
+    return sendError(c, 'unauthorized', 'Manager or store login required', 401);
+  }
+  c.set('shopJewellerId', result.jewellerId);
+  c.set('storeId', result.storeId);
+  c.set('managerId', result.managerId);
+  c.set('isOwner', false);
   await next();
 };

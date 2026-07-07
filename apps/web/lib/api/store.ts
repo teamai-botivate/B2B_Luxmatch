@@ -2,6 +2,7 @@ import { getServerEnv } from '@luxematch/config';
 import {
   getStoreByJewellerId,
   verifyStorePassword,
+  selfRegisterStore,
   listManufacturerProducts,
   getManufacturerProductById,
   placeB2BOrder,
@@ -11,8 +12,14 @@ import {
   getGuestOrdersByStore,
   getGuestOrderWithItems,
   updateStoreBranding,
+  getStoreByEmail,
+  getSupabaseServer,
+  createPasswordResetToken,
+  verifyPasswordResetToken,
+  consumePasswordResetToken,
   type ManufacturerProductFilters,
 } from '@luxematch/db';
+import { hash } from 'bcryptjs';
 import { issueStoreCookie, STORE_COOKIE_NAME } from '@luxematch/tenant';
 import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
@@ -61,6 +68,125 @@ storeRoutes.post('/login', zValidator('json', LoginBody), async (c) => {
 // POST /api/store/logout
 storeRoutes.post('/logout', (c) => {
   deleteCookie(c, STORE_COOKIE_NAME, { path: '/' });
+  return sendData(c, { ok: true });
+});
+
+// POST /api/store/register — public self-registration (pending manufacturer approval)
+const RegisterBody = z.object({
+  name: z.string().min(2),
+  email: z.string().email(),
+  password: z.string().min(6),
+  ownerNaam: z.string().min(2),
+  ownerPhone: z.string().min(7),
+  logoUrl: z.string().url().optional(),
+  fixedAddressStreet: z.string().min(3),
+  fixedAddressCity: z.string().min(2),
+  fixedAddressState: z.string().min(2),
+  fixedAddressPincode: z.string().min(4),
+  fixedAddressLandmark: z.string().optional(),
+  managerNaam: z.string().min(2),
+  managerEmail: z.string().email(),
+  managerPassword: z.string().min(6),
+  managerPhone: z.string().optional(),
+});
+
+storeRoutes.post('/register', zValidator('json', RegisterBody), async (c) => {
+  const body = c.req.valid('json');
+  try {
+    const store = await selfRegisterStore(body);
+    return sendData(c, {
+      id: store.id,
+      name: store.name,
+      registration_status: store.registration_status,
+      message: 'Registration submitted. You will receive access after manufacturer approval.',
+    }, 201);
+  } catch (err) {
+    const msg = (err as Error).message;
+    if (msg.includes('unique') || msg.includes('duplicate')) {
+      return sendError(c, 'conflict', 'Email already registered', 409);
+    }
+    return sendError(c, 'internal_error', msg, 500);
+  }
+});
+
+// ── Forgot / Reset password (public) ─────────────────────────────────────────
+
+const ForgotPasswordBody = z.object({
+  email: z.string().email(),
+});
+
+// POST /api/store/forgot-password
+storeRoutes.post('/forgot-password', zValidator('json', ForgotPasswordBody), async (c) => {
+  const { email } = c.req.valid('json');
+  // Always return 200 to avoid email enumeration
+  try {
+    const store = await getStoreByEmail(email);
+    if (store) {
+      const token = await createPasswordResetToken(email, 'store_owner', store.id);
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? '';
+      const resetLink = `${appUrl}/store/reset-password?token=${token}`;
+
+      const env = getServerEnv();
+      if (
+        env.SMTP_HOST &&
+        env.SMTP_PORT &&
+        env.SMTP_USER &&
+        env.SMTP_PASS &&
+        env.SMTP_FROM_EMAIL
+      ) {
+        const nodemailer = await import('nodemailer');
+        const transporter = nodemailer.default.createTransport({
+          host: env.SMTP_HOST,
+          port: env.SMTP_PORT,
+          secure: env.SMTP_PORT === 465,
+          auth: { user: env.SMTP_USER, pass: env.SMTP_PASS },
+        });
+        transporter
+          .sendMail({
+            from: `"${env.SMTP_FROM_NAME ?? 'Jewel Factory'}" <${env.SMTP_FROM_EMAIL}>`,
+            to: email,
+            subject: 'Reset your Jewel Factory store password',
+            text: `Hi ${store.name},\n\nClick the link below to reset your store password (valid for 1 hour):\n\n${resetLink}\n\nIf you did not request this, ignore this email.`,
+            html: `<p>Hi ${store.name},</p><p>Click the link below to reset your store password (valid for 1 hour):</p><p><a href="${resetLink}">${resetLink}</a></p><p>If you did not request this, ignore this email.</p>`,
+          })
+          .catch((err: unknown) => {
+            console.error('[forgot-password/store] Email send failed:', err);
+          });
+      } else {
+        console.warn('[forgot-password/store] SMTP not configured; reset link:', resetLink);
+      }
+    }
+  } catch (err) {
+    console.error('[forgot-password/store] Error:', err);
+  }
+  return sendData(c, { ok: true });
+});
+
+const ResetPasswordBody = z.object({
+  token: z.string().min(1),
+  password: z.string().min(6),
+});
+
+// POST /api/store/reset-password
+storeRoutes.post('/reset-password', zValidator('json', ResetPasswordBody), async (c) => {
+  const { token, password } = c.req.valid('json');
+
+  const tokenRow = await verifyPasswordResetToken(token, 'store_owner');
+  if (!tokenRow) {
+    return sendError(c, 'bad_request', 'Reset link is invalid or has expired', 400);
+  }
+
+  const passwordHash = await hash(password, 10);
+  const sb = getSupabaseServer();
+  const { error } = await sb
+    .from('stores')
+    .update({ password_hash: passwordHash })
+    .eq('id', tokenRow.store_id ?? '');
+  if (error) {
+    return sendError(c, 'internal_error', 'Failed to update password', 500);
+  }
+  await consumePasswordResetToken(tokenRow.id);
+
   return sendData(c, { ok: true });
 });
 
@@ -146,7 +272,7 @@ storeRoutes.post('/orders', zValidator('json', PlaceOrderBody), async (c) => {
       return {
         manufacturerProductId: item.manufacturerProductId,
         quantity: item.quantity,
-        unitPrice: product.base_price,
+        unitPrice: null,
         productName: product.name,
       };
     }),
@@ -235,3 +361,5 @@ storeRoutes.get('/kiosk-orders/:id', async (c) => {
   }
   return sendData(c, order);
 });
+
+

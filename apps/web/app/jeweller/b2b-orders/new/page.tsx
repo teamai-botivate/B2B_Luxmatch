@@ -10,13 +10,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useB2BCart } from '@/hooks/use-b2b-cart';
 
-function formatINR(value: number) {
-  return new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency: 'INR',
-    maximumFractionDigits: 0,
-  }).format(value);
-}
 
 export default function NewB2BOrderPage() {
   const router = useRouter();
@@ -110,7 +103,7 @@ export default function NewB2BOrderPage() {
                   <div className="min-w-0 flex-1">
                     <p className="line-clamp-1 text-sm font-semibold">{item.name}</p>
                     <p className="text-xs text-muted-foreground">
-                      {item.sku} · MOQ {item.minOrderQty}
+                      {item.designNumber} · MOQ {item.minOrderQty}
                     </p>
                     <div className="mt-2 flex flex-wrap items-center gap-2">
                       <Input
@@ -129,8 +122,8 @@ export default function NewB2BOrderPage() {
                       </button>
                     </div>
                   </div>
-                  <p className="shrink-0 text-sm font-semibold">
-                    {formatINR(item.quantity * item.unitPrice)}
+                  <p className="shrink-0 text-sm text-muted-foreground">
+                    Qty: {item.quantity}
                   </p>
                 </div>
               ))}
@@ -163,7 +156,6 @@ export default function NewB2BOrderPage() {
           {error && <p className="text-sm text-red-600">{error}</p>}
           <div className="flex items-center justify-between border-t pt-3 text-sm">
             <span className="text-muted-foreground">{cart.totals.count} items</span>
-            <span className="font-semibold">{formatINR(cart.totals.amount)}</span>
           </div>
           <Button
             className="w-full"

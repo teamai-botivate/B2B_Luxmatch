@@ -13,13 +13,6 @@ import { useB2BCart } from '@/hooks/use-b2b-cart';
 
 const CATEGORIES = ['all', 'rings', 'earrings', 'necklaces', 'bangles', 'pendants', 'sets'];
 
-function formatINR(value: number) {
-  return new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency: 'INR',
-    maximumFractionDigits: 0,
-  }).format(value);
-}
 
 export default function ManufacturerCatalogPage() {
   const [products, setProducts] = useState<ManufacturerProductWithImages[]>([]);
@@ -72,13 +65,13 @@ export default function ManufacturerCatalogPage() {
     cart.add({
       productId: product.id,
       manufacturerId: product.manufacturer_id,
-      sku: product.sku,
+      designNumber: product.design_number ?? product.id.slice(0, 8),
       name: product.name,
       imageUrl: primary?.secure_url,
       category: product.category,
-      metal: product.metal,
+      weightGrams: product.weight_grams ?? undefined,
+      purity: product.purity ?? undefined,
       minOrderQty: product.min_order_qty,
-      unitPrice: product.base_price,
     });
     setFlash(`${product.name} added to B2B cart.`);
   }
@@ -205,7 +198,9 @@ export default function ManufacturerCatalogPage() {
                     </div>
                     <div className="flex items-end justify-between gap-2">
                       <div>
-                        <p className="text-sm font-semibold">{formatINR(product.base_price)}</p>
+                        {product.weight_grams && (
+                          <p className="text-xs text-muted-foreground">{product.weight_grams}g</p>
+                        )}
                         <p className="text-xs text-muted-foreground">
                           MOQ {product.min_order_qty}
                         </p>

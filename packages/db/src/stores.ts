@@ -2,6 +2,8 @@ import { compare } from 'bcryptjs';
 import { hash } from 'bcryptjs';
 import { getSupabaseServer } from './client';
 
+export type RegistrationStatus = 'pending' | 'approved' | 'rejected';
+
 export type StoreRow = {
   id: string;
   jeweller_id: string | null;
@@ -15,6 +17,16 @@ export type StoreRow = {
   tagline: string | null;
   website_url: string | null;
   is_active: boolean;
+  registration_status: RegistrationStatus;
+  registration_submitted_at: string | null;
+  registration_reviewed_at: string | null;
+  fixed_address_street: string | null;
+  fixed_address_city: string | null;
+  fixed_address_state: string | null;
+  fixed_address_pincode: string | null;
+  fixed_address_landmark: string | null;
+  owner_naam: string | null;
+  owner_phone: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -230,4 +242,148 @@ export async function deleteStore(
       .delete()
       .eq('id', (store as { jeweller_id: string }).jeweller_id);
   }
+}
+
+// ── Self-registration (C-series) ─────────────────────────────────────────────
+
+const STORE_PUBLIC_COLS = [
+  'id', 'jeweller_id', 'manufacturer_id', 'name', 'email', 'city', 'phone',
+  'logo_url', 'tagline', 'website_url', 'is_active',
+  'registration_status', 'registration_submitted_at', 'registration_reviewed_at',
+  'fixed_address_street', 'fixed_address_city', 'fixed_address_state',
+  'fixed_address_pincode', 'fixed_address_landmark',
+  'owner_naam', 'owner_phone', 'created_at', 'updated_at',
+].join(', ');
+
+export type SelfRegisterStoreInput = {
+  name: string;
+  email: string;
+  password: string;
+  ownerNaam: string;
+  ownerPhone: string;
+  logoUrl?: string;
+  fixedAddressStreet: string;
+  fixedAddressCity: string;
+  fixedAddressState: string;
+  fixedAddressPincode: string;
+  fixedAddressLandmark?: string;
+  // First manager (required at registration)
+  managerNaam: string;
+  managerEmail: string;
+  managerPassword: string;
+  managerPhone?: string;
+};
+
+export async function selfRegisterStore(
+  input: SelfRegisterStoreInput,
+): Promise<StorePublic> {
+  const sb = getSupabaseServer();
+
+  // Auto-create jewellers row
+  const slug = input.name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 80);
+  const uniqueSlug = `${slug}-${Math.random().toString(36).slice(2, 8)}`;
+
+  const { data: jeweller, error: jewellerError } = await sb
+    .from('jewellers')
+    .insert({
+      slug: uniqueSlug,
+      store_name: input.name,
+      city: input.fixedAddressCity,
+      phone: input.ownerPhone ?? null,
+    })
+    .select('id')
+    .single();
+  if (jewellerError) throw new Error(`selfRegisterStore (jeweller): ${jewellerError.message}`);
+
+  const passwordHash = await hash(input.password, 10);
+  const { data, error } = await sb
+    .from('stores')
+    .insert({
+      jeweller_id: jeweller.id,
+      manufacturer_id: null,  // not yet assigned — manufacturer approves
+      name: input.name,
+      email: input.email.toLowerCase().trim(),
+      password_hash: passwordHash,
+      city: input.fixedAddressCity,
+      phone: input.ownerPhone ?? null,
+      logo_url: input.logoUrl ?? null,
+      is_active: false,  // inactive until approved
+      registration_status: 'pending',
+      registration_submitted_at: new Date().toISOString(),
+      fixed_address_street: input.fixedAddressStreet,
+      fixed_address_city: input.fixedAddressCity,
+      fixed_address_state: input.fixedAddressState,
+      fixed_address_pincode: input.fixedAddressPincode,
+      fixed_address_landmark: input.fixedAddressLandmark ?? null,
+      owner_naam: input.ownerNaam,
+      owner_phone: input.ownerPhone,
+    })
+    .select(STORE_PUBLIC_COLS)
+    .single();
+  if (error) throw new Error(`selfRegisterStore: ${error.message}`);
+
+  return data as unknown as StorePublic;
+}
+
+export async function listPendingStores(): Promise<StorePublic[]> {
+  const sb = getSupabaseServer();
+  const { data, error } = await sb
+    .from('stores')
+    .select(STORE_PUBLIC_COLS)
+    .eq('registration_status', 'pending')
+    .order('registration_submitted_at', { ascending: true });
+  if (error) throw new Error(`listPendingStores: ${error.message}`);
+  return (data ?? []) as unknown as StorePublic[];
+}
+
+export async function approveStoreRegistration(
+  storeId: string,
+  manufacturerId: string,
+): Promise<StorePublic> {
+  const sb = getSupabaseServer();
+  const { data, error } = await sb
+    .from('stores')
+    .update({
+      registration_status: 'approved',
+      registration_reviewed_at: new Date().toISOString(),
+      manufacturer_id: manufacturerId,
+      is_active: true,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', storeId)
+    .select(STORE_PUBLIC_COLS)
+    .single();
+  if (error) throw new Error(`approveStoreRegistration: ${error.message}`);
+  return data as unknown as StorePublic;
+}
+
+export async function rejectStoreRegistration(storeId: string): Promise<StorePublic> {
+  const sb = getSupabaseServer();
+  const { data, error } = await sb
+    .from('stores')
+    .update({
+      registration_status: 'rejected',
+      registration_reviewed_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', storeId)
+    .select(STORE_PUBLIC_COLS)
+    .single();
+  if (error) throw new Error(`rejectStoreRegistration: ${error.message}`);
+  return data as unknown as StorePublic;
+}
+
+export function formatStoreFixedAddress(store: StorePublic): string {
+  const parts = [
+    store.fixed_address_street,
+    store.fixed_address_landmark,
+    store.fixed_address_city,
+    store.fixed_address_state,
+    store.fixed_address_pincode,
+  ].filter(Boolean);
+  return parts.join(', ');
 }

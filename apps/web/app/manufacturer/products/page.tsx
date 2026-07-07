@@ -21,7 +21,6 @@ type SignedUploadParams = {
 };
 
 const CATEGORIES = ['rings', 'earrings', 'necklaces', 'bangles', 'pendants', 'sets'];
-const METALS = ['Gold', 'Silver', 'Platinum', 'Rose Gold', 'White Gold', 'Mixed Metals'];
 const PURITIES = ['14K', '18K', '22K', '24K', '925', '950', '999'];
 const JEWELLERY_TYPES = [
   { value: 'necklace', label: 'Necklace' },
@@ -43,12 +42,10 @@ function ProductModal({
 }) {
   const editing = product !== null;
   const [form, setForm] = useState({
-    sku: product?.sku ?? '',
     name: product?.name ?? '',
     category: product?.category ?? '',
-    metal: product?.metal ?? '',
     purity: product?.purity ?? '',
-    basePrice: product?.base_price?.toString() ?? '',
+    weightGrams: product?.weight_grams?.toString() ?? '',
     description: product?.description ?? '',
     minOrderQty: product?.min_order_qty?.toString() ?? '1',
     status: (product?.status ?? 'active') as Status,
@@ -83,12 +80,10 @@ function ProductModal({
     setSaving(true);
     try {
       const body = {
-        ...(editing ? {} : { sku: form.sku }),
         name: form.name,
         category: form.category || undefined,
-        metal: form.metal || undefined,
         purity: form.purity || undefined,
-        basePrice: parseFloat(form.basePrice),
+        weightGrams: form.weightGrams ? parseFloat(form.weightGrams) : undefined,
         description: form.description || undefined,
         minOrderQty: parseInt(form.minOrderQty) || 1,
         status: form.status,
@@ -219,16 +214,9 @@ function ProductModal({
         </div>
 
         <form onSubmit={save} className="px-5 py-4 space-y-4">
-          {!editing && (
-            <div>
-              <label className="text-xs font-medium text-muted-foreground">SKU *</label>
-              <Input
-                className="mt-1"
-                placeholder="e.g. RG-001"
-                value={form.sku}
-                onChange={(e) => set('sku', e.target.value)}
-                required
-              />
+          {editing && product?.design_number && (
+            <div className="rounded-lg bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+              Design No: <span className="font-semibold text-foreground">{product.design_number}</span>
             </div>
           )}
 
@@ -258,34 +246,22 @@ function ProductModal({
               </select>
             </div>
             <div>
-              <label className="text-xs font-medium text-muted-foreground">Base Price (₹) *</label>
+              <label className="text-xs font-medium text-muted-foreground">Weight (grams)</label>
               <Input
                 className="mt-1"
                 type="number"
-                min="1"
-                step="0.01"
-                placeholder="e.g. 25000"
-                value={form.basePrice}
-                onChange={(e) => set('basePrice', e.target.value)}
-                required
+                min="0.1"
+                step="0.1"
+                placeholder="e.g. 12.5"
+                value={form.weightGrams}
+                onChange={(e) => set('weightGrams', e.target.value)}
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-medium text-muted-foreground">Metal</label>
-              <select
-                className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm"
-                value={form.metal}
-                onChange={(e) => set('metal', e.target.value)}
-              >
-                <option value="">Select…</option>
-                {METALS.map((m) => <option key={m} value={m}>{m}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground">Purity</label>
+              <label className="text-xs font-medium text-muted-foreground">Purity (Gold)</label>
               <select
                 className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm"
                 value={form.purity}
@@ -591,7 +567,7 @@ export default function ManufacturerProductsPage() {
                 <tr className="border-b bg-muted/40">
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">Product</th>
                   <th className="hidden sm:table-cell px-4 py-3 text-left font-medium text-muted-foreground">Category</th>
-                  <th className="hidden md:table-cell px-4 py-3 text-left font-medium text-muted-foreground">Metal</th>
+                  <th className="hidden md:table-cell px-4 py-3 text-left font-medium text-muted-foreground">Purity</th>
                   <th className="px-4 py-3 text-right font-medium text-muted-foreground">Price</th>
                   <th className="px-4 py-3 text-center font-medium text-muted-foreground">Status</th>
                   <th className="px-4 py-3 text-right font-medium text-muted-foreground">Actions</th>
@@ -626,7 +602,7 @@ export default function ManufacturerProductsPage() {
                                 </span>
                               )}
                             </div>
-                            <p className="text-xs text-muted-foreground">{p.sku}</p>
+                            <p className="text-xs text-muted-foreground">{p.design_number ?? p.sku}</p>
                           </div>
                         </div>
                       </td>
@@ -634,10 +610,10 @@ export default function ManufacturerProductsPage() {
                         {p.category ?? '—'}
                       </td>
                       <td className="hidden md:table-cell px-4 py-3 text-muted-foreground">
-                        {p.metal ? `${p.metal}${p.purity ? ` ${p.purity}` : ''}` : '—'}
+                        {p.purity ?? '—'}
                       </td>
-                      <td className="px-4 py-3 text-right tabular-nums font-medium">
-                        ₹{p.base_price.toLocaleString('en-IN')}
+                      <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">
+                        {p.weight_grams ? `${p.weight_grams}g` : '—'}
                       </td>
                       <td className="px-4 py-3 text-center">
                         <span className={`rounded-full px-2 py-0.5 text-xs font-medium capitalize ${STATUS_BADGE[p.status] ?? ''}`}>

@@ -8,7 +8,7 @@ import { Suspense, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
-function StoreLoginForm() {
+function ManagerLoginForm() {
   const router = useRouter();
   const params = useSearchParams();
   const next = params.get('next') || '/jeweller/dashboard';
@@ -23,13 +23,13 @@ function StoreLoginForm() {
     setError(null);
     setSubmitting(true);
     try {
-      const res = await fetch('/api/store/login', {
+      const res = await fetch('/api/manager/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
       const json = (await res.json()) as
-        | { data: { id: string; name: string } }
+        | { data: { id: string; naam: string } }
         | { error: { message: string } };
       if (!res.ok || 'error' in json) {
         setError('error' in json ? json.error.message : 'Login failed');
@@ -49,11 +49,11 @@ function StoreLoginForm() {
       <form onSubmit={submit} className="w-full max-w-sm space-y-5 rounded-xl border bg-card p-6 shadow-sm">
         <div className="text-center">
           <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-            Retailer Portal
+            Jewel Factory
           </p>
-          <h1 className="mt-2 text-2xl font-medium tracking-tight">Store sign in</h1>
+          <h1 className="mt-2 text-2xl font-medium tracking-tight">Manager Login</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Browse manufacturer designs and place B2B orders.
+            Sign in to manage orders and customer requests.
           </p>
         </div>
         <div className="space-y-3">
@@ -88,7 +88,7 @@ function StoreLoginForm() {
         </div>
         <div className="text-right">
           <Link
-            href="/store/forgot-password"
+            href="/store/manager/forgot-password"
             className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2"
           >
             Forgot password?
@@ -98,10 +98,10 @@ function StoreLoginForm() {
         <Button className="h-11 w-full" disabled={!email || !password || submitting}>
           {submitting ? 'Signing in...' : 'Sign in'}
         </Button>
-        <p className="text-center text-sm text-muted-foreground">
-          New store?{' '}
-          <Link href="/store/register" className="font-medium underline underline-offset-4">
-            Register here →
+        <p className="text-center text-xs text-muted-foreground">
+          Store Owner?{' '}
+          <Link href="/store/login" className="underline underline-offset-2 hover:text-foreground">
+            Sign in here →
           </Link>
         </p>
       </form>
@@ -109,10 +109,10 @@ function StoreLoginForm() {
   );
 }
 
-export default function StoreLoginPage() {
+export default function ManagerLoginPage() {
   return (
     <Suspense>
-      <StoreLoginForm />
+      <ManagerLoginForm />
     </Suspense>
   );
 }

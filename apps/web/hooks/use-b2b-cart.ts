@@ -2,18 +2,18 @@
 
 import { useEffect, useMemo, useState } from 'react';
 
-const STORAGE_KEY = 'luxematch_b2b_cart';
+const STORAGE_KEY = 'jewelfactory_b2b_cart';
 
 export type B2BCartItem = {
   productId: string;
   manufacturerId: string;
-  sku: string;
+  designNumber: string;
   name: string;
   imageUrl?: string;
   category?: string | null;
-  metal?: string | null;
+  weightGrams?: number | null;
+  purity?: string | null;
   minOrderQty: number;
-  unitPrice: number;
   quantity: number;
 };
 
@@ -29,7 +29,7 @@ function readCart(): B2BCartItem[] {
 
 function writeCart(items: B2BCartItem[]) {
   window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-  window.dispatchEvent(new Event('luxematch:b2b-cart'));
+  window.dispatchEvent(new Event('jewelfactory:b2b-cart'));
 }
 
 export function useB2BCart() {
@@ -38,10 +38,10 @@ export function useB2BCart() {
   useEffect(() => {
     setItems(readCart());
     const onChange = () => setItems(readCart());
-    window.addEventListener('luxematch:b2b-cart', onChange);
+    window.addEventListener('jewelfactory:b2b-cart', onChange);
     window.addEventListener('storage', onChange);
     return () => {
-      window.removeEventListener('luxematch:b2b-cart', onChange);
+      window.removeEventListener('jewelfactory:b2b-cart', onChange);
       window.removeEventListener('storage', onChange);
     };
   }, []);
@@ -49,7 +49,6 @@ export function useB2BCart() {
   const totals = useMemo(
     () => ({
       count: items.reduce((sum, item) => sum + item.quantity, 0),
-      amount: items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0),
     }),
     [items],
   );
@@ -91,4 +90,24 @@ export function useB2BCart() {
   }
 
   return { items, totals, add, update, remove, clear };
+}
+
+export function useB2BCartCount() {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    const update = () => {
+      const items = readCart();
+      setCount(items.reduce((sum, item) => sum + item.quantity, 0));
+    };
+    update();
+    window.addEventListener('jewelfactory:b2b-cart', update);
+    window.addEventListener('storage', update);
+    return () => {
+      window.removeEventListener('jewelfactory:b2b-cart', update);
+      window.removeEventListener('storage', update);
+    };
+  }, []);
+
+  return count;
 }

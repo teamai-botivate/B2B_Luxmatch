@@ -21,6 +21,9 @@ import {
   updateStore,
   updateStorePassword,
   deleteStore,
+  listPendingStores,
+  approveStoreRegistration,
+  rejectStoreRegistration,
   getGuestOrdersByManufacturer,
   getGuestOrderWithItems,
   updateGuestOrderStatus,
@@ -110,13 +113,10 @@ manufacturerRoutes.get('/products/:id', async (c) => {
 });
 
 const CreateProductBody = z.object({
-  sku: z.string().min(1).max(64),
   name: z.string().min(1).max(200),
   category: z.string().optional(),
   description: z.string().optional(),
   weightGrams: z.number().positive().optional(),
-  basePrice: z.number().positive(),
-  metal: z.string().optional(),
   purity: z.string().optional(),
   gemstones: z.array(z.string()).optional(),
   occasionTags: z.array(z.string()).optional(),
@@ -137,7 +137,7 @@ manufacturerRoutes.post('/products', zValidator('json', CreateProductBody), asyn
   return sendData(c, product, 201);
 });
 
-const UpdateProductBody = CreateProductBody.partial().omit({ sku: true });
+const UpdateProductBody = CreateProductBody.partial();
 
 // PATCH /api/manufacturer/products/:id
 manufacturerRoutes.patch('/products/:id', zValidator('json', UpdateProductBody), async (c) => {
@@ -495,3 +495,23 @@ manufacturerRoutes.patch(
     return sendData(c, { ok: true });
   },
 );
+
+// ── Store self-registration approvals (C6) ────────────────────────────────────
+
+// GET /api/manufacturer/store-registrations — pending store registrations
+manufacturerRoutes.get('/store-registrations', async (c) => {
+  const stores = await listPendingStores();
+  return sendData(c, stores);
+});
+
+// POST /api/manufacturer/store-registrations/:id/approve
+manufacturerRoutes.post('/store-registrations/:id/approve', async (c) => {
+  const store = await approveStoreRegistration(c.req.param('id'), c.get('manufacturerId'));
+  return sendData(c, store);
+});
+
+// POST /api/manufacturer/store-registrations/:id/reject
+manufacturerRoutes.post('/store-registrations/:id/reject', async (c) => {
+  const store = await rejectStoreRegistration(c.req.param('id'));
+  return sendData(c, store);
+});

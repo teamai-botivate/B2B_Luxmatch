@@ -17,6 +17,7 @@ import { analyticsRoutes } from '@/lib/api/analytics';
 import { healthCheck } from '@/lib/api/health';
 import { manufacturerRoutes } from '@/lib/api/manufacturer';
 import { storeRoutes } from '@/lib/api/store';
+import { storeManagerRoutes } from '@/lib/api/store-manager';
 import { kioskRoutes } from '@/lib/api/kiosk';
 
 export const runtime = 'nodejs';
@@ -87,6 +88,8 @@ app.route('/customer', customerOrderRoutes);
 app.route('/manufacturer', manufacturerRoutes);
 // storeRoutes: /login /logout /me /catalog /orders /kiosk-orders (storeGuard on all except login/logout)
 app.route('/store', storeRoutes);
+// storeManagerRoutes: /login /logout /me /list /create (manager CRUD + login)
+app.route('/manager', storeManagerRoutes);
 // kioskRoutes: public guest order placement + status read (no auth cookie required)
 app.route('/kiosk', kioskRoutes);
 app.route('/', catalogRoutes);

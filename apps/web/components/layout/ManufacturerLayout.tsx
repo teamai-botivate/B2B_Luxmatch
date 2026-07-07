@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -12,21 +12,27 @@ import {
   Factory,
   Store,
   Users,
+  ClipboardList,
 } from 'lucide-react';
-
-const navItems = [
-  { label: 'Dashboard', href: '/manufacturer/dashboard', icon: LayoutDashboard },
-  { label: 'Catalog', href: '/manufacturer/catalog', icon: Package },
-  { label: 'Orders', href: '/manufacturer/orders', icon: ShoppingBag },
-  { label: 'Kiosk Orders', href: '/manufacturer/kiosk-orders', icon: Users },
-  { label: 'Stores', href: '/manufacturer/stores', icon: Store },
-];
 
 export default function ManufacturerLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [pendingCount, setPendingCount] = useState<number>(0);
+
+  useEffect(() => {
+    if (pathname === '/manufacturer/login') return;
+    fetch('/api/manufacturer/store-registrations', { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((json: unknown) => {
+        if (json && typeof json === 'object' && 'data' in json && Array.isArray((json as { data: unknown[] }).data)) {
+          setPendingCount((json as { data: unknown[] }).data.length);
+        }
+      })
+      .catch(() => {/* ignore — badge is non-critical */});
+  }, [pathname]);
 
   if (pathname === '/manufacturer/login') {
     return <>{children}</>;
@@ -63,7 +69,14 @@ export default function ManufacturerLayout({ children }: { children: React.React
       </div>
 
       <nav className="flex-1 px-3 py-4 space-y-1">
-        {navItems.map(({ label, href, icon: Icon }) => {
+        {[
+          { label: 'Dashboard', href: '/manufacturer/dashboard', icon: LayoutDashboard },
+          { label: 'Catalog', href: '/manufacturer/catalog', icon: Package },
+          { label: 'Orders', href: '/manufacturer/orders', icon: ShoppingBag },
+          { label: 'Kiosk Orders', href: '/manufacturer/kiosk-orders', icon: Users },
+          { label: 'Stores', href: '/manufacturer/stores', icon: Store },
+          { label: 'Store Registrations', href: '/manufacturer/store-registrations', icon: ClipboardList, badge: pendingCount },
+        ].map(({ label, href, icon: Icon, badge }) => {
           const active = pathname === href || pathname.startsWith(href + '/');
           return (
             <Link key={href} href={href}>
@@ -75,7 +88,12 @@ export default function ManufacturerLayout({ children }: { children: React.React
                 }`}
               >
                 <Icon className="w-4 h-4 flex-shrink-0" />
-                {label}
+                <span className="flex-1">{label}</span>
+                {badge != null && badge > 0 && (
+                  <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none ${active ? 'bg-primary-foreground/20 text-primary-foreground' : 'bg-yellow-100 text-yellow-800'}`}>
+                    {badge}
+                  </span>
+                )}
               </div>
             </Link>
           );

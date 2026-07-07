@@ -124,10 +124,17 @@ export {
   updateStore,
   updateStorePassword,
   deleteStore,
+  selfRegisterStore,
+  listPendingStores,
+  approveStoreRegistration,
+  rejectStoreRegistration,
+  formatStoreFixedAddress,
   type StoreRow,
   type StorePublic,
+  type RegistrationStatus,
   type CreateStoreInput,
   type UpdateStoreInput,
+  type SelfRegisterStoreInput,
 } from './stores';
 
 export {
@@ -181,5 +188,45 @@ export {
   type StoreBranding,
   type StoreProfile,
 } from './guest-orders';
+
+export {
+  getStoreManagerByEmail,
+  getStoreManagerByEmailGlobal,
+  getStoreManagerById,
+  listStoreManagers,
+  createStoreManager,
+  updateStoreManager,
+  deleteStoreManager,
+  updateStoreManagerPassword,
+  type StoreManagerRow,
+  type StoreManagerPublic,
+  type CreateStoreManagerInput,
+  type UpdateStoreManagerInput,
+} from './store-managers';
+
+export {
+  placeCustomDesignRequest,
+  listCustomDesignRequests,
+  getCustomDesignRequest,
+  approveCustomDesignRequest,
+  rejectCustomDesignRequest,
+  forwardCustomDesignToManufacturer,
+  listCustomDesignOrdersByManufacturer,
+  listCustomDesignOrdersByStore,
+  updateCustomDesignOrderStatus,
+  type CustomDesignStatus,
+  type CustomDesignOrderStatus,
+  type CustomDesignRequestRow,
+  type CustomDesignOrderRow,
+  type PlaceCustomDesignRequestInput,
+} from './custom-design';
+
+export {
+  createPasswordResetToken,
+  verifyPasswordResetToken,
+  consumePasswordResetToken,
+  type PasswordResetRole,
+  type PasswordResetTokenRow,
+} from './password-reset';
 
 export const PACKAGE_NAME = '@luxematch/db';

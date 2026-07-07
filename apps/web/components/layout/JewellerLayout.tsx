@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
-import { LayoutDashboard, Package, BarChart3, Settings, ArrowLeft, Menu, Lightbulb, ShoppingBag, Lock, Gem, Truck, Users, Store } from "lucide-react";
+import { LayoutDashboard, Package, BarChart3, Settings, ArrowLeft, Menu, Lightbulb, ShoppingBag, Lock, Gem, Truck, Users, Store, UserCog } from "lucide-react";
 
 const navItems = [
   { label: "Dashboard", href: "/jeweller/dashboard", icon: LayoutDashboard },
@@ -16,6 +16,7 @@ const navItems = [
   { label: "Analytics", href: "/jeweller/analytics", icon: BarChart3 },
   { label: "Intelligence", href: "/jeweller/intelligence", icon: Lightbulb },
   { label: "Store Profile", href: "/jeweller/store-profile", icon: Store },
+  { label: "Managers", href: "/jeweller/managers", icon: UserCog },
   { label: "Settings", href: "/jeweller/settings", icon: Settings },
 ];
 
