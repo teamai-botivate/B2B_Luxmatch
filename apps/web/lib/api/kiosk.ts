@@ -141,23 +141,33 @@ kioskRoutes.post(
       });
     }
 
-    const order = await placeGuestOrder({
-      manufacturerId: store.manufacturer_id,
-      storeId: store.id,
-      jewellerId,
-      storeNameSnapshot: store.name,
-      storeCitySnapshot: store.city ?? undefined,
-      storePhoneSnapshot: store.phone ?? undefined,
-      storeEmailSnapshot: store.email,
-      customerName: body.customerName,
-      customerPhone: body.customerPhone,
-      customerEmail: body.customerEmail,
-      deliveryAddress: body.deliveryAddress,
-      pickupStore: body.pickupStore,
-      notes: body.notes,
-      orderSource: 'kiosk',
-      items: resolvedItems,
-    });
+    let order;
+    try {
+      order = await placeGuestOrder({
+        manufacturerId: store.manufacturer_id,
+        storeId: store.id,
+        jewellerId,
+        storeNameSnapshot: store.name,
+        storeCitySnapshot: store.city ?? undefined,
+        storePhoneSnapshot: store.phone ?? undefined,
+        storeEmailSnapshot: store.email,
+        customerName: body.customerName,
+        customerPhone: body.customerPhone,
+        customerEmail: body.customerEmail,
+        deliveryAddress: body.deliveryAddress,
+        pickupStore: body.pickupStore,
+        notes: body.notes,
+        orderSource: 'kiosk',
+        items: resolvedItems,
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error('[kiosk/orders] placeGuestOrder failed:', msg);
+      if (msg.includes('relation') && msg.includes('does not exist')) {
+        return sendError(c, 'not_ready', 'Database migration 0006 not yet applied. Apply it in Supabase SQL editor first.', 503);
+      }
+      return sendError(c, 'internal_error', `Order could not be placed: ${msg}`, 500);
+    }
 
     return sendData(c, { id: order.id, orderNumber: order.order_number }, 201);
   },

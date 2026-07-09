@@ -80,8 +80,8 @@ export default function KioskCheckoutPage() {
 
       cart.clear();
       router.push(`/kiosk-checkout/success?order=${json.data.orderNumber}&id=${json.data.id}`);
-    } catch {
-      setError('Network error. Please try again.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Network error. Please try again.');
     } finally {
       setLoading(false);
     }
