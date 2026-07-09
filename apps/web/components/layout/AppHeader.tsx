@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
-import { Search, Heart, GitCompare, Menu, Sparkles, LayoutDashboard, ShoppingBag } from "lucide-react";
+import { Search, Heart, GitCompare, Menu, Sparkles, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSavedItems } from "@/contexts/SavedItemsContext";
 import { useCompare } from "@/contexts/CompareContext";
@@ -191,17 +191,6 @@ export default function AppHeader() {
               </button>
             </Link>
 
-            {/* Try-On CTA */}
-            <Button
-              size="sm"
-              variant="outline"
-              className="hidden items-center gap-1.5 rounded-full border-black/15 bg-white/35 md:flex"
-              onClick={() => router.push("/jeweller/dashboard")}
-              data-testid="button-jeweller-dashboard"
-            >
-              <LayoutDashboard className="w-3.5 h-3.5" />
-              Dashboard
-            </Button>
 
             <Button
               size="sm"

@@ -36,8 +36,7 @@ const columns = [
     links: [
       { label: "Store Portal", href: "/store/login" },
       { label: "Manufacturer Portal", href: "/manufacturer/login" },
-      { label: "Dashboard", href: "/jeweller/dashboard" },
-      { label: "Analytics", href: "/jeweller/analytics" },
+      { label: "Staff Portal", href: "/portal" },
     ],
   },
   {

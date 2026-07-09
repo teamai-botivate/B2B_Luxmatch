@@ -10,7 +10,6 @@ import { useSavedItems } from "@/contexts/SavedItemsContext";
 import { useCompare } from "@/contexts/CompareContext";
 
 const navLinks = [
-  { label: "Dashboard", href: "/jeweller/dashboard" },
   { label: "Catalog", href: "/catalog" },
   { label: "Collections", href: "/collections" },
   { label: "Try-On", href: "/try-on" },
