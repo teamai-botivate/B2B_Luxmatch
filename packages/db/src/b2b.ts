@@ -172,6 +172,32 @@ export async function getManufacturerProductById(
   };
 }
 
+export async function getManufacturerProductByDesignNumberOrId(
+  idOrDesignNumber: string,
+): Promise<ManufacturerProductWithImages | null> {
+  // Try UUID first
+  const byId = await getManufacturerProductById(idOrDesignNumber).catch(() => null);
+  if (byId) return byId;
+
+  // Fall back to design_number lookup (e.g. "JF-0007")
+  const sb = getSupabaseServer();
+  const { data, error } = await sb
+    .from('manufacturer_products')
+    .select(
+      `*, manufacturer_product_images (
+        id, product_id, cloudinary_public_id, secure_url, is_primary, is_tryon, jewellery_type, sort_order, created_at
+      )`,
+    )
+    .eq('design_number', idOrDesignNumber)
+    .maybeSingle();
+  if (error) throw new Error(`getManufacturerProductByDesignNumberOrId: ${error.message}`);
+  if (!data) return null;
+  return {
+    ...(data as ManufacturerProductRow),
+    images: ((data as Record<string, unknown>).manufacturer_product_images ?? []) as ManufacturerProductImageRow[],
+  };
+}
+
 export type CreateManufacturerProductInput = {
   manufacturerId: string;
   name: string;
@@ -205,6 +231,8 @@ export async function createManufacturerProduct(
       style_tags: input.styleTags ?? [],
       min_order_qty: input.minOrderQty ?? 1,
       status: input.status ?? 'draft',
+      // sku kept as fallback for DBs where the column is still NOT NULL
+      sku: `SKU-${Date.now()}`,
     })
     .select()
     .single();

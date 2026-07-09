@@ -140,6 +140,7 @@ export {
 export {
   listManufacturerProducts,
   getManufacturerProductById,
+  getManufacturerProductByDesignNumberOrId,
   createManufacturerProduct,
   updateManufacturerProduct,
   deleteManufacturerProduct,

@@ -235,6 +235,21 @@ export function adaptManufacturerProduct(p: ManufacturerProduct): Product {
   };
 }
 
+export async function fetchManufacturerProductByDesignNumberOrId(
+  idOrDesignNumber: string,
+): Promise<ManufacturerProduct | null> {
+  try {
+    const res = await fetch(`/api/kiosk/catalog/${encodeURIComponent(idOrDesignNumber)}`, {
+      cache: 'no-store',
+    });
+    if (!res.ok) return null;
+    const json = (await res.json()) as { data?: ManufacturerProduct };
+    return json.data ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchManufacturerCatalog(params?: {
   category?: string;
   search?: string;

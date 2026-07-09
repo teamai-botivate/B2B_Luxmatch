@@ -13,10 +13,9 @@ import ProductCard from "@/components/product/ProductCard";
 import NotFoundView from "@/components/ui/NotFoundView";
 import type { Product } from "@/lib/mock-data";
 import {
-  adaptProduct,
-  fetchCategories,
-  fetchProductBySlug,
-  fetchProducts,
+  adaptManufacturerProduct,
+  fetchManufacturerCatalog,
+  fetchManufacturerProductByDesignNumberOrId,
 } from "@/lib/catalog-adapter";
 
 export default function ProductDetailPage() {
@@ -31,18 +30,14 @@ export default function ProductDetailPage() {
     if (!slug) return;
 
     async function load() {
-      const [cats, raw] = await Promise.all([
-        fetchCategories(),
-        fetchProductBySlug(slug),
-      ]);
-
+      const raw = await fetchManufacturerProductByDesignNumberOrId(slug);
       if (!raw) { setProduct(null); return; }
 
-      const adapted = adaptProduct(raw, cats);
+      const adapted = adaptManufacturerProduct(raw);
       setProduct(adapted);
 
-      const { products: all } = await fetchProducts({ limit: 200 });
-      const allAdapted = all.map(p => adaptProduct(p, cats));
+      const all = await fetchManufacturerCatalog();
+      const allAdapted = all.map(p => adaptManufacturerProduct(p));
 
       setSimilar(allAdapted.filter(p => p.id !== adapted.id && p.category === adapted.category).slice(0, 4));
       setRecent(allAdapted.filter(p => p.id !== adapted.id).slice(0, 4));

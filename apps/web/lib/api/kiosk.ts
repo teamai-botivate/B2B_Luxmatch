@@ -12,6 +12,7 @@
 import { getServerEnv } from '@luxematch/config';
 import {
   getManufacturerProductById,
+  getManufacturerProductByDesignNumberOrId,
   listManufacturerProducts,
   getStoreByJewellerId,
   placeGuestOrder,
@@ -162,6 +163,16 @@ const KioskCatalogQuery = z.object({
   category: z.string().optional(),
   search: z.string().optional(),
   hasTryOn: z.string().optional(),
+});
+
+// GET /api/kiosk/catalog/:id — single manufacturer product by design_number or UUID
+kioskRoutes.get('/catalog/:id', async (c) => {
+  const idOrDesign = c.req.param('id');
+  const product = await getManufacturerProductByDesignNumberOrId(idOrDesign);
+  if (!product || product.status !== 'active') {
+    return sendError(c, 'not_found', 'Product not found', 404);
+  }
+  return sendData(c, product);
 });
 
 kioskRoutes.get('/catalog', zValidator('query', KioskCatalogQuery), async (c) => {
