@@ -4,9 +4,9 @@ Guidance for Claude Code when working in this repo.
 
 ## Branch policy (read first)
 
-**C-series active work is on `master` branch.** `production` is the deploy branch (B-series complete). `main` is untouched. Do not touch `main` unless explicitly asked.
-- `master` — C-series Jewel Factory evolution (C1–C11 done; this is where new work goes)
-- `production` — B1–B21 complete, deployed to Render
+**Active work is on `master` branch.** `production` is the old B-series deploy branch. `main` is untouched. Do not touch `main` unless explicitly asked.
+- `master` — C1–C20 complete + post-launch fixes; this is the active branch, deployed to Render
+- `production` — B1–B21 complete (stale)
 - `main` — do not modify
 
 ## What This System Is
@@ -184,7 +184,7 @@ All core phases (-1→12) + e-commerce (E1–E3) + B2B phases B1–B9 are landed
 
 **B20 complete:** AR Try-On asset management — manufacturer uploads a transparent PNG per product (`POST /api/manufacturer/products/:id/tryon-asset`); `has_tryon` flag propagates through `manufacturer_products`, store catalog, and customer product list; "Try On" button on `ProductCard` shown only when `has_tryon=true`; AR badge + "AR Try-On" filter in manufacturer products page and store manufacturer-catalog; `fulfillB2BOrder` auto-copies try-on asset to store `product_tryon_assets` on delivery; try-on page auto-selects product from `?product=<id>` URL param and shows "Add to Bag" for real products; real DB products take priority over showcase; migration `0007_tryon_assets.sql` required.
 
-**Portal entry point (B19 complete):** `/portal` page added — dark themed staff login selector linking to `/store/login` (Store Owner) and `/manufacturer/login` (Manufacturer). Linked from footer via subtle "Staff Portal" text. Customer `/login` and `/signup` routes now redirect to `/` (customer auth deprecated). `AppHeader` account/User icon removed. `MobileNav` "Sign In / Register" link removed. All customer-facing pages are now purely guest/kiosk — no customer account UI exposed.
+**Portal entry point (B19 + updated):** `/portal` page — dark themed staff login selector with **3 cards**: Store Owner → `/store/login`, Store Manager → `/store/manager/login`, Manufacturer → `/manufacturer/login`. Linked from footer via "Staff Portal" text. Customer `/login` and `/signup` routes redirect to `/`. All customer-facing pages are purely guest/kiosk.
 
 **B21 complete:** Store CRUD for manufacturer — manufacturer portal `/manufacturer/stores` now has full store management: edit store name/email/city/phone via pencil icon (modal pre-populated, `PATCH /api/manufacturer/stores/:id`); reset store login password via key icon (`PUT /api/manufacturer/stores/:id/password`, bcrypt, min 6 chars); delete store + auto-created `jewellers` row via trash icon with confirmation (`DELETE /api/manufacturer/stores/:id`); `updateStore()` syncs `jewellers.store_name` when store name changes; activate/deactivate toggle retained.
 
@@ -198,7 +198,7 @@ All core phases (-1→12) + e-commerce (E1–E3) + B2B phases B1–B9 are landed
 - `docs/schema/` — 22 markdown files, one per DB table, with columns/types/relationships from live Supabase `information_schema`
 - `docs/CLIENT_SETUP.md` — fresh client onboarding: new Supabase project, all 7 migrations in order, env vars, first manufacturer + store creation, Render deploy, no dummy data
 
-**NEXT:** Apply `0007_tryon_assets.sql` migration · Apply `0006_guest_orders.sql` migration · finish B10 browser smoke-test (`SHOP_JEWELLER_ID` unset, store-cookie-first tenancy end-to-end) · redeploy to Render · verify HF embedder `/health` + live Qdrant search. AWS migration parked.
+**NEXT:** Verify all 3 migrations applied on live Supabase · redeploy to Render from `master` · verify kiosk checkout end-to-end · finish B10 browser smoke-test · verify HF embedder `/health` + live Qdrant search. AWS migration parked.
 
 ## Commands
 
@@ -244,7 +244,8 @@ packages/
   tenant/        SHOP_JEWELLER_ID + PIN cookie + manufacturer cookie + store cookie (all Edge-safe HMAC) + /server (Node scrypt)
   types/         cross-package zod schemas
   ui/            EMPTY placeholder — real UI lives in apps/web/components
-supabase/migrations/  0001_init.sql · 0002_ecommerce.sql · 0003_security_advisor.sql · 0004_customer_avatar.sql · 0005_b2b_platform.sql · 0006_guest_orders.sql (guest_orders + guest_order_items + guest_order_status_history + stores branding columns — **apply this next**) ; seed.sql (demo jeweller + 12 products + 3 tryon assets, PIN 123456)
+supabase/migrations/  0001_init.sql · 0002_ecommerce.sql · 0003_security_advisor.sql · 0004_customer_avatar.sql · 0005_b2b_platform.sql · 0006_guest_orders.sql (guest_orders + guest_order_items + guest_order_status_history + stores branding columns) · 0007_tryon_assets.sql (has_tryon + manufacturer_product_id on product_tryon_assets) · 0008_jewel_factory.sql (store_managers, custom_design_requests, custom_design_orders, password_reset_tokens, design_number sequence, manager approval columns on b2b_orders + guest_orders) · seed.sql (demo jeweller + 12 products + 3 tryon assets, PIN 123456)
+**All 8 migrations (0001–0008) must be applied in order on a fresh Supabase project. 0006+0007+0008 are required for C-series features to work on live DB.**
 scripts/         provision-shop · reindex · seed-intelligence · seasonal-rollup · check-env · smoke-test · run-migration.mjs (env-loaded demo seeder)
 apps/web/public/All_jewelleries/   ~46 temp transparent AR PNGs
 apps/web/lib/showcase-ar-assets.ts 44 hardcoded showcase products prepended to /api/tryon/products
@@ -454,22 +455,18 @@ Applies to e-commerce too: `customers`/`cart_items`/`orders`/`branches` all carr
 
 ## Known gaps / production blockers (priority order)
 
-1. **Apply migration `0007_tryon_assets.sql`** — B20 try-on asset support. Adds `has_tryon` to `manufacturer_products` and extends `product_tryon_assets` with `manufacturer_product_id`. Apply in Supabase SQL editor AFTER `0006_guest_orders.sql`.
-2. **Apply migration `0006_guest_orders.sql`** — guest kiosk order flow is coded but the tables don't exist until this runs. Apply in Supabase SQL editor. Creates `guest_orders`, `guest_order_items`, `guest_order_status_history` and adds `logo_url`/`tagline`/`website_url` to `stores`.
-2. **Secret rotation** — old Supabase service-role, Cloudinary secret, Qdrant keys were exposed in git history / sibling scripts. `run-migration.mjs` is env-loaded now, but leaked dashboard secrets still need rotating.
-3. **Redeploy to Render** — all B11–B19 changes are pushed to GitHub (main branch). Trigger a new deploy on Render so the live site picks up: portal page, customer auth removal, guest kiosk flow, kiosk-orders dashboards, store profile.
-4. **Apply `0004_customer_avatar.sql`** if still pending (customer DP columns — until applied, avatar save/delete errors on unknown column; `/me` degrades to `avatar_url=null`).
-5. **OTP email on a personal Gmail (dev only)** — works E2E but Gmail caps ~500/day, spam risk, not a real sender. Switch to Resend/Brevo + verified domain before real customers. OTP is 8 digits; app accepts 6–8, don't re-narrow.
-6. **Order confirmation email** — guest kiosk checkout could send a confirmation SMS/email; currently no notification is sent. Wire via optional `SMTP_*` or an SMS provider.
-7. **Product image mapping quality** — real Cloudinary images imported + displayed, but `jewellery_search/*` sources had no metadata so the 12 products were mapped sequentially. Upload per-product photos via the jeweller flow, or add an explicit mapping layer + rerun the importer. Don't touch try-on/AR.
-8. **Embedder live verification** — Hugging Face Docker Space and endpoint are prepared, but `/health`, text/image embedding, Qdrant indexing, and tenant-scoped search still need live smoke tests.
-9. **B10 not complete yet** — store-cookie-first tenancy is implemented in main middleware/API guards, but must be browser-smoked with `SHOP_JEWELLER_ID` unset and audited for SSR/build-time/script paths that still require env tenancy.
-10. **B2B embedding/search bridge needs live smoke** — manufacturer Qdrant helpers, `POST /api/embeddings/manufacturer/:id`, fulfilled-product indexing, and native `/search/image` are coded and typechecked. Still missing: live embedder/Qdrant smoke and optional Jewellery_AI `/add-image` bridge metadata.
-11. **`luxematch-web` on Render free plan** — idle spin-down = cold-start blank kiosk.
-12. **Hardcoded `LUXE10` discount** — no discount table.
-13. **Test coverage** — tenancy guards exist; kiosk guest order flow, B2B login/order/fulfillment flows lack integration tests.
-14. **Stale docs** — `docs/architecture.md`, `docs/api-contracts.md`, `README.md` (Gemini/Vercel/old schema); `apps/Readme.md` empty.
-15. **Empty `@luxematch/ui`** — placeholder; populate or remove.
+1. **Redeploy to Render from `master`** — C-series + all post-launch fixes are on `master`. Render must be pointed at `master` branch and redeployed. Current live site may be running stale B-series code.
+2. **Verify all 3 migrations applied** — 0006 + 0007 + 0008 must all be fully applied on live Supabase (`xcvlswahgglygqfewolf`). Use the combined idempotent SQL patch (see conversation history) which handles partial runs safely. Kiosk checkout, manager login, and custom design approve all require these tables.
+3. **Create first store manager** — after migration 0008 is applied, store owner must add managers via `/jeweller/managers`. Manager login at `/store/manager/login` will then work.
+4. **Secret rotation** — old Supabase service-role, Cloudinary secret, Qdrant keys were exposed in git history. Rotate them in respective dashboards.
+5. **OTP email on a personal Gmail (dev only)** — works E2E but Gmail caps ~500/day, spam risk. Switch to Resend/Brevo + verified domain before real customers. OTP is 8 digits; app accepts 6–8, don't re-narrow.
+6. **Order confirmation email** — guest kiosk checkout sends no notification. Wire via optional `SMTP_*` or SMS provider.
+7. **Embedder live verification** — HF Docker Space prepared but `/health`, text/image embedding, Qdrant indexing, and tenant-scoped search still need live smoke tests.
+8. **B10 not complete yet** — store-cookie-first tenancy is implemented in middleware/API guards but must be browser-smoked with `SHOP_JEWELLER_ID` unset.
+9. **`luxematch-web` on Render free plan** — idle spin-down = cold-start blank kiosk.
+10. **Test coverage** — kiosk guest order flow, B2B login/order/fulfillment, manager approval flows lack integration tests.
+11. **Stale docs** — `docs/architecture.md`, `docs/api-contracts.md`, `README.md` (Gemini/Vercel/old schema).
+12. **Empty `@luxematch/ui`** — placeholder; populate or remove.
 
 ## Phase status
 
@@ -514,4 +511,16 @@ New pages added this session:
 
 **Branch note:** All C-series work is on `master` branch (not `production` or `main`). `master` is the new active work branch.
 
-B-series pending (apply in Supabase SQL editor): **`0006_guest_orders.sql`** (guest order tables + stores branding columns) · **`0007_tryon_assets.sql`** (has_tryon + manufacturer try-on assets) · **`0008_jewel_factory.sql`** (C-series: store_managers, custom_design tables, password_reset_tokens, design_number sequence, nullable base_price/metal, manager approval columns). Apply in order: 0006 → 0007 → 0008. Also pending: live DB city update `UPDATE jewellers SET city='Chhattisgarh' WHERE slug='at-jewellers'` · redeploy to Render from `master` · B10 smoke-test · HF embedder live verify · rotate exposed secrets. Parked: AWS migration.
+**Migrations status (Supabase `xcvlswahgglygqfewolf`):** 0006 + 0007 partially applied (had prior partial run); 0008 partially applied (tables created, policies failed). Use the combined idempotent patch from conversation history to finish all 3 safely. Also pending: `UPDATE jewellers SET city='Chhattisgarh' WHERE slug='at-jewellers'` · redeploy Render from `master` · create first manager via `/jeweller/managers` · rotate secrets · B10 smoke-test · HF embedder live verify. Parked: AWS migration.
+
+**Post-launch fixes applied (master, 2026-07-10):**
+- Portal `/portal` now has 3 cards: Store Owner / Store Manager / Manufacturer
+- `listManufacturerTryOnProducts` rewrites to query `product_tryon_assets` (not `manufacturer_product_images`) — fixes try-on not showing manufacturer products
+- `getStoreByJewellerId` uses `select('*')` to include all C-series columns
+- `ProductDetailPanel` removes ₹0 price display
+- Kiosk checkout "Continue Shopping" fixed from `/products` → `/catalog`
+- Custom design form: purity is now dropdown, reference image supports file upload + URL toggle
+- Manager custom designs page now joins `custom_design_orders` to show manufacturer status (Confirmed / In Production / Shipped etc) in real time
+- Kiosk orders API returns clear 503 error message when migration not yet applied (instead of generic 500)
+- `/jeweller/unlock` redirects to `/portal` (PIN system deprecated in C-series)
+- Footer/MobileNav/AppHeader: removed jeweller PIN dashboard links from customer-facing UI
