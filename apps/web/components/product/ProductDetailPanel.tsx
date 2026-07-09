@@ -20,6 +20,7 @@ interface ProductDetailPanelProps {
 
 export default function ProductDetailPanel({ product }: ProductDetailPanelProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const { isSaved, toggleSave } = useSavedItems();
   const { isCompared, toggleCompare } = useCompare();
   const guestCart = useGuestCart();
@@ -115,7 +116,7 @@ export default function ProductDetailPanel({ product }: ProductDetailPanelProps)
           <Button
             variant="outline"
             className="flex-1 rounded-full flex items-center gap-2 border-border hover:border-primary/50 hover:bg-accent"
-            onClick={() => router.push("/try-on")}
+            onClick={() => router.push(`/try-on?product=${product.id}&back=${encodeURIComponent(pathname)}`)}
             data-testid="button-try-on-detail"
           >
             <Sparkles className="w-4 h-4" />

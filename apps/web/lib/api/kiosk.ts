@@ -14,6 +14,7 @@ import {
   getManufacturerProductById,
   getManufacturerProductByDesignNumberOrId,
   listManufacturerProducts,
+  listManufacturerTryOnProducts,
   getStoreByJewellerId,
   placeGuestOrder,
   getGuestOrderWithItems,
@@ -258,4 +259,15 @@ kioskRoutes.get('/orders/:id', async (c) => {
     })),
     history: order.history.map((h) => ({ status: h.status, note: h.note, at: h.created_at })),
   });
+});
+
+// ── GET /api/kiosk/tryon-products — manufacturer AR try-on products (public) ──
+
+kioskRoutes.get('/tryon-products', async (c) => {
+  try {
+    const products = await listManufacturerTryOnProducts();
+    return sendData(c, { products });
+  } catch (err) {
+    return sendData(c, { products: [] });
+  }
 });

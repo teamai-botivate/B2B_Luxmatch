@@ -99,7 +99,7 @@ export {
   type DashboardSummary,
 } from './intelligence';
 
-export { listTryOnProducts, type TryOnProduct } from './tryon';
+export { listTryOnProducts, listManufacturerTryOnProducts, type TryOnProduct } from './tryon';
 
 export {
   getManufacturerByEmail,

@@ -88,24 +88,32 @@ export default function TryOnPage() {
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [addedToCart, setAddedToCart] = useState(false);
 
-  // ── Initial data load: AR-ready first (we need it for the bottom strip),
-  //    full catalogue lazily when the user opens "Browse all".
-  //    Real DB products take priority; showcase used only when DB returns empty.
+  // ── Initial data load: manufacturer try-on products first (C-series kiosk),
+  //    then fallback to store try-on products, then showcase assets.
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
+        // 1. Try manufacturer catalog try-on products (C-series)
+        const mfRes = await fetch('/api/kiosk/tryon-products', { cache: 'no-store' });
+        if (!cancelled && mfRes.ok) {
+          const mfJson = (await mfRes.json()) as { data?: { products: TryOnProduct[] } };
+          const mfProducts = mfJson.data?.products ?? [];
+          if (mfProducts.length > 0) {
+            setArProducts(mfProducts);
+            return;
+          }
+        }
+        // 2. Fallback: store's own try-on products
         const res = await fetch('/api/tryon/products', { cache: 'no-store' });
         const json = (await res.json()) as
           | { data: { products: TryOnProduct[] } }
           | { error: { message: string } };
         if (cancelled) return;
         if ('error' in json) {
-          setLoadError(json.error.message);
           setArProducts(CLOUDINARY_READY_SHOWCASE_AR_PRODUCTS);
           return;
         }
-        // Use real products if available; fall back to showcase when none
         const real = json.data.products;
         setArProducts(real.length > 0 ? real : CLOUDINARY_READY_SHOWCASE_AR_PRODUCTS);
       } catch (e) {
