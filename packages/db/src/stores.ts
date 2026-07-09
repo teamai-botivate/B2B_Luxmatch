@@ -110,6 +110,10 @@ export async function createStore(input: CreateStoreInput): Promise<StorePublic>
     .slice(0, 80);
   const uniqueSlug = `${slug}-${Math.random().toString(36).slice(2, 8)}`;
 
+  // pin_hash is NOT NULL on jewellers — store owners use store cookie auth, not PIN.
+  // Use a locked hash that can never be brute-forced (random 40-char secret).
+  const dummyPinHash = await hash(Math.random().toString(36) + Math.random().toString(36), 10);
+
   const { data: jeweller, error: jewellerError } = await sb
     .from('jewellers')
     .insert({
@@ -117,6 +121,7 @@ export async function createStore(input: CreateStoreInput): Promise<StorePublic>
       store_name: input.name,
       city: input.city ?? null,
       phone: input.phone ?? null,
+      pin_hash: dummyPinHash,
     })
     .select('id')
     .single();
@@ -287,6 +292,9 @@ export async function selfRegisterStore(
     .slice(0, 80);
   const uniqueSlug = `${slug}-${Math.random().toString(36).slice(2, 8)}`;
 
+  // pin_hash is NOT NULL on jewellers — store owners use store cookie auth, not PIN.
+  const dummyPinHash = await hash(Math.random().toString(36) + Math.random().toString(36), 10);
+
   const { data: jeweller, error: jewellerError } = await sb
     .from('jewellers')
     .insert({
@@ -294,6 +302,7 @@ export async function selfRegisterStore(
       store_name: input.name,
       city: input.fixedAddressCity,
       phone: input.ownerPhone ?? null,
+      pin_hash: dummyPinHash,
     })
     .select('id')
     .single();
