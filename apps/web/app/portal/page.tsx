@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { Store, Factory, ArrowRight } from 'lucide-react';
+import { Store, Factory, ArrowRight, Users } from 'lucide-react';
 
 export default function PortalPage() {
   return (
@@ -31,6 +31,20 @@ export default function PortalPage() {
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-[#f0e6d0]">Store Owner Login</p>
               <p className="text-xs text-[#6b5e45] mt-0.5">Access your store portal &amp; dashboard</p>
+            </div>
+            <ArrowRight className="h-4 w-4 flex-shrink-0 text-[#4a3f2a] transition-colors group-hover:text-[#c9a84c]" />
+          </div>
+        </Link>
+
+        {/* Store Manager */}
+        <Link href="/store/manager/login">
+          <div className="group flex items-center gap-4 rounded-2xl border border-[#2a2318] bg-[#1a1510] px-5 py-4 transition-all hover:border-[#c9a84c]/40 hover:bg-[#1f1a12] cursor-pointer">
+            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-[#c9a84c]/10 text-[#c9a84c] transition-colors group-hover:bg-[#c9a84c]/20">
+              <Users className="h-5 w-5" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-[#f0e6d0]">Store Manager Login</p>
+              <p className="text-xs text-[#6b5e45] mt-0.5">Approve orders &amp; custom design requests</p>
             </div>
             <ArrowRight className="h-4 w-4 flex-shrink-0 text-[#4a3f2a] transition-colors group-hover:text-[#c9a84c]" />
           </div>
