@@ -103,13 +103,18 @@ kioskRoutes.post(
     // Resolve store identity for snapshot and manufacturerId
     const store = await getStoreByJewellerId(jewellerId);
     if (!store) {
-      return sendError(c, 'not_found', 'Store not found for this session.', 404);
+      return sendError(
+        c,
+        'not_found',
+        'Store profile not found. Please log in at /store/login or ensure the store is registered and approved.',
+        404,
+      );
     }
     if (!store.manufacturer_id) {
       return sendError(
         c,
         'bad_request',
-        'Store is not linked to a manufacturer. Contact your manufacturer admin.',
+        'Store is not linked to a manufacturer yet. Contact the manufacturer admin to approve your store registration.',
         400,
       );
     }

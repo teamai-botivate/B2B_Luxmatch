@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import Link from 'next/link';
-import { CheckCircle2, Loader2, PencilLine, Upload } from 'lucide-react';
+import { CheckCircle2, Loader2, PencilLine, Upload, X, ImageIcon } from 'lucide-react';
 
 import CustomerLayout from '@/components/layout/CustomerLayout';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,9 @@ const CATEGORIES = [
   'Bracelet',
   'Other',
 ];
+
+const PURITY_OPTIONS = ['24K', '22K', '18K', '14K', '10K', '916', '750', '585'];
+
 
 type FormState = {
   customerNaam: string;
@@ -45,9 +48,31 @@ export default function CustomDesignPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  const [uploadedImagePreview, setUploadedImagePreview] = useState<string | null>(null);
+  const [imageMode, setImageMode] = useState<'url' | 'upload'>('url');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   function set(field: keyof FormState, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
+  }
+
+  function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      setUploadedImagePreview(dataUrl);
+      // Store data URL as referenceImageUrl — backend accepts it as a URL string
+      set('referenceImageUrl', dataUrl);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function clearImage() {
+    setUploadedImagePreview(null);
+    set('referenceImageUrl', '');
+    if (fileInputRef.current) fileInputRef.current.value = '';
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -222,12 +247,17 @@ export default function CustomDesignPage() {
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="purity">Purity</Label>
-                <Input
+                <select
                   id="purity"
-                  placeholder="e.g. 22K, 18K"
                   value={form.purity}
                   onChange={(e) => set('purity', e.target.value)}
-                />
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                >
+                  <option value="">Select purity (optional)</option>
+                  {PURITY_OPTIONS.map((p) => (
+                    <option key={p} value={p}>{p}</option>
+                  ))}
+                </select>
               </div>
             </div>
 
@@ -252,26 +282,95 @@ export default function CustomDesignPage() {
           {/* Reference image */}
           <section className="rounded-xl border border-[#e4d8c6] bg-[#FBF9F5] p-5 space-y-3">
             <div className="flex items-center gap-2">
-              <Upload className="h-4 w-4 text-muted-foreground" />
+              <ImageIcon className="h-4 w-4 text-muted-foreground" />
               <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                 Reference Image (optional)
               </h2>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Paste a public image URL (e.g. from Pinterest, Google Images) for reference. Store staff can also take a reference image from you directly.
-            </p>
-            <div className="space-y-1.5">
-              <Label htmlFor="referenceImageUrl">Image URL</Label>
-              <Input
-                id="referenceImageUrl"
-                type="url"
-                placeholder="https://example.com/design-reference.jpg"
-                value={form.referenceImageUrl}
-                onChange={(e) => set('referenceImageUrl', e.target.value)}
-              />
+
+            {/* Toggle: URL vs Upload */}
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => { setImageMode('url'); clearImage(); }}
+                className={`flex-1 rounded-lg border px-3 py-2 text-xs font-medium transition-all ${
+                  imageMode === 'url'
+                    ? 'border-[#a0824a] bg-[#a0824a]/10 text-[#a0824a]'
+                    : 'border-[#e4d8c6] bg-white text-muted-foreground hover:border-[#a0824a]/40'
+                }`}
+              >
+                Paste Image URL
+              </button>
+              <button
+                type="button"
+                onClick={() => { setImageMode('upload'); clearImage(); }}
+                className={`flex-1 rounded-lg border px-3 py-2 text-xs font-medium transition-all ${
+                  imageMode === 'upload'
+                    ? 'border-[#a0824a] bg-[#a0824a]/10 text-[#a0824a]'
+                    : 'border-[#e4d8c6] bg-white text-muted-foreground hover:border-[#a0824a]/40'
+                }`}
+              >
+                <Upload className="inline h-3 w-3 mr-1" />
+                Upload from Device
+              </button>
             </div>
-            {form.referenceImageUrl && (
-              <div className="overflow-hidden rounded-lg border border-[#e4d8c6]">
+
+            {imageMode === 'url' ? (
+              <div className="space-y-1.5">
+                <Label htmlFor="referenceImageUrl">Image URL</Label>
+                <Input
+                  id="referenceImageUrl"
+                  type="url"
+                  placeholder="https://example.com/design-reference.jpg"
+                  value={form.referenceImageUrl}
+                  onChange={(e) => set('referenceImageUrl', e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Paste a link from Pinterest, Google Images, etc.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleFileUpload}
+                />
+                {!uploadedImagePreview ? (
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full rounded-lg border-2 border-dashed border-[#e4d8c6] bg-white px-4 py-8 text-center hover:border-[#a0824a]/50 hover:bg-[#fdf8f1] transition-colors"
+                  >
+                    <Upload className="mx-auto h-6 w-6 text-muted-foreground mb-2" />
+                    <p className="text-sm font-medium text-muted-foreground">Tap to upload image</p>
+                    <p className="text-xs text-muted-foreground mt-1">JPG, PNG, WEBP supported</p>
+                  </button>
+                ) : (
+                  <div className="relative">
+                    <img
+                      src={uploadedImagePreview}
+                      alt="Reference"
+                      className="w-full max-h-48 object-contain rounded-lg border border-[#e4d8c6] bg-muted"
+                    />
+                    <button
+                      type="button"
+                      onClick={clearImage}
+                      className="absolute top-2 right-2 rounded-full bg-white border border-[#e4d8c6] p-1 shadow-sm hover:bg-red-50"
+                      aria-label="Remove image"
+                    >
+                      <X className="h-3.5 w-3.5 text-muted-foreground" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* URL mode preview */}
+            {imageMode === 'url' && form.referenceImageUrl && (
+              <div className="relative overflow-hidden rounded-lg border border-[#e4d8c6]">
                 <img
                   src={form.referenceImageUrl}
                   alt="Reference"

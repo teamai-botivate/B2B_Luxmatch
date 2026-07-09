@@ -6,7 +6,6 @@ import { Heart, GitCompare, Sparkles, ShoppingBag, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import TrustBadge from "@/components/ui/TrustBadge";
-import PriceDisplay from "@/components/ui/PriceDisplay";
 import { Product } from "@/lib/mock-data";
 import { useShop } from "@/hooks/use-shop";
 import { useSavedItems } from "@/contexts/SavedItemsContext";
@@ -77,8 +76,7 @@ export default function ProductDetailPanel({ product }: ProductDetailPanelProps)
         {product.name}
       </h1>
 
-      {/* Price */}
-      <PriceDisplay price={product.price} originalPrice={product.originalPrice} size="lg" />
+      {/* Price hidden — Jewel Factory shows no price (Gold only, no pricing on kiosk) */}
 
       {/* Trust Badges */}
       <div className="flex flex-wrap gap-2">

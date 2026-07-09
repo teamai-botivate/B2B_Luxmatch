@@ -60,11 +60,14 @@ export async function getStoreByJewellerId(jewellerId: string): Promise<StorePub
   const sb = getSupabaseServer();
   const { data, error } = await sb
     .from('stores')
-    .select('id, jeweller_id, manufacturer_id, name, email, city, phone, logo_url, tagline, website_url, is_active, created_at, updated_at')
+    .select('*')
     .eq('jeweller_id', jewellerId)
     .maybeSingle();
   if (error) throw new Error(`getStoreByJewellerId: ${error.message}`);
-  return data as StorePublic | null;
+  if (!data) return null;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { password_hash, ...pub } = data as StoreRow;
+  return pub as StorePublic;
 }
 
 export async function verifyStorePassword(
