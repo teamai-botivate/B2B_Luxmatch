@@ -409,22 +409,35 @@ export async function placeB2BOrder(input: PlaceB2BOrderInput): Promise<B2BOrder
   const totalItems = input.items.reduce((sum, i) => sum + i.quantity, 0);
   const totalAmount = input.items.reduce((sum, i) => sum + i.quantity * (i.unitPrice ?? 0), 0);
 
-  const { data: order, error: orderError } = await sb
+  const b2bBaseInsert = {
+    store_id: input.storeId,
+    jeweller_id: input.jewellerId,
+    manufacturer_id: input.manufacturerId,
+    order_number: generateOrderNumber(),
+    status: 'pending',
+    delivery_address: input.deliveryAddress,
+    notes: input.notes ?? null,
+    total_items: totalItems,
+    total_amount: totalAmount,
+  };
+
+  // Try with C-series approval column; fall back if migration 0008 not applied yet
+  let { data: order, error: orderError } = await sb
     .from('b2b_orders')
-    .insert({
-      store_id: input.storeId,
-      jeweller_id: input.jewellerId,
-      manufacturer_id: input.manufacturerId,
-      order_number: generateOrderNumber(),
-      status: 'pending',
-      delivery_address: input.deliveryAddress,
-      notes: input.notes ?? null,
-      total_items: totalItems,
-      total_amount: totalAmount,
-      pending_manager_approval: true,
-    })
+    .insert({ ...b2bBaseInsert, pending_manager_approval: true })
     .select()
     .single();
+
+  if (orderError && (orderError.message.includes('pending_manager_approval') || orderError.code === '42703')) {
+    const fallback = await sb
+      .from('b2b_orders')
+      .insert(b2bBaseInsert)
+      .select()
+      .single();
+    order = fallback.data;
+    orderError = fallback.error;
+  }
+
   if (orderError) throw new Error(`placeB2BOrder (order): ${orderError.message}`);
 
   const orderRow = order as B2BOrderRow;
@@ -462,14 +475,16 @@ export async function getB2BOrdersByStore(storeId: string): Promise<B2BOrderRow[
 
 export async function getB2BOrdersByManufacturer(manufacturerId: string): Promise<B2BOrderRow[]> {
   const sb = getSupabaseServer();
+  // If column missing (pre-0008 DB), fall back to returning all orders
   const { data, error } = await sb
     .from('b2b_orders')
     .select('*')
     .eq('manufacturer_id', manufacturerId)
-    .neq('pending_manager_approval', true)
     .order('created_at', { ascending: false });
   if (error) throw new Error(`getB2BOrdersByManufacturer: ${error.message}`);
-  return (data ?? []) as B2BOrderRow[];
+  // Filter in JS when column exists on the row
+  const rows = (data ?? []) as B2BOrderRow[];
+  return rows.filter((r) => !(r as Record<string, unknown>)['pending_manager_approval']);
 }
 
 export async function getB2BOrderWithItems(orderId: string): Promise<B2BOrderWithItems | null> {

@@ -117,32 +117,43 @@ export async function placeGuestOrder(
 
   const orderNumber = generateGuestOrderNumber();
 
-  const { data: order, error: orderError } = await sb
+  const baseInsert = {
+    manufacturer_id: input.manufacturerId,
+    store_id: input.storeId,
+    jeweller_id: input.jewellerId,
+    store_name_snapshot: input.storeNameSnapshot,
+    store_city_snapshot: input.storeCitySnapshot ?? null,
+    store_phone_snapshot: input.storePhoneSnapshot ?? null,
+    store_email_snapshot: input.storeEmailSnapshot ?? null,
+    customer_name: input.customerName,
+    customer_phone: input.customerPhone,
+    customer_email: input.customerEmail ?? null,
+    delivery_address: input.pickupStore ? null : (input.deliveryAddress ?? null),
+    pickup_store: input.pickupStore,
+    notes: input.notes ?? null,
+    order_number: orderNumber,
+    order_source: input.orderSource ?? 'kiosk',
+    status: 'placed',
+    total_items: totalItems,
+    total_amount: totalAmount,
+  };
+
+  // Try with C-series approval columns first; fall back if migration 0008 not applied yet
+  let { data: order, error: orderError } = await sb
     .from('guest_orders')
-    .insert({
-      manufacturer_id: input.manufacturerId,
-      store_id: input.storeId,
-      jeweller_id: input.jewellerId,
-      store_name_snapshot: input.storeNameSnapshot,
-      store_city_snapshot: input.storeCitySnapshot ?? null,
-      store_phone_snapshot: input.storePhoneSnapshot ?? null,
-      store_email_snapshot: input.storeEmailSnapshot ?? null,
-      customer_name: input.customerName,
-      customer_phone: input.customerPhone,
-      customer_email: input.customerEmail ?? null,
-      delivery_address: input.pickupStore ? null : (input.deliveryAddress ?? null),
-      pickup_store: input.pickupStore,
-      notes: input.notes ?? null,
-      order_number: orderNumber,
-      order_source: input.orderSource ?? 'kiosk',
-      status: 'placed',
-      total_items: totalItems,
-      total_amount: totalAmount,
-      pending_store_approval: true,
-      forwarded_to_manufacturer: false,
-    })
+    .insert({ ...baseInsert, pending_store_approval: true, forwarded_to_manufacturer: false })
     .select('*')
     .single();
+
+  if (orderError && (orderError.message.includes('pending_store_approval') || orderError.message.includes('forwarded_to_manufacturer') || orderError.code === '42703')) {
+    const fallback = await sb
+      .from('guest_orders')
+      .insert(baseInsert)
+      .select('*')
+      .single();
+    order = fallback.data;
+    orderError = fallback.error;
+  }
 
   if (orderError) throw new Error(`placeGuestOrder: ${orderError.message}`);
 
@@ -229,12 +240,13 @@ export async function getGuestOrdersByManufacturer(
     .from('guest_orders')
     .select('*')
     .eq('manufacturer_id', manufacturerId)
-    .neq('pending_store_approval', true)
     .order('created_at', { ascending: false });
   if (status) q = q.eq('status', status);
   const { data, error } = await q;
   if (error) throw new Error(`getGuestOrdersByManufacturer: ${error.message}`);
-  return (data ?? []) as GuestOrderRow[];
+  const rows = (data ?? []) as GuestOrderRow[];
+  // Filter in JS — column may not exist if migration 0008 not yet applied
+  return rows.filter((r) => !(r as Record<string, unknown>)['pending_store_approval']);
 }
 
 export async function getGuestOrderWithItems(
