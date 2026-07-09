@@ -24,10 +24,12 @@ export default function ImageSearchPage() {
   const [results, setResults] = useState<NativeImageSearchResult[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [topK, setTopK] = useState(20);
+  const [searched, setSearched] = useState(false);
 
   async function runSearch(file: File) {
     setError(null);
     setResults([]);
+    setSearched(false);
 
     const imageBase64 = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
@@ -46,12 +48,14 @@ export default function ImageSearchPage() {
       | { error: { message: string } };
 
     if (!res.ok || 'error' in json) {
-      const message = 'error' in json ? json.error.message : 'Visual search failed';
-      setError(message);
-      throw new Error(message);
+      const msg = 'error' in json ? json.error.message : `Visual search failed (${res.status})`;
+      setError(msg);
+      setSearched(true);
+      throw new Error(msg);
     }
 
     setResults(json.data.results);
+    setSearched(true);
   }
 
   return (
@@ -151,6 +155,16 @@ export default function ImageSearchPage() {
                     })}
                   </div>
                 </div>
+              ) : searched ? (
+                <div className="flex min-h-[420px] flex-col items-center justify-center rounded-2xl border bg-card/60 px-6 text-center text-muted-foreground">
+                  <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-accent">
+                    <Camera className="h-8 w-8 opacity-40" />
+                  </div>
+                  <p className="mb-1 text-sm font-medium text-foreground">No similar products found</p>
+                  <p className="max-w-sm text-xs">
+                    Try a clearer photo or browse the catalog directly.
+                  </p>
+                </div>
               ) : (
                 <div className="flex min-h-[420px] flex-col items-center justify-center rounded-2xl border bg-card/60 px-6 text-center text-muted-foreground">
                   <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-accent">
@@ -158,7 +172,7 @@ export default function ImageSearchPage() {
                   </div>
                   <p className="mb-1 text-sm font-medium text-foreground">Upload or capture a photo</p>
                   <p className="max-w-sm text-xs">
-                    Similar products from this store&apos;s own catalog will appear here.
+                    Similar products from the catalog will appear here.
                   </p>
                 </div>
               )}

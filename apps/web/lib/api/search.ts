@@ -1,6 +1,7 @@
 import {
   fullTextSearchProducts,
   getProductsByIds,
+  getManufacturerProductById,
   logSearchEvent,
 } from '@luxematch/db';
 import {
@@ -8,7 +9,7 @@ import {
   embedImage,
   embedText,
 } from '@luxematch/embeddings';
-import { searchByVector } from '@luxematch/qdrant';
+import { searchByVector, searchManufacturerCatalog } from '@luxematch/qdrant';
 import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
 import { z } from 'zod';
@@ -146,18 +147,13 @@ searchRoutes.post('/image', zValidator('json', ImageBody), async (c) => {
   const jewellerId = c.get('shopJewellerId');
   const { image_base64, filters, limit, session_id } = c.req.valid('json');
 
-  let scored: Array<{ productId: string; score: number }>;
+  let vector: number[];
   try {
     const buf = decodeBase64(image_base64);
     if (buf.length === 0) {
       return sendError(c, 'bad_request', 'image_base64 decoded to empty bytes', 400);
     }
-    const vector = await embedImage(buf);
-    scored = await searchByVector({
-      vector,
-      filter: toQdrantFilter(jewellerId, filters),
-      limit,
-    });
+    vector = await embedImage(buf);
   } catch (err) {
     return sendError(
       c,
@@ -167,7 +163,47 @@ searchRoutes.post('/image', zValidator('json', ImageBody), async (c) => {
     );
   }
 
-  const results = await hydrate(jewellerId, scored);
+  type SearchResult = { product: Record<string, unknown>; score: number };
+  // 1. Search store's own product catalog
+  let results: SearchResult[] = await (async () => {
+    try {
+      const scored = await searchByVector({
+        vector,
+        filter: toQdrantFilter(jewellerId, filters),
+        limit,
+      });
+      return await hydrate(jewellerId, scored);
+    } catch {
+      return [];
+    }
+  })();
+
+  // 2. If store catalog is empty, fall back to manufacturer catalog
+  if (results.length === 0) {
+    try {
+      const mfScored = await searchManufacturerCatalog({ vector, limit: limit ?? 20 });
+      const mfResults = await Promise.all(
+        mfScored.map(async (s) => {
+          const p = await getManufacturerProductById(s.manufacturerProductId);
+          if (!p) return null;
+          const primary = p.images.find((i) => i.is_primary) ?? p.images[0];
+          return {
+            product: {
+              id: p.id,
+              slug: p.design_number ?? p.id,
+              name: p.name,
+              primary_image_url: primary?.secure_url ?? null,
+            },
+            score: s.score,
+          };
+        }),
+      );
+      results = mfResults.filter((r): r is NonNullable<typeof r> => r !== null);
+    } catch {
+      // manufacturer search also failed — return empty
+    }
+  }
+
   void logSearchEvent({
     jewellerId,
     queryType: 'image',
