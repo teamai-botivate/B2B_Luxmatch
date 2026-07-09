@@ -365,14 +365,23 @@ storeManagerRoutes.post('/custom-designs/:id/approve', managerGuard, async (c) =
 
   const storeAddress = formatStoreFixedAddress(store);
 
-  await forwardCustomDesignToManufacturer(
-    storeId,
-    requestId,
-    store.manufacturer_id,
-    store.name,
-    storeAddress,
-    c.get('managerId'),
-  );
+  try {
+    await forwardCustomDesignToManufacturer(
+      storeId,
+      requestId,
+      store.manufacturer_id,
+      store.name,
+      storeAddress,
+      c.get('managerId'),
+    );
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    // If migration 0008 is not yet applied, tables won't exist yet
+    if (msg.includes('relation') && msg.includes('does not exist')) {
+      return sendError(c, 'not_ready', 'Database migration 0008 not yet applied. Apply it in Supabase SQL editor.', 503);
+    }
+    return sendError(c, 'internal_error', msg, 500);
+  }
 
   return sendData(c, { ok: true });
 });

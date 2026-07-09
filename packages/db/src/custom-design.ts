@@ -89,19 +89,23 @@ export async function placeCustomDesignRequest(
   return data as CustomDesignRequestRow;
 }
 
+export type CustomDesignRequestWithOrder = CustomDesignRequestRow & {
+  custom_design_orders?: { id: string; status: CustomDesignOrderStatus; order_number: string; tracking_number: string | null }[];
+};
+
 export async function listCustomDesignRequests(
   storeId: string,
   filters?: { status?: CustomDesignStatus },
-): Promise<CustomDesignRequestRow[]> {
+): Promise<CustomDesignRequestWithOrder[]> {
   const sb = getSupabaseServer();
   let q = sb
     .from('custom_design_requests')
-    .select('*')
+    .select('*, custom_design_orders(id, status, order_number, tracking_number)')
     .eq('store_id', storeId)
     .order('created_at', { ascending: false });
   if (filters?.status) q = q.eq('status', filters.status);
   const { data } = await q;
-  return (data ?? []) as CustomDesignRequestRow[];
+  return (data ?? []) as CustomDesignRequestWithOrder[];
 }
 
 export async function getCustomDesignRequest(

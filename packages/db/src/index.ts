@@ -224,6 +224,7 @@ export {
   type CustomDesignStatus,
   type CustomDesignOrderStatus,
   type CustomDesignRequestRow,
+  type CustomDesignRequestWithOrder,
   type CustomDesignOrderRow,
   type PlaceCustomDesignRequestInput,
 } from './custom-design';
