@@ -268,7 +268,7 @@ export default function KioskCheckoutPage() {
                 <><CheckCircle2 className="h-4 w-4 mr-2" /> Place Order</>
               )}
             </Button>
-            <Link href="/products" className="flex-1">
+            <Link href="/catalog" className="flex-1">
               <Button type="button" variant="outline" className="w-full h-11">
                 Continue Shopping
               </Button>
