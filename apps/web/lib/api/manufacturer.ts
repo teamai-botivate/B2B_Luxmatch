@@ -16,6 +16,8 @@ import {
   getB2BOrderWithItems,
   updateB2BOrderStatus,
   createStore,
+  getStoreById,
+  formatStoreFixedAddress,
   listStoresByManufacturer,
   updateStoreStatus,
   updateStore,
@@ -457,29 +459,58 @@ manufacturerRoutes.delete('/products/:id/tryon-asset', async (c) => {
 
 /**
  * Privacy invariant: the manufacturer must NEVER see customer PII (name, phone,
- * email) or any price/amount. It only ever sees the STORE identity + product
- * specs + delivery preference. Strip everything else before responding.
+ * email), the customer's own delivery address, or any price/amount. It only ever
+ * sees the STORE identity + product specs, and it always ships to the STORE's
+ * fixed address (regardless of whether the customer chose pickup or home
+ * delivery — the store handles the final handover to the customer).
+ *
+ * A small store-fixed-address cache avoids refetching per order in the list view.
  */
-function sanitizeKioskOrderForManufacturer(order: Record<string, unknown>) {
+async function sanitizeKioskOrderForManufacturer(
+  order: Record<string, unknown>,
+  storeAddressCache: Map<string, string>,
+) {
   const {
     customer_name, customer_phone, customer_email,           // PII — drop
+    delivery_address,                                         // customer's own address — drop
     total_amount,                                             // price — drop
     items,
     ...safe
   } = order as Record<string, unknown> & { items?: Array<Record<string, unknown>> };
+
+  // Resolve the STORE's fixed address (where the manufacturer actually ships).
+  const storeId = order.store_id as string | undefined;
+  let shipTo = '';
+  if (storeId) {
+    if (storeAddressCache.has(storeId)) {
+      shipTo = storeAddressCache.get(storeId)!;
+    } else {
+      const store = await getStoreById(storeId);
+      shipTo = store ? formatStoreFixedAddress(store) : '';
+      storeAddressCache.set(storeId, shipTo);
+    }
+  }
+
   const safeItems = Array.isArray(items)
     ? items.map((it) => {
         const { unit_price_snapshot, ...restItem } = it;     // price — drop
         return restItem;
       })
     : undefined;
-  return safeItems ? { ...safe, items: safeItems } : safe;
+
+  // ship_to_store_address is what the manufacturer delivers to.
+  const base = { ...safe, ship_to_store_address: shipTo };
+  return safeItems ? { ...base, items: safeItems } : base;
 }
 
 // GET /api/manufacturer/kiosk-orders
 manufacturerRoutes.get('/kiosk-orders', async (c) => {
   const orders = await getGuestOrdersByManufacturer(c.get('manufacturerId'));
-  return sendData(c, orders.map((o) => sanitizeKioskOrderForManufacturer(o as unknown as Record<string, unknown>)));
+  const cache = new Map<string, string>();
+  const sanitized = await Promise.all(
+    orders.map((o) => sanitizeKioskOrderForManufacturer(o as unknown as Record<string, unknown>, cache)),
+  );
+  return sendData(c, sanitized);
 });
 
 // GET /api/manufacturer/kiosk-orders/:id
@@ -489,7 +520,11 @@ manufacturerRoutes.get('/kiosk-orders/:id', async (c) => {
   if (order.manufacturer_id !== c.get('manufacturerId')) {
     return sendError(c, 'forbidden', 'Not your order', 403);
   }
-  return sendData(c, sanitizeKioskOrderForManufacturer(order as unknown as Record<string, unknown>));
+  const sanitized = await sanitizeKioskOrderForManufacturer(
+    order as unknown as Record<string, unknown>,
+    new Map(),
+  );
+  return sendData(c, sanitized);
 });
 
 const UpdateKioskOrderStatusBody = z.object({

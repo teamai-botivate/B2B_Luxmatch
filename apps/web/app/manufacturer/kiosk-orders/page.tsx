@@ -28,7 +28,7 @@ type GuestOrder = {
   status: string;
   total_items: number;
   pickup_store: boolean;
-  delivery_address: string | null;
+  ship_to_store_address: string | null;   // store's fixed address — where mfr ships
   created_at: string;
 };
 
@@ -140,7 +140,6 @@ export default function ManufacturerKioskOrdersPage() {
                       <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${STATUS_COLORS[order.status] ?? 'bg-gray-100 text-gray-700'}`}>
                         {order.status}
                       </span>
-                      <span className="text-xs text-muted-foreground">{order.pickup_store ? 'Pickup' : 'Delivery'}</span>
                     </div>
                   </div>
                   <ChevronRight className={`h-4 w-4 flex-shrink-0 text-muted-foreground transition-transform ${expanded === order.id ? 'rotate-90' : ''}`} />
@@ -155,15 +154,12 @@ export default function ManufacturerKioskOrdersPage() {
                     )}
                     {!detailLoading && detail && (
                       <div className="pt-3 space-y-4">
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
                           <div><p className="text-xs text-muted-foreground">Date</p><p>{new Date(order.created_at).toLocaleDateString('en-IN')}</p></div>
-                          <div><p className="text-xs text-muted-foreground">Fulfilment</p><p>{order.pickup_store ? 'Store Pickup' : 'Delivery'}</p></div>
-                          {order.delivery_address && (
-                            <div className="sm:col-span-1">
-                              <p className="text-xs text-muted-foreground">Delivery Address</p>
-                              <p className="text-xs">{order.delivery_address}</p>
-                            </div>
-                          )}
+                          <div className="sm:col-span-2">
+                            <p className="text-xs text-muted-foreground">Ship to (store address)</p>
+                            <p className="text-xs">{order.ship_to_store_address || '—'}</p>
+                          </div>
                         </div>
 
                         {'items' in detail && Array.isArray(detail.items) && (
