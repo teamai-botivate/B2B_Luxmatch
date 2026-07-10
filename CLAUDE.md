@@ -524,3 +524,20 @@ New pages added this session:
 - Kiosk orders API returns clear 503 error message when migration not yet applied (instead of generic 500)
 - `/jeweller/unlock` redirects to `/portal` (PIN system deprecated in C-series)
 - Footer/MobileNav/AppHeader: removed jeweller PIN dashboard links from customer-facing UI
+
+**Post-launch fixes applied (master, 2026-07-11):**
+- Owner-approve FK bug: `managerGuard` sets `managerId=storeId` for owners, which violated the `store_managers` FK on `reviewed_by`/`*_approved_by` and silently failed the status update → duplicate custom-design orders. Fixed with `approverIdOrNull(c)` (owner → null) across all approve/forward/reject call sites + error capture + rollback in `forwardCustomDesignToManufacturer`.
+- Kiosk order 500 (`guest_order_items.product_id` FK): customer orders from the manufacturer catalog, so `product_id` must be `null` (FK is to store `products`); details live in snapshots.
+- Order-number collision: replaced 4-digit `Math.random()` with high-entropy suffix (epoch-ms + base36) on GK/B2B/CD numbers.
+- Kiosk privacy: manufacturer no longer sees customer name/phone/email/address — API sanitizes and injects `ship_to_store_address` (store fixed address). Removed all ₹ amounts from manufacturer + store order views (kiosk, B2B, dashboard, detail).
+- B2B orders now show store name (joined `stores(name, city)` in `getB2BOrdersByManufacturer`/`getB2BOrderWithItems`).
+- Store registration 400: optional fields (`logoUrl`/`landmark`/`managerPhone`) empty-string now preprocessed to `undefined`.
+- **`guest_orders.tracking_number` column** added (was written without a column). SQL: `ALTER TABLE guest_orders ADD COLUMN IF NOT EXISTS tracking_number text;`
+
+**Post-launch fixes applied (master, 2026-07-11 — batch 2):**
+- **Password reset 405** — the Hono catch-all route only exported GET/POST/PATCH/DELETE, so every `PUT` (manager password reset, store password reset) returned 405. Added `export const PUT = handle(app)` in `apps/web/app/api/[[...route]]/route.ts`.
+- **Manufacturer product delete 500** — `deleteManufacturerProduct` did a bare delete that hit FK violations (images/tryon/embeddings/order-items). Now deletes cascade-safe children + detaches fulfilled store products, and falls back to `status='archived'` when order history still references it.
+
+## New clean rebuild — `../Jewel Factory`
+
+A **from-scratch single-app rebuild** of this system lives at `../Jewel Factory` (sibling folder), built from `JEWEL_FACTORY_SYSTEM_DESIGN.txt`. Single Next.js app (no monorepo), Prisma + fresh Supabase, URL-path kiosk tenancy (`/<storeSlug>/`), 3 auth cookies, all C-series features + intelligence, zero dead code. All 11 phases done, full build passes (42 routes). Has its own `CLAUDE.md`. This LuxeMatch repo remains the currently-deployed system; the rebuild is the intended replacement once its DB is provisioned.
