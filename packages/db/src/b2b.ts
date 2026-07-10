@@ -274,8 +274,27 @@ export async function updateManufacturerProduct(
 
 export async function deleteManufacturerProduct(id: string): Promise<void> {
   const sb = getSupabaseServer();
+
+  // Remove dependent rows first (these don't all cascade in the DB).
+  await sb.from('product_tryon_assets').delete().eq('manufacturer_product_id', id);
+  await sb.from('manufacturer_product_images').delete().eq('product_id', id);
+  await sb.from('manufacturer_product_embeddings').delete().eq('product_id', id);
+  // Detach store products that were fulfilled from this design (keep the store's inventory).
+  await sb.from('products').update({ manufacturer_product_id: null }).eq('manufacturer_product_id', id);
+
   const { error } = await sb.from('manufacturer_products').delete().eq('id', id);
-  if (error) throw new Error(`deleteManufacturerProduct: ${error.message}`);
+  if (error) {
+    // Still referenced (e.g. b2b_order_items keep order history) -> archive instead of hard delete.
+    if (error.code === '23503' || error.message.includes('foreign key')) {
+      const { error: archiveError } = await sb
+        .from('manufacturer_products')
+        .update({ status: 'archived' })
+        .eq('id', id);
+      if (archiveError) throw new Error(`deleteManufacturerProduct (archive): ${archiveError.message}`);
+      return;
+    }
+    throw new Error(`deleteManufacturerProduct: ${error.message}`);
+  }
 }
 
 // ─── Product images ───────────────────────────────────────────────────────────
