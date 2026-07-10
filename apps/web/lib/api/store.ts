@@ -72,22 +72,26 @@ storeRoutes.post('/logout', (c) => {
 });
 
 // POST /api/store/register — public self-registration (pending manufacturer approval)
+// Treat empty strings from optional form fields as "not provided".
+const emptyToUndef = (v: unknown) => (typeof v === 'string' && v.trim() === '' ? undefined : v);
+
 const RegisterBody = z.object({
   name: z.string().min(2),
   email: z.string().email(),
   password: z.string().min(6),
   ownerNaam: z.string().min(2),
   ownerPhone: z.string().min(7),
-  logoUrl: z.string().url().optional(),
+  // Optional fields: an empty string from the form must NOT fail validation.
+  logoUrl: z.preprocess(emptyToUndef, z.string().url().optional()),
   fixedAddressStreet: z.string().min(3),
   fixedAddressCity: z.string().min(2),
   fixedAddressState: z.string().min(2),
   fixedAddressPincode: z.string().min(4),
-  fixedAddressLandmark: z.string().optional(),
+  fixedAddressLandmark: z.preprocess(emptyToUndef, z.string().optional()),
   managerNaam: z.string().min(2),
   managerEmail: z.string().email(),
   managerPassword: z.string().min(6),
-  managerPhone: z.string().optional(),
+  managerPhone: z.preprocess(emptyToUndef, z.string().optional()),
 });
 
 storeRoutes.post('/register', zValidator('json', RegisterBody), async (c) => {
