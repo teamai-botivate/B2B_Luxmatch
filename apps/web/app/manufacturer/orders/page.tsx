@@ -92,8 +92,9 @@ export default function ManufacturerOrdersPage() {
               <thead>
                 <tr className="border-b bg-muted/40">
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">Order #</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Store</th>
                   <th className="hidden sm:table-cell px-4 py-3 text-left font-medium text-muted-foreground">Date</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Items</th>
+                  <th className="hidden md:table-cell px-4 py-3 text-left font-medium text-muted-foreground">Items</th>
                   <th className="px-4 py-3 text-center font-medium text-muted-foreground">Status</th>
                   <th className="px-4 py-3" />
                 </tr>
@@ -102,12 +103,18 @@ export default function ManufacturerOrdersPage() {
                 {visible.map((order) => (
                   <tr key={order.id} className="hover:bg-muted/30 transition-colors">
                     <td className="px-4 py-3 font-medium">{order.order_number}</td>
+                    <td className="px-4 py-3">
+                      <p className="font-medium text-primary truncate">{order.store_name ?? '—'}</p>
+                      {order.store_city && (
+                        <p className="text-xs text-muted-foreground">{order.store_city}</p>
+                      )}
+                    </td>
                     <td className="hidden sm:table-cell px-4 py-3 text-muted-foreground">
                       {new Date(order.created_at).toLocaleDateString('en-IN', {
                         day: '2-digit', month: 'short', year: 'numeric',
                       })}
                     </td>
-                    <td className="px-4 py-3 text-muted-foreground">
+                    <td className="hidden md:table-cell px-4 py-3 text-muted-foreground">
                       {order.total_items} item{order.total_items !== 1 ? 's' : ''}
                     </td>
                     <td className="px-4 py-3 text-center">

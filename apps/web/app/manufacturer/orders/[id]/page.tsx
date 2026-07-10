@@ -113,6 +113,12 @@ export default function ManufacturerOrderDetailPage() {
             <div className="flex items-start justify-between gap-3 flex-wrap">
               <div>
                 <h1 className="text-xl font-semibold">{order.order_number}</h1>
+                {order.store_name && (
+                  <p className="mt-0.5 text-sm font-medium text-primary">
+                    {order.store_name}
+                    {order.store_city ? ` · ${order.store_city}` : ''}
+                  </p>
+                )}
                 <p className="mt-0.5 text-sm text-muted-foreground">
                   {new Date(order.created_at).toLocaleDateString('en-IN', {
                     day: '2-digit', month: 'long', year: 'numeric',

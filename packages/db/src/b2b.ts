@@ -67,6 +67,9 @@ export type B2BOrderRow = {
   total_amount: number;
   created_at: string;
   updated_at: string;
+  // Joined from stores (populated by getB2BOrdersByManufacturer / getB2BOrderWithItems)
+  store_name?: string | null;
+  store_city?: string | null;
 };
 
 export type B2BOrderItemRow = {
@@ -478,15 +481,26 @@ export async function getB2BOrdersByStore(storeId: string): Promise<B2BOrderRow[
 
 export async function getB2BOrdersByManufacturer(manufacturerId: string): Promise<B2BOrderRow[]> {
   const sb = getSupabaseServer();
-  // If column missing (pre-0008 DB), fall back to returning all orders
+  // Join the store so the manufacturer can see WHICH store each order came from.
   const { data, error } = await sb
     .from('b2b_orders')
-    .select('*')
+    .select('*, stores ( name, city )')
     .eq('manufacturer_id', manufacturerId)
     .order('created_at', { ascending: false });
   if (error) throw new Error(`getB2BOrdersByManufacturer: ${error.message}`);
-  // Filter in JS when column exists on the row
-  const rows = (data ?? []) as B2BOrderRow[];
+  // Flatten the joined store into store_name / store_city fields on each row.
+  const rows = (data ?? []).map((r) => {
+    const rec = r as Record<string, unknown>;
+    const storeRaw = rec.stores as { name?: string; city?: string } | { name?: string; city?: string }[] | null;
+    const store = Array.isArray(storeRaw) ? storeRaw[0] : storeRaw;
+    delete rec.stores;
+    return {
+      ...rec,
+      store_name: store?.name ?? null,
+      store_city: store?.city ?? null,
+    } as unknown as B2BOrderRow;
+  });
+  // Hide orders still awaiting store-manager approval.
   return rows.filter((r) => !(r as Record<string, unknown>)['pending_manager_approval']);
 }
 
@@ -495,15 +509,20 @@ export async function getB2BOrderWithItems(orderId: string): Promise<B2BOrderWit
   const { data, error } = await sb
     .from('b2b_orders')
     .select(
-      `*, b2b_order_items(*), b2b_order_status_history(*)`,
+      `*, b2b_order_items(*), b2b_order_status_history(*), stores ( name, city )`,
     )
     .eq('id', orderId)
     .maybeSingle();
   if (error) throw new Error(`getB2BOrderWithItems: ${error.message}`);
   if (!data) return null;
   const row = data as Record<string, unknown>;
+  const storeRaw = row.stores as { name?: string; city?: string } | { name?: string; city?: string }[] | null;
+  const store = Array.isArray(storeRaw) ? storeRaw[0] : storeRaw;
+  delete row.stores;
   return {
     ...(row as B2BOrderRow),
+    store_name: store?.name ?? null,
+    store_city: store?.city ?? null,
     items: (row.b2b_order_items ?? []) as B2BOrderItemRow[],
     history: (row.b2b_order_status_history ?? []) as B2BOrderStatusHistoryRow[],
   };
