@@ -357,8 +357,11 @@ export async function isManufacturerProductEmbedded(productId: string): Promise<
 function generateOrderNumber(): string {
   const now = new Date();
   const date = now.toISOString().slice(0, 10).replace(/-/g, '');
-  const rand = Math.floor(1000 + Math.random() * 9000);
-  return `B2B-${date}-${rand}`;
+  // High-entropy suffix so two orders in the same second can't collide on the
+  // order_number UNIQUE constraint (old 4-digit random had a real collision risk).
+  const suffix = (Date.now() % 10000).toString().padStart(4, '0')
+    + Math.random().toString(36).slice(2, 6).toUpperCase();
+  return `B2B-${date}-${suffix}`;
 }
 
 function slugify(value: string): string {

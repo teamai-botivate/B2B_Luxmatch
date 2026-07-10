@@ -98,8 +98,12 @@ export type PlaceGuestOrderInput = {
 function generateGuestOrderNumber(): string {
   const now = new Date();
   const date = now.toISOString().slice(0, 10).replace(/-/g, '');
-  const rand = Math.floor(1000 + Math.random() * 9000);
-  return `GK-${date}-${rand}`;
+  // High-entropy suffix: last 4 of epoch-ms + 4 random chars. Two orders in the
+  // same millisecond would still differ, making the UNIQUE collision effectively
+  // impossible (the old 4-digit random had a real same-second collision risk).
+  const suffix = (Date.now() % 10000).toString().padStart(4, '0')
+    + Math.random().toString(36).slice(2, 6).toUpperCase();
+  return `GK-${date}-${suffix}`;
 }
 
 // ── Write ─────────────────────────────────────────────────────────────────────

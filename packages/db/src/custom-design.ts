@@ -173,8 +173,10 @@ function generateCustomDesignOrderNumber(): string {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');
   const d = String(date.getDate()).padStart(2, '0');
-  const rand = Math.floor(Math.random() * 9000 + 1000);
-  return `CD-${y}${m}${d}-${rand}`;
+  // High-entropy suffix so concurrent forwards can't collide on order_number UNIQUE.
+  const suffix = (Date.now() % 10000).toString().padStart(4, '0')
+    + Math.random().toString(36).slice(2, 6).toUpperCase();
+  return `CD-${y}${m}${d}-${suffix}`;
 }
 
 export async function forwardCustomDesignToManufacturer(
