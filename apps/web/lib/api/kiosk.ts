@@ -130,7 +130,11 @@ kioskRoutes.post(
       const primaryImage = product.images.find((img) => img.is_primary) ?? product.images[0] ?? null;
 
       resolvedItems.push({
-        productId: product.id,
+        // Customer orders from the MANUFACTURER catalog. guest_order_items.product_id
+        // FK-references the store `products` table, where a manufacturer product id
+        // does NOT exist -> must be null. The manufacturer product id + all details
+        // live in the snapshot fields below.
+        productId: null,
         productNameSnapshot: product.name,
         productSkuSnapshot: product.sku ?? product.design_number ?? undefined,
         productImageSnapshot: primaryImage?.secure_url ?? undefined,
