@@ -19,12 +19,12 @@ python -m uvicorn embedder:app --port 8001
 
 Seed/demo credentials:
 
-| Actor                    | URL                        | Email / PIN                          | Password       |
-| ------------------------ | -------------------------- | ------------------------------------ | -------------- |
-| Manufacturer             | `/manufacturer/login`    | `admin@atplusjewellers.com`        | `Admin@123`  |
-| Store/Retailer           | `/store/login`           | `store@aurumheritage.com`          | `Store@123`  |
-| Jeweller device PIN mode | `/jeweller/unlock`       | PIN `123456`                       | none           |
-| Customer (kiosk)         | No login — guest checkout | name + phone on `/kiosk-checkout`  | none           |
+| Actor                    | URL                        | Email / PIN                        | Password      |
+| ------------------------ | -------------------------- | ---------------------------------- | ------------- |
+| Manufacturer             | `/manufacturer/login`    | `admin@atplusjewellers.com`      | `Admin@123` |
+| Store/Retailer           | `/store/login`           | `store@aurumheritage.com`        | `Store@123` |
+| Jeweller device PIN mode | `/jeweller/unlock`       | PIN`123456`                      | none          |
+| Customer (kiosk)         | No login — guest checkout | name + phone on`/kiosk-checkout` | none          |
 
 > **Staff Portal entry point (live site):** Go to any page → scroll to footer → click **Staff Portal**. This opens `/portal` where you choose Store Owner Login or Manufacturer Login.
 
@@ -170,13 +170,13 @@ Database:
 
 Full CRUD available via action icons on each row:
 
-| Icon | Action | What it does |
-|------|--------|-------------|
-| **Add Store** button | Create | New store login + auto-creates linked `jewellers` row |
-| Pencil icon | Edit | Edit store name, email, city, phone |
-| Key icon | Reset password | Set a new login password (min 6 chars) |
-| Trash icon | Delete | Removes store + linked `jewellers` row permanently |
-| Toggle icon | Activate/Deactivate | Enable or disable store login |
+| Icon                       | Action              | What it does                                           |
+| -------------------------- | ------------------- | ------------------------------------------------------ |
+| **Add Store** button | Create              | New store login + auto-creates linked`jewellers` row |
+| Pencil icon                | Edit                | Edit store name, email, city, phone                    |
+| Key icon                   | Reset password      | Set a new login password (min 6 chars)                 |
+| Trash icon                 | Delete              | Removes store + linked`jewellers` row permanently    |
+| Toggle icon                | Activate/Deactivate | Enable or disable store login                          |
 
 Add Store form fields: Store Name, Email, Password, City, Phone
 

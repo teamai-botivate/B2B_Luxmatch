@@ -1,0 +1,1308 @@
+================================================================================
+  JEWEL FACTORY — COMPLETE SYSTEM DESIGN & REBUILD BLUEPRINT
+================================================================================
+  Purpose : Blueprint for rebuilding the current "LuxeMatch/Jewel Factory" system
+            into a clean, structured, single Next.js app with a fresh Prisma +
+            Supabase database. Same UI, same features, zero dead code.
+  Source  : Read from the existing LuxeMatch codebase (master branch), CLAUDE.md,
+            and B2B_PLAN.md as of 2026-07-10.
+  Rule    : Copy the WORKING code from the old repo. Do NOT carry the complexity,
+            the B-series leftovers, or the two-tenancy-model confusion.
+
+  DECISIONS (locked by the user):
+    - Database   : NEW Supabase project + Prisma ORM (fresh, no old data)
+    - Structure  : Single Next.js app (NO monorepo, no packages/*)
+    - KEEP       : Intelligence dashboard + all C-series features
+    - REMOVE     : Customer auth, PIN system, style quiz, legacy cart,
+                   showcase AR, price fields, metal field
+    - External   : Cloudinary + Qdrant + OpenCLIP embedder stay the same
+    - KIOSK->STORE : URL-PATH model — each store's kiosk lives under
+                     jewelfactory.com/<storeSlug>/... (e.g. /abc/catalog).
+                     The first path segment (storeSlug) resolves storeId for all
+                     kiosk requests. No subdomain / wildcard DNS needed.
+    - SEED       : First manufacturer + categories are pre-seeded (same as the
+                   current live system — manufacturer has no signup UI).
+
+  >>> SEE SECTION 17 (added later) for the improvements/gaps that MUST be
+      addressed during the rebuild. Read it together with the sections above. <<<
+================================================================================
+
+
+================================================================================
+  SECTION 0 — WHAT THIS SYSTEM IS (ONE PARAGRAPH)
+================================================================================
+
+Jewel Factory is a B2B jewellery platform. A single MANUFACTURER maintains a
+global design catalog (Gold only, no prices shown). Retail STORES register,
+get approved by the manufacturer, and then browse + order from that catalog.
+Each store has STORE MANAGERS who approve orders and custom design requests.
+END CUSTOMERS walk into a store, use the in-store kiosk (no login) to browse
+the manufacturer's catalog, do AR try-on, do similar-image search, place orders,
+and submit custom design requests. Every customer order routes THROUGH the store
+(a manager approves it) before reaching the manufacturer — and the manufacturer
+NEVER sees customer personal data, only the store's identity + product specs.
+
+
+================================================================================
+  SECTION 1 — THE FOUR ACTORS
+================================================================================
+
+1. MANUFACTURER  (global admin — one company)
+   - Login: /manufacturer/login  (cookie: mfr session)
+   - Owns the global design catalog (manufacturer_products)
+   - Approves/rejects store registrations
+   - Receives B2B orders (store restock), kiosk orders (customer), and
+     custom design orders — always sees STORE identity, never customer data
+   - Uploads AR try-on transparent PNGs per design
+   - Ships everything to the store's fixed delivery address
+   - Portal: /manufacturer/*
+
+2. STORE OWNER  (self-registers, one per store)
+   - Register: /store/register  → status pending → manufacturer approves
+   - Login: /store/login  (cookie: store session, carries jewellerId)
+   - Full store dashboard: profile, branding, fixed delivery address
+   - Add / remove Store Managers (owner-only)
+   - Places B2B catalog orders (go to manager approval first)
+   - Can do everything a manager can (owner acts as manager)
+   - Portal: /store/*  (a.k.a. the /jeweller/* dashboard in old code)
+
+3. STORE MANAGER  (multiple per store, added by owner)
+   - Login: /store/manager/login  (cookie: manager session)
+   - Same dashboard as owner EXCEPT: cannot add/remove managers,
+     cannot change store settings
+   - APPROVES: (a) customer kiosk orders, (b) custom design requests,
+     (c) store B2B catalog orders — before any of them reach the manufacturer
+   - Sees customer details (name, phone); manufacturer never does
+   - Forgot/reset password via email
+   - Portal: same as store owner
+
+4. END CUSTOMER  (no login — in-store kiosk)
+   - Visits the store device
+   - Sees the MANUFACTURER's full catalog (not store inventory)
+   - AR try-on, similar-image search — NO price shown anywhere
+   - Adds to guest cart (sessionStorage), places kiosk order
+   - Submits custom design requests (image + specs + name + phone)
+   - All customer data stays with the store only
+   - Kiosk pages: / , /catalog , /try-on , /search , /kiosk/custom-design ,
+     /kiosk-checkout
+
+
+================================================================================
+  SECTION 2 — THE CORE PRODUCT RULES (never break these)
+================================================================================
+
+  - NO PRICE anywhere. Not in manufacturer form, not in catalog, not on any
+    customer screen, not in any order. (Gold-only, price-on-request model.)
+  - NO METAL field shown. Gold only. (Column can exist but stays nullable/hidden.)
+  - AUTO DESIGN NUMBER: JF-0001, JF-0002 ... globally sequential, auto-generated
+    when a manufacturer creates a product. This is the public product identifier.
+  - CUSTOMER SEES MANUFACTURER CATALOG directly (not store's purchased inventory).
+  - ALL CUSTOMER ORDERS ROUTE THROUGH THE STORE:
+        customer order -> manager approves -> manufacturer
+    Manufacturer sees: store name + store fixed address + product specs.
+    Manufacturer NEVER sees: customer name, phone, or any customer detail.
+  - STORE SELF-REGISTRATION -> manufacturer approval -> access granted.
+  - STORE FIXED DELIVERY ADDRESS set at registration; manufacturer ships there.
+  - BRANDING ON KIOSK: store's own logo + name (not "Jewel Factory").
+    Footer credit: "Powered by AT Jewellers".
+  - PORTAL/LOGIN pages: "Jewel Factory" branding.
+
+
+================================================================================
+  SECTION 3 — HIGH-LEVEL SYSTEM MAP (how everything connects)
+================================================================================
+
+   MANUFACTURER (1)
+      |  owns
+      v
+   manufacturer_products  (global catalog, design_number JF-XXXX, no price)
+      |   |__ manufacturer_product_images  (Cloudinary URLs)
+      |   |__ tryon assets (transparent PNG, calibration)  -> Qdrant + AR
+      |
+      |  browsed by
+      v
+   STORE (N)  <-- self-registers, manufacturer approves, gets manufacturer_id
+      |   |__ fixed delivery address (manufacturer ships here)
+      |   |__ branding (logo, name)  -> shown on kiosk
+      |   |__ STORE MANAGERS (N)  <-- added by owner
+      |
+      |  places / approves 3 order types
+      v
+   +-----------------------------------------------------------+
+   | B2B ORDER      : store restock from catalog               |
+   |                  manager approves -> manufacturer         |
+   | KIOSK ORDER    : customer buys via kiosk                  |
+   |                  manager approves -> manufacturer         |
+   | CUSTOM DESIGN  : customer requests custom piece           |
+   |                  manager approves -> sanitized -> mfr     |
+   +-----------------------------------------------------------+
+      |
+      v
+   MANUFACTURER fulfills -> ships to store fixed address -> store hands to customer
+
+   EXTERNAL SERVICES (shared, unchanged):
+     Cloudinary  = image storage (product photos, tryon PNGs, logos)
+     Qdrant      = vector DB for similar-image search
+     OpenCLIP    = embedder (photo -> 512-d vector), HF Space in prod
+
+
+================================================================================
+  SECTION 4 — DATABASE DESIGN (PRISMA SCHEMA PLAN)
+================================================================================
+
+  Old system used raw Supabase SQL migrations + service-role key (RLS bypassed,
+  filtering only in app code). NEW system uses Prisma against a fresh Supabase
+  Postgres. Prisma gives typed models, migrations, and relations.
+
+  IMPORTANT SIMPLIFICATIONS vs old schema:
+    - MERGE `jewellers` + `stores` into ONE `Store` model.
+      (Old code always auto-created a jewellers row per store and kept names in
+       sync — a 1:1 coupling that added no value. One Store model = tenancy root.)
+    - DROP legacy B-series tables entirely: customers, customer_addresses,
+      customer_otps, cart_items, orders, order_items, order_status_history,
+      branches, brands.
+    - DROP PIN columns (pin_hash, pin_salt, idle_reset_*) from Store.
+    - KEEP one tryon-assets model but make ownership explicit (belongs to a
+      manufacturer product OR a store product — see below).
+    - KEEP intelligence tables (ProductView, TryonEvent, ProductSale).
+    - Add `trackingNumber` to KioskOrder explicitly (old guest_orders wrote it
+      without a column — a latent bug).
+
+  ---- MODELS ----
+
+  model Manufacturer {
+    id            String   @id @default(uuid())
+    name          String
+    email         String   @unique
+    passwordHash  String                       // bcrypt
+    isActive      Boolean  @default(true)
+    createdAt     DateTime @default(now())
+    updatedAt     DateTime @updatedAt
+    products      ManufacturerProduct[]
+    stores        Store[]
+    b2bOrders     B2bOrder[]
+    kioskOrders   KioskOrder[]
+    customOrders  CustomDesignOrder[]
+  }
+
+  model Store {                                 // = old stores + jewellers merged
+    id                 String   @id @default(uuid())
+    manufacturerId     String?                  // null until approved
+    manufacturer       Manufacturer? @relation(fields:[manufacturerId], references:[id])
+    // identity / auth
+    name               String
+    slug               String   @unique         // for kiosk URL / branding
+    email              String   @unique
+    passwordHash       String                   // bcrypt (store owner)
+    // registration
+    registrationStatus RegistrationStatus @default(PENDING)  // PENDING/APPROVED/REJECTED
+    registrationSubmittedAt DateTime?
+    registrationReviewedAt  DateTime?
+    ownerName          String?
+    ownerPhone         String?
+    // branding (shown on kiosk)
+    logoUrl            String?
+    tagline            String?
+    websiteUrl         String?
+    city               String?
+    phone              String?
+    // fixed delivery address (manufacturer ships here)
+    addressStreet      String?
+    addressCity        String?
+    addressState       String?
+    addressPincode     String?
+    addressLandmark    String?
+    isActive           Boolean  @default(false) // true after approval
+    createdAt          DateTime @default(now())
+    updatedAt          DateTime @updatedAt
+    // relations
+    managers           StoreManager[]
+    products           Product[]                // store retail catalog (fulfilled)
+    b2bOrders          B2bOrder[]
+    kioskOrders        KioskOrder[]
+    customRequests     CustomDesignRequest[]
+    customOrders       CustomDesignOrder[]
+    resetTokens        PasswordResetToken[]
+  }
+
+  enum RegistrationStatus { PENDING APPROVED REJECTED }
+
+  model StoreManager {
+    id            String   @id @default(uuid())
+    storeId       String
+    store         Store    @relation(fields:[storeId], references:[id], onDelete: Cascade)
+    name          String
+    email         String
+    passwordHash  String                        // bcrypt
+    phone         String?
+    isActive      Boolean  @default(true)
+    createdBy     String?                        // owner/manager id who added them
+    createdAt     DateTime @default(now())
+    updatedAt     DateTime @updatedAt
+    @@unique([storeId, email])
+    @@index([email])
+  }
+
+  model PasswordResetToken {
+    id         String   @id @default(uuid())
+    email      String
+    role       ResetRole                          // STORE_OWNER / STORE_MANAGER
+    storeId    String?
+    store      Store?  @relation(fields:[storeId], references:[id], onDelete: Cascade)
+    tokenHash  String                             // sha256 of emailed token
+    expiresAt  DateTime
+    usedAt     DateTime?
+    createdAt  DateTime @default(now())
+    @@index([email]); @@index([tokenHash])
+  }
+  enum ResetRole { STORE_OWNER STORE_MANAGER }
+
+  // ----- MANUFACTURER CATALOG (global) -----
+
+  model ManufacturerProduct {
+    id             String   @id @default(uuid())
+    manufacturerId String
+    manufacturer   Manufacturer @relation(fields:[manufacturerId], references:[id], onDelete: Cascade)
+    designNumber   String   @unique               // JF-0001, auto-generated
+    name           String
+    category       String?                         // slug matching Category
+    subCategory    String?
+    description    String?
+    weightGrams    Decimal? @db.Decimal(8,3)
+    purity         String?
+    gemstones      String[] @default([])
+    occasionTags   String[] @default([])
+    styleTags      String[] @default([])
+    minOrderQty    Int      @default(1)
+    hasTryon       Boolean  @default(false)
+    status         ProductStatus @default(DRAFT)   // DRAFT / ACTIVE / ARCHIVED
+    createdAt      DateTime @default(now())
+    updatedAt      DateTime @updatedAt
+    images         ManufacturerProductImage[]
+    tryonAssets    TryonAsset[]
+    embedding      ManufacturerProductEmbedding?
+    b2bItems       B2bOrderItem[]
+    // NOTE: no base_price, no metal (removed per product rules)
+    @@index([status]); @@index([category])
+  }
+  enum ProductStatus { DRAFT ACTIVE ARCHIVED }
+
+  model ManufacturerProductImage {
+    id                 String  @id @default(uuid())
+    productId          String
+    product            ManufacturerProduct @relation(fields:[productId], references:[id], onDelete: Cascade)
+    cloudinaryPublicId String
+    secureUrl          String
+    isPrimary          Boolean @default(false)
+    sortOrder          Int     @default(0)
+    createdAt          DateTime @default(now())
+    @@index([productId])
+  }
+
+  model ManufacturerProductEmbedding {           // Qdrant bookkeeping
+    productId      String  @id
+    product        ManufacturerProduct @relation(fields:[productId], references:[id], onDelete: Cascade)
+    qdrantPointId  String
+    embeddingModel String
+    dimensions     Int
+    imageUrl       String?
+    indexedAt      DateTime @default(now())
+  }
+
+  // ----- STORE RETAIL CATALOG (materialized on B2B delivery) -----
+  // Customer kiosk shows the MANUFACTURER catalog directly, so Product here is
+  // mainly used for: fulfilled inventory tracking + intelligence signals.
+  // (Old code copied manufacturer_products -> products on delivery. Keep this.)
+
+  model Product {
+    id                    String  @id @default(uuid())
+    storeId               String
+    store                 Store   @relation(fields:[storeId], references:[id], onDelete: Cascade)
+    manufacturerProductId String?                       // source design
+    slug                  String
+    name                  String
+    category              String?
+    description           String?
+    purity                String?
+    weightGrams           Decimal? @db.Decimal(8,2)
+    gemstones             String[] @default([])
+    occasionTags          String[] @default([])
+    styleTags             String[] @default([])
+    stockCount            Int      @default(0)
+    isActive              Boolean  @default(true)
+    isFeatured            Boolean  @default(false)
+    createdAt             DateTime @default(now())
+    updatedAt             DateTime @updatedAt
+    images                ProductImage[]
+    tryonAssets           TryonAsset[]
+    views                 ProductView[]
+    sales                 ProductSale[]
+    tryonEvents           TryonEvent[]
+    @@unique([storeId, slug])
+    @@index([storeId, isActive])
+  }
+
+  model ProductImage {
+    id                 String  @id @default(uuid())
+    productId          String
+    product            Product @relation(fields:[productId], references:[id], onDelete: Cascade)
+    cloudinaryPublicId String
+    url                String
+    isPrimary          Boolean @default(false)
+    sortOrder          Int     @default(0)
+    createdAt          DateTime @default(now())
+    @@index([productId])
+  }
+
+  // ----- TRY-ON ASSETS (one model, two owners) -----
+  // A tryon asset belongs to EITHER a manufacturer product OR a store product.
+  // Old code shared product_tryon_assets across both via nullable FKs. Keep that.
+
+  model TryonAsset {
+    id                    String  @id @default(uuid())
+    manufacturerProductId String?
+    manufacturerProduct   ManufacturerProduct? @relation(fields:[manufacturerProductId], references:[id], onDelete: Cascade)
+    productId             String?
+    product               Product? @relation(fields:[productId], references:[id], onDelete: Cascade)
+    cloudinaryPublicId    String?
+    assetUrl              String
+    jewelleryType         JewelleryType                 // enum below
+    pivotX                Decimal @default(0.5) @db.Decimal(5,3)
+    pivotY                Decimal @default(0.5) @db.Decimal(5,3)
+    xOffset               Decimal @default(0)   @db.Decimal(8,3)
+    yOffset               Decimal @default(0)   @db.Decimal(8,3)
+    scaleMultiplier       Decimal @default(1)   @db.Decimal(5,3)
+    rotationOffsetDeg     Decimal @default(0)   @db.Decimal(6,2)
+    widthMm               Decimal? @db.Decimal(6,2)
+    heightMm              Decimal? @db.Decimal(6,2)
+    isActive              Boolean @default(true)
+    createdAt             DateTime @default(now())
+    updatedAt             DateTime @updatedAt
+    @@index([manufacturerProductId])
+    @@index([productId])
+  }
+  enum JewelleryType { necklace earring_left earring_right ring_index ring_middle bangle }
+
+  // ----- ORDERS: B2B (store restock) -----
+
+  model B2bOrder {
+    id                     String   @id @default(uuid())
+    storeId                String
+    store                  Store    @relation(fields:[storeId], references:[id])
+    manufacturerId         String
+    manufacturer           Manufacturer @relation(fields:[manufacturerId], references:[id])
+    orderNumber            String   @unique          // B2B-YYYYMMDD-NNNN
+    status                 OrderStatus @default(PENDING)
+    deliveryAddress        String
+    notes                  String?
+    trackingNumber         String?
+    // manager approval gate
+    pendingManagerApproval Boolean  @default(true)
+    managerApprovedById    String?
+    managerApprovedAt      DateTime?
+    // fulfillment
+    fulfilledAt            DateTime?
+    fulfilledProductIds    String[] @default([])
+    totalItems             Int      @default(0)
+    createdAt              DateTime @default(now())
+    updatedAt              DateTime @updatedAt
+    items                  B2bOrderItem[]
+    history                B2bOrderStatusHistory[]
+    @@index([storeId]); @@index([manufacturerId]); @@index([status])
+  }
+
+  model B2bOrderItem {
+    id                    String @id @default(uuid())
+    orderId               String
+    order                 B2bOrder @relation(fields:[orderId], references:[id], onDelete: Cascade)
+    manufacturerProductId String
+    manufacturerProduct   ManufacturerProduct @relation(fields:[manufacturerProductId], references:[id])
+    quantity              Int
+    productNameSnapshot   String?
+    createdAt             DateTime @default(now())
+    @@index([orderId])
+  }
+
+  model B2bOrderStatusHistory {
+    id        String @id @default(uuid())
+    orderId   String
+    order     B2bOrder @relation(fields:[orderId], references:[id], onDelete: Cascade)
+    status    String
+    note      String?
+    createdAt DateTime @default(now())
+  }
+
+  enum OrderStatus { PENDING CONFIRMED PACKED SHIPPED DELIVERED CANCELLED }
+
+  // ----- ORDERS: KIOSK (customer, guest) -----
+
+  model KioskOrder {
+    id                      String @id @default(uuid())
+    manufacturerId          String
+    manufacturer            Manufacturer @relation(fields:[manufacturerId], references:[id])
+    storeId                 String
+    store                   Store  @relation(fields:[storeId], references:[id])
+    // store snapshot (what manufacturer sees)
+    storeNameSnapshot       String
+    storeCitySnapshot       String?
+    storePhoneSnapshot      String?
+    storeEmailSnapshot      String?
+    // customer details (store-only, NEVER forwarded to manufacturer)
+    customerName            String
+    customerPhone           String
+    customerEmail           String?
+    deliveryAddress         String?
+    pickupStore             Boolean @default(false)
+    notes                   String?
+    orderNumber             String @unique             // GK-YYYYMMDD-NNNN
+    orderSource             String @default("kiosk")
+    status                  OrderStatus @default(PENDING)
+    trackingNumber          String?                     // explicit (old bug fix)
+    // store approval gate
+    pendingStoreApproval    Boolean @default(true)
+    storeApprovedById       String?
+    storeApprovedAt         DateTime?
+    forwardedToManufacturer Boolean @default(false)
+    totalItems              Int @default(0)
+    createdAt               DateTime @default(now())
+    updatedAt               DateTime @updatedAt
+    items                   KioskOrderItem[]
+    history                 KioskOrderStatusHistory[]
+    @@index([storeId]); @@index([manufacturerId]); @@index([status])
+  }
+
+  model KioskOrderItem {
+    id                    String @id @default(uuid())
+    orderId               String
+    order                 KioskOrder @relation(fields:[orderId], references:[id], onDelete: Cascade)
+    manufacturerProductId String?                       // customer buys from mfr catalog
+    productNameSnapshot   String
+    productImageSnapshot  String?
+    categorySnapshot      String?
+    quantity              Int
+    createdAt             DateTime @default(now())
+    @@index([orderId])
+  }
+
+  model KioskOrderStatusHistory {
+    id        String @id @default(uuid())
+    orderId   String
+    order     KioskOrder @relation(fields:[orderId], references:[id], onDelete: Cascade)
+    status    String
+    note      String?
+    changedBy String?                                    // store/manufacturer/system
+    createdAt DateTime @default(now())
+  }
+
+  // ----- CUSTOM DESIGN (customer request -> sanitized order) -----
+
+  model CustomDesignRequest {                           // has customer PII
+    id                     String @id @default(uuid())
+    storeId                String
+    store                  Store  @relation(fields:[storeId], references:[id], onDelete: Cascade)
+    customerName           String
+    customerPhone          String
+    customerNotes          String?
+    referenceImageUrl      String?
+    referenceImagePublicId String?
+    category               String
+    weightGrams            Decimal? @db.Decimal(8,3)
+    purity                 String?
+    designNotes            String?
+    status                 CustomStatus @default(PENDING)  // PENDING/APPROVED/REJECTED/FORWARDED
+    reviewedById           String?                          // null = owner reviewed
+    reviewedAt             DateTime?
+    rejectionReason        String?
+    createdAt              DateTime @default(now())
+    updatedAt              DateTime @updatedAt
+    order                  CustomDesignOrder?
+    @@index([storeId]); @@index([status])
+  }
+  enum CustomStatus { PENDING APPROVED REJECTED FORWARDED }
+
+  model CustomDesignOrder {                             // sanitized, no customer PII
+    id                   String @id @default(uuid())
+    requestId            String @unique
+    request              CustomDesignRequest @relation(fields:[requestId], references:[id])
+    manufacturerId       String
+    manufacturer         Manufacturer @relation(fields:[manufacturerId], references:[id])
+    storeId              String
+    store                Store @relation(fields:[storeId], references:[id])
+    storeNameSnapshot    String
+    storeAddressSnapshot String
+    category             String
+    weightGrams          Decimal? @db.Decimal(8,3)
+    purity               String?
+    referenceImageUrl    String?
+    designNotes          String?
+    status               CustomOrderStatus @default(PENDING)
+    orderNumber          String @unique                 // CD-YYYYMMDD-NNNN
+    trackingNumber       String?
+    createdAt            DateTime @default(now())
+    updatedAt            DateTime @updatedAt
+    @@index([manufacturerId]); @@index([storeId])
+  }
+  enum CustomOrderStatus { PENDING CONFIRMED IN_PRODUCTION PACKED SHIPPED DELIVERED CANCELLED }
+
+  // ----- TAXONOMY -----
+
+  model Category {
+    id        String @id @default(uuid())
+    slug      String @unique
+    name      String
+    sortOrder Int    @default(0)
+  }
+
+  // ----- INTELLIGENCE (KEPT) -----
+  // Store-scoped signals feeding the intelligence dashboard.
+
+  model ProductView {
+    id        String @id @default(uuid())
+    storeId   String
+    productId String?
+    product   Product? @relation(fields:[productId], references:[id], onDelete: SetNull)
+    sessionId String?
+    createdAt DateTime @default(now())
+    @@index([storeId, createdAt])
+  }
+
+  model TryonEvent {
+    id            String @id @default(uuid())
+    storeId       String
+    productId     String?
+    product       Product? @relation(fields:[productId], references:[id], onDelete: SetNull)
+    jewelleryType String?
+    confidence    Decimal?
+    sessionId     String?
+    createdAt     DateTime @default(now())
+    @@index([storeId, createdAt])
+  }
+
+  model ProductSale {
+    id           String @id @default(uuid())
+    storeId      String
+    productId    String
+    product      Product @relation(fields:[productId], references:[id])
+    quantity     Int    @default(1)
+    soldAt       DateTime @default(now())
+    occasion     String?
+    notes        String?
+    @@index([storeId, soldAt])
+    @@index([storeId, productId])
+  }
+
+  // OPTIONAL analytics loggers (search_events, analytics_events) — carry only if
+  // the intelligence dashboard uses them; old inventory_signals table was DEAD
+  // (no code touched it) -> SKIP.
+
+
+================================================================================
+  SECTION 5 — AUTH & COOKIES DESIGN (3 roles, clean)
+================================================================================
+
+  Old system had 5 cookies (lm_pin, lm_customer, lm_manufacturer, lm_store,
+  lm_store_manager) with confusing shared secrets. NEW system: 3 cookies only.
+  Customer has NO cookie (guest kiosk). PIN removed.
+
+  Recommended: use one auth library approach consistently. Since it's a single
+  Next.js app, you can use signed HTTP-only cookies (jose/iron-session) OR keep
+  the old HMAC-SHA256 pattern (it works, is Edge-safe). Copy the working HMAC
+  code from packages/tenant/src/index.ts if you want zero risk.
+
+  COOKIE 1 — Manufacturer session
+    payload: { manufacturerId }
+    secret : MANUFACTURER_SECRET (own secret, min 32 chars)
+    ttl    : 8h
+    guard  : manufacturerGuard -> sets ctx.manufacturerId
+
+  COOKIE 2 — Store session (owner)
+    payload: { storeId }                 // storeId IS the tenant now (merged model)
+    secret : STORE_SECRET
+    ttl    : 8h
+    guard  : storeGuard -> sets ctx.storeId, ctx.isOwner = true
+
+  COOKIE 3 — Manager session
+    payload: { managerId, storeId }
+    secret : MANAGER_SECRET
+    ttl    : 8h
+    guard  : managerGuard -> sets ctx.storeId, ctx.managerId, ctx.isOwner = false
+
+  KEY PATTERN TO KEEP (the good part of the old design):
+    - Cookie carries storeId so tenancy resolves with ZERO db lookups.
+    - managerGuard accepts BOTH the store cookie (owner) and manager cookie.
+      -> owner can do anything a manager can. Set isOwner flag; branch where
+         role matters (manager-management + store settings are owner-only).
+    - Manager-management routes + store-settings routes use storeGuard (owner only).
+    - Order/custom-design approval routes use managerGuard (owner OR manager).
+
+  PASSWORDS: bcrypt (cost 10) for all three roles. ONE algorithm (drop scrypt).
+
+  PASSWORD RESET (store owner + manager only):
+    - password_reset_tokens: random 32-byte token, store SHA-256 hash, 1h expiry.
+    - forgot-password always returns 200 (anti-enumeration).
+    - Email the reset link via SMTP (nodemailer). Manufacturer has no self-reset;
+      manufacturer resets STORE passwords, owner resets MANAGER passwords.
+
+  TENANCY RULE (simpler now):
+    - Every store-scoped query filters by storeId (from cookie, never from body).
+    - Manufacturer catalog + custom/kiosk/b2b orders on the manufacturer side
+      filter by manufacturerId.
+    - With Prisma you CAN add real row-level checks in code cleanly (no service-
+      role RLS-bypass footgun). Consider Prisma middleware that injects storeId.
+
+
+================================================================================
+  SECTION 6 — THE THREE ORDER FLOWS (step by step)
+================================================================================
+
+  ---- FLOW A: CUSTOMER KIOSK ORDER ----
+  1. Customer on store kiosk browses manufacturer catalog (GET /api/kiosk/catalog).
+  2. Adds items to guest cart (sessionStorage 'guest_cart'). No login.
+  3. Fills checkout form: name, phone, email?, pickup/delivery, address?, notes.
+  4. POST /api/kiosk/orders
+       - resolve storeId (kiosk device is tied to a store)
+       - resolve store + manufacturerId
+       - create KioskOrder (pendingStoreApproval=true, forwardedToManufacturer=false)
+       - create KioskOrderItems (snapshot product name/image/category)
+       - create first status history row
+  5. Manager sees it in "Pending Approvals" (GET /api/manager/kiosk-orders/pending).
+  6. Manager APPROVES -> sets storeApprovedBy/At + forwardedToManufacturer=true.
+     Manager REJECTS  -> status CANCELLED.
+  7. Manufacturer sees approved kiosk orders (GET /api/manufacturer/kiosk-orders)
+     -> shows STORE NAME prominently, NEVER customer data.
+  8. Manufacturer advances status PENDING->CONFIRMED->PACKED->SHIPPED->DELIVERED.
+  9. Store tracks status; hands jewellery to customer.
+
+  ---- FLOW B: STORE B2B ORDER (restock) ----
+  1. Store owner browses manufacturer catalog (GET /api/store/catalog).
+  2. Adds to B2B cart (sessionStorage 'b2b_cart').
+  3. Reviews cart + delivery address (auto-filled from store fixed address) + notes.
+  4. POST /api/store/orders
+       - create B2bOrder (pendingManagerApproval=true)
+       - create B2bOrderItems, first history row
+  5. Manager sees pending B2B orders -> APPROVE / REJECT.
+  6. On approve -> reaches manufacturer.
+  7. Manufacturer advances status. On DELIVERED -> fulfillB2BOrder():
+       - copy each manufacturer_product into the store's Product table
+       - copy images + tryon assets
+       - set stockCount = quantity (or increment if already exists)
+       - record fulfilledAt + fulfilledProductIds
+  8. Store now has that design in its own inventory (for intelligence/tracking).
+
+  ---- FLOW C: CUSTOM DESIGN REQUEST ----
+  1. Customer on kiosk fills /kiosk/custom-design:
+       image (upload or URL) + category + weight + purity(dropdown) + notes
+       + name + phone.
+  2. POST /api/kiosk/custom-design -> create CustomDesignRequest (status PENDING,
+     WITH customer PII).
+  3. Manager sees it (GET /api/manager/custom-designs) with customer details.
+  4. Manager APPROVE -> forwardCustomDesignToManufacturer():
+       - create CustomDesignOrder = SANITIZED copy:
+           store name + store fixed address + category + weight + purity +
+           reference image + design notes. NO customer name/phone.
+       - request.status = FORWARDED
+     Manager REJECT -> request.status = REJECTED.
+  5. Manufacturer sees CustomDesignOrder (GET /api/manufacturer/custom-designs)
+     -> store identity + specs only.
+  6. Manufacturer advances status PENDING->CONFIRMED->IN_PRODUCTION->...->DELIVERED.
+  7. Manager portal JOINS request->order to SHOW manufacturer status live
+     (this was the recent bug fix — keep the join).
+
+
+================================================================================
+  SECTION 7 — SIMILAR IMAGE SEARCH (external: OpenCLIP + Qdrant)
+================================================================================
+
+  UNCHANGED external services:
+    - OpenCLIP embedder (FastAPI, ViT-B-32/laion2b, 512-d L2-normalised).
+      Endpoints: /health, /embed/image, /embed/image/batch, /embed/text,
+                 /embed/hybrid.  Prod: HF Space. Env: EMBEDDER_URL, EMBEDDER_API_KEY.
+    - Qdrant (vector DB, 512-d Cosine).
+
+  QDRANT COLLECTIONS (new system simplifies to ONE since customer sees mfr catalog):
+    - luxematch_manufacturer_products  (GLOBAL — the only one customers search)
+      payload: { manufacturerProductId, manufacturerId, category, purity,
+                 occasionTags, styleTags }
+    NOTE: old system also had a per-jeweller collection for store products.
+          In the new model the customer searches the MANUFACTURER catalog, so you
+          only NEED the manufacturer collection. (Drop the per-jeweller one unless
+          you later index store products for intelligence.)
+
+  INDEXING FLOW (when manufacturer adds a product image):
+    1. Cloudinary upload returns secure_url + public_id.
+    2. Server fetches image bytes from Cloudinary URL.
+    3. POST embedder /embed/image -> 512-d vector.
+    4. Upsert to Qdrant manufacturer collection (point id = manufacturerProductId).
+    5. Record ManufacturerProductEmbedding row (bookkeeping).
+    - Trigger: fire-and-forget on image add, OR a reindex script.
+
+  SEARCH FLOW (customer photo on kiosk):
+    1. Customer uploads/captures photo on /search.
+    2. POST /api/search/image (base64).
+    3. Embedder /embed/image -> vector.
+    4. Qdrant ANN search on manufacturer collection -> top-N ids + scores.
+    5. Hydrate ids via Prisma (getManufacturerProductsByIds), preserve rank order.
+    6. Render results -> link to /catalog/<designNumber>.
+    - Also: GET /api/search/suggest = Postgres full-text (cheap, no embedder).
+
+  COPY FROM OLD REPO:
+    - packages/embeddings/src/index.ts  (embed client)
+    - packages/qdrant/src/index.ts      (qdrant client + manufacturer helpers)
+    - apps/web/lib/api/search.ts        (search routes — keep image + suggest)
+    - apps/web/lib/api/embeddings.ts    (indexManufacturerProduct)
+    - scripts/reindex.ts                (backfill)
+    - DROP the jewellery-ai HF proxy path (legacy showcase, not core).
+
+
+================================================================================
+  SECTION 8 — AR TRY-ON (fully client-side, self-contained)
+================================================================================
+
+  UNCHANGED — this is pure client code (MediaPipe + Three.js), no backend.
+  External deps: MediaPipe model files + WASM from Google/jsDelivr CDNs only.
+
+  COPY WHOLESALE from old repo (packages/ar-engine/src/*):
+    engine.ts        -> TryOnEngine (camera + MediaPipe + rAF loop)
+    renderer.ts      -> ARRenderer (Three.js, 2D PNG + 3D GLB)
+    overlayMath.ts   -> SHARED geometry (single source of truth) — DO NOT split
+    transforms.ts    -> computeOverlay per jewellery type + JewelleryType enum
+    anchors.ts, alphaBounds.ts, landmarkSmoother.ts, oneEuroFilter.ts, preview.ts
+
+  KEY INVARIANTS (don't fight them):
+    - 6 jewellery types: necklace, earring_left, earring_right, ring_index,
+      ring_middle, bangle. MUST match TryonAsset.jewelleryType enum + API zod.
+    - Mirror landmarks ONCE, then smooth (video CSS-mirrored, canvas not).
+    - Y-down orthographic camera; rotations use atan2(dy,dx)+pi/2.
+    - overlayMath.ts is shared by renderer + preview so live view == calibration.
+    - Calibration fields (pivot/offset/scale/rotation) come from TryonAsset row.
+
+  UI CHAIN (copy):
+    /try-on/page.tsx -> ARViewport.tsx -> useTryOnEngine hook -> TryOnEngine
+    - Loads AR products: GET /api/kiosk/tryon-products (manufacturer try-on
+      products). DROP the showcase-ar-assets fallback (user said remove it).
+    - "Try On" button shown ONLY when product.hasTryon = true.
+    - try-on page auto-selects product from ?product=<id>, returns via ?back=.
+
+  MANUFACTURER TRY-ON UPLOAD:
+    POST /api/manufacturer/products/:id/tryon-asset  (transparent PNG)
+      -> addManufacturerTryOnAsset -> sets hasTryon=true
+    Try-on bucket forbids jpg (needs transparency).
+
+
+================================================================================
+  SECTION 9 — IMAGE STORAGE (external: Cloudinary)
+================================================================================
+
+  UNCHANGED external service. Copy packages/cloudinary/src/index.ts logic.
+
+  FOLDER STRUCTURE (simplify — customer sees mfr catalog, fewer buckets needed):
+    luxematch/manufacturer/<manufacturerId>/catalog/    -> product photos
+    luxematch/manufacturer/<manufacturerId>/tryon/      -> transparent PNGs
+    luxematch/store/<storeId>/logo/                      -> store branding logo
+    (DROP: per-jeweller product/avatar buckets — no customer avatars anymore)
+
+  SIGNED DIRECT UPLOAD (bytes never touch our server):
+    - Server signs { folder, timestamp, public_id? } with API secret.
+    - Browser uploads directly to Cloudinary with that signature.
+    - Only folder/timestamp/public_id are signed -> can't upload elsewhere.
+    - Buckets are a fixed enum; client can't pass arbitrary folder.
+
+  DELETE / OWNERSHIP:
+    - publicIdBelongsTo<owner>(publicId) prefix check before delete.
+    - Delete DB row FIRST, then Cloudinary destroy (avoid dangling rows).
+
+  Env: CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET,
+       NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME.
+
+
+================================================================================
+  SECTION 10 — API SURFACE (clean route list for new app)
+================================================================================
+
+  Single Next.js app. Use either Next Route Handlers OR keep the Hono BFF
+  (apps/web/app/api/[[...route]]/route.ts pattern). Hono is proven — copy it.
+
+  # PUBLIC / KIOSK (no auth — customer)
+  GET   /api/kiosk/catalog                 list active manufacturer products
+  GET   /api/kiosk/catalog/:idOrDesignNo   single product
+  GET   /api/kiosk/tryon-products          manufacturer try-on products
+  POST  /api/kiosk/orders                  place guest kiosk order
+  GET   /api/kiosk/orders/:id              receipt (safe public fields)
+  POST  /api/kiosk/custom-design           submit custom design request
+  POST  /api/search/image                  similar image search (mfr catalog)
+  GET   /api/search/suggest                postgres full-text autocomplete
+  POST  /api/analytics/event               fire-and-forget (view/tryon signals)
+
+  # MANUFACTURER (manufacturerGuard)
+  POST  /api/manufacturer/login | logout   (public login)
+  GET   /api/manufacturer/me
+  GET   /api/manufacturer/products         list (filter category/status/search/hasTryon)
+  POST  /api/manufacturer/products         create (auto design_number)
+  GET|PATCH|DELETE /api/manufacturer/products/:id
+  POST  /api/manufacturer/products/:id/images/sign   signed upload
+  POST  /api/manufacturer/products/:id/images        save image (+auto index)
+  DELETE /api/manufacturer/products/:id/images/:imageId
+  POST  /api/manufacturer/products/:id/tryon-asset   upload transparent PNG
+  DELETE /api/manufacturer/products/:id/tryon-asset
+  GET   /api/manufacturer/orders           b2b orders (approved only)
+  GET   /api/manufacturer/orders/:id
+  PATCH /api/manufacturer/orders/:id       advance status (delivered->fulfill)
+  GET   /api/manufacturer/kiosk-orders     approved kiosk orders (store name shown)
+  GET|PATCH /api/manufacturer/kiosk-orders/:id
+  GET   /api/manufacturer/custom-designs   sanitized custom orders
+  PATCH /api/manufacturer/custom-designs/:id  advance status
+  GET   /api/manufacturer/store-registrations       pending stores
+  POST  /api/manufacturer/store-registrations/:id/approve | /reject
+  GET   /api/manufacturer/stores           list stores
+  PATCH /api/manufacturer/stores/:id       edit name/email/city/phone
+  PUT   /api/manufacturer/stores/:id/password   reset store password
+  DELETE /api/manufacturer/stores/:id
+
+  # STORE OWNER (storeGuard)
+  POST  /api/store/register                self-registration (public)
+  POST  /api/store/login | logout          (public)
+  POST  /api/store/forgot-password | reset-password  (public)
+  GET   /api/store/me
+  PATCH /api/store/branding                logo/tagline/website
+  GET   /api/store/catalog                 browse manufacturer catalog
+  GET   /api/store/catalog/:id
+  POST  /api/store/orders                  place B2B order (manager-gated)
+  GET   /api/store/orders | /orders/:id
+  GET   /api/store/kiosk-orders | /kiosk-orders/:id
+  # manager management (owner only)
+  GET   /api/manager/list
+  POST  /api/manager
+  PATCH /api/manager/:id
+  PUT   /api/manager/:id/password
+  DELETE /api/manager/:id
+
+  # MANAGER (managerGuard = owner OR manager)
+  POST  /api/manager/login | logout        (public)
+  POST  /api/manager/forgot-password | reset-password  (public)
+  GET   /api/manager/me
+  GET   /api/manager/kiosk-orders/pending
+  POST  /api/manager/kiosk-orders/:id/approve | /reject
+  GET   /api/manager/b2b-orders/pending
+  POST  /api/manager/b2b-orders/:id/approve | /reject
+  GET   /api/manager/custom-designs
+  POST  /api/manager/custom-designs/:id/approve | /reject
+
+  # INTELLIGENCE (storeGuard/managerGuard)
+  GET   /api/intelligence/summary
+  GET   /api/intelligence/recommendations
+
+
+================================================================================
+  SECTION 11 — PAGES (clean route list for new app)
+================================================================================
+
+  # KIOSK / CUSTOMER (no login) — ALL under /<storeSlug>/ (URL-path tenancy, see C1)
+  /:storeSlug                        store-branded home (hero, collections, featured)
+  /:storeSlug/catalog                manufacturer catalog grid + filters
+  /:storeSlug/catalog/:designNumber  product detail (NO price, Try On if hasTryon)
+  /:storeSlug/collections , /collections/:slug
+  /:storeSlug/occasions/:slug
+  /:storeSlug/search                 similar image search
+  /:storeSlug/try-on                 AR try-on
+  /:storeSlug/kiosk/custom-design    custom design request form
+  /:storeSlug/kiosk-checkout         guest checkout
+  /:storeSlug/kiosk-checkout/success receipt
+  /:storeSlug/compare , /saved       sessionStorage (kiosk reset between customers)
+  /:storeSlug/about , /help
+  # storeSlug resolves the Store; 404 if unknown/not-active. Implemented as the
+  # app/[storeSlug]/ route group. Staff routes below are NOT under [storeSlug].
+
+  # PORTAL ENTRY
+  /portal                   dark 3-card selector:
+                              Store Owner -> /store/login
+                              Store Manager -> /store/manager/login
+                              Manufacturer -> /manufacturer/login
+
+  # MANUFACTURER PORTAL (ManufacturerLayout sidebar)
+  /manufacturer/login
+  /manufacturer/dashboard          summary cards
+  /manufacturer/catalog            category grid -> product grid
+  /manufacturer/catalog/new
+  /manufacturer/catalog/:id        edit (+ try-on asset upload)
+  /manufacturer/orders , /:id      b2b orders
+  /manufacturer/kiosk-orders , /:id
+  /manufacturer/custom-designs
+  /manufacturer/stores             store CRUD
+  /manufacturer/store-registrations  approve/reject
+
+  # STORE / MANAGER PORTAL (StoreLayout sidebar — same for owner + manager)
+  /store/register
+  /store/login , /store/forgot-password , /store/reset-password
+  /store/manager/login , /forgot-password , /reset-password
+  /store/dashboard                 (intelligence-lite + quick links)
+  /store/manufacturer-catalog      browse + B2B cart
+  /store/b2b-orders , /new , /:id
+  /store/kiosk-orders , /:id
+  /store/custom-designs            approve/forward/reject (shows mfr status)
+  /store/pending-approvals         kiosk + b2b awaiting manager approval
+  /store/managers                  owner-only: add/remove managers
+  /store/profile                   owner-only: branding + fixed address + settings
+  /store/intelligence              KEPT dashboard (recs, demand snapshots)
+
+  NOTE: old app used /jeweller/* for the store portal. Rename to /store/* for
+        clarity, OR keep /jeweller/* if less churn. Pick one and be consistent.
+
+  # REMOVED (do NOT create):
+  /login /signup /account /verify-otp   (customer auth — gone)
+  /jeweller/unlock                      (PIN — gone)
+  /style-quiz                           (removed)
+
+
+================================================================================
+  SECTION 12 — UI DESIGN SYSTEM (recreate identically)
+================================================================================
+
+  Stack: Next.js App Router + Tailwind v4 (CSS-first, NO tailwind.config.js —
+  everything in globals.css @theme) + shadcn/ui (new-york) + lucide-react +
+  motion/react. Fonts: Inter (body) + Georgia serif via .font-display (headings).
+
+  COPY globals.css from old repo verbatim — it is the single source of truth.
+
+  LIGHT THEME (customer + portals) — HSL vars -> approx hex:
+    --background  36 38% 97%   #FBF9F5  pearl page
+    --foreground  28 24% 10%   #1F1A14  near-black brown text
+    --card        0 0% 100%    #FFFFFF
+    --border      34 22% 88%   #E4D8C6  pearl border
+    --primary     42 55% 49%   #C29A33  GOLD (actions)
+    --secondary   18 21% 15%   #2E251F  velvet brown
+    --muted       34 28% 92%   #EFE8DC
+    --accent      44 48% 90%   #EFE6CC  pale gold
+    --radius      0.75rem (12px)
+
+  DARK SCREENS (portal + hero + footer) — hard-coded hex (not .dark class):
+    bg      #0f0d0a (portal) / #1A1A1A (footer) / #191511 (header strip)
+    card    #1a1510  hover #1f1a12
+    border  #2a2318  hover #c9a84c/40
+    gold    #c9a84c  (also #e4cf8f #f8e7af #e6cf84 #a7772d)
+    muted   #6b5e45 #4a3f2a #3d3320
+
+  SIGNATURE UTILITIES (in globals.css @layer utilities):
+    .metal-sheen   gold gradient for ALL gold CTAs + AR badges:
+        linear-gradient(135deg, rgba(255,255,255,.7), rgba(255,255,255,0) 38%),
+        linear-gradient(135deg,#c9a84c 0%,#e6cf84 45%,#a7772d 100%);
+        paired with rounded-full text-[#17120b] hover:scale-[1.02]
+    .font-display          Georgia serif (headings)
+    .luxury-link-underline animated underline (nav links)
+    .no-scrollbar          horizontal carousels
+
+  RADIUS: base 12px. images rounded-lg(8), cards rounded-xl/2xl(12-16),
+          buttons/pills/badges rounded-full.
+
+  KEY COMPONENTS TO COPY:
+    components/layout/  AppHeader, Footer, MobileNav, CustomerLayout,
+                        StoreLayout(=old JewellerLayout), ManufacturerLayout
+    components/ui/      full shadcn set (button, input, card, badge, dialog,
+                        select, sheet, table, tabs, ... ) — copy as-is
+    components/product/ ProductCard, ProductDetailPanel, ProductGrid,
+                        ProductImageGallery  (NO price; subtitle = "cat . Gold purity";
+                        Try On gated on hasTryon; BIS/Certified/Staff-Assisted badges)
+    components/ar/      ARViewport
+    components/jeweller/ DashboardMetricCard (for intelligence)
+    ui/TrustBadge, ui/SavedButton, ui/CompareTray, EmptyState/ErrorState/LoadingState
+
+  REMOVE from copied components:
+    - PriceDisplay usage everywhere (component can stay, unused)
+    - customer account/User icon in AppHeader
+    - "Sign In / Register" in MobileNav
+    - Dashboard/Analytics/PIN links in Footer that pointed at jeweller PIN area
+    - Style Quiz links
+    - showcase-ar-assets fallback
+
+  BRANDING RULES:
+    - Kiosk header welcome strip: store logo + store name (from store branding),
+      city; right side "Powered by AT Jewellers".
+    - Footer: "Powered by AT Jewellers . (c) Jewel Factory".
+    - Portal/login pages: "Jewel Factory" wordmark ("Jewel" in gold #C9A84C).
+
+
+================================================================================
+  SECTION 13 — WHAT TO COPY vs WHAT TO REBUILD vs WHAT TO DROP
+================================================================================
+
+  COPY AS-IS (proven, self-contained):
+    - packages/ar-engine/src/*          -> lib/ar-engine/  (AR — untouched)
+    - packages/cloudinary/src/index.ts  -> lib/cloudinary.ts
+    - packages/qdrant/src/index.ts      -> lib/qdrant.ts (manufacturer helpers)
+    - packages/embeddings/src/index.ts  -> lib/embeddings.ts
+    - apps/embedder/*                   -> keep the Python service unchanged
+    - globals.css, tailwind setup, components/ui/*  -> UI system
+    - components/layout/*, components/product/*, components/ar/*
+    - The HMAC cookie code from packages/tenant (if reusing that pattern)
+    - Hono BFF route.ts structure (if reusing Hono)
+    - Search + AR + kiosk order + custom design + manager approval API handlers
+      (adapt to Prisma calls instead of raw supabase-js)
+
+  REBUILD (cleaner):
+    - ALL DB access -> Prisma (replace packages/db/src/* supabase-js helpers).
+      Keep the SAME function names + signatures so API handlers barely change,
+      but bodies use prisma.* instead of getSupabaseServer().from().
+    - Merge stores+jewellers into one Store model (update all storeId usage).
+    - Single tenancy model (storeId), drop the env-var SHOP_JEWELLER_ID kiosk mode.
+      Kiosk device is tied to a store via its cookie/config.
+    - 3 cookies not 5.
+
+  DROP ENTIRELY:
+    - PIN system: lm_pin, /jeweller/unlock, pinGuard, scrypt, pin_audit_events,
+      packages/tenant/src/server.ts (scrypt).
+    - Customer auth: lm_customer, /login /signup /account /verify-otp,
+      customers/customer_addresses/customer_otps tables, customers.ts, avatar flow.
+    - Legacy cart+checkout: cart_items, orders, order_items, order_status_history,
+      branches, cart.ts, ecommerce.ts, branches.ts, use-cart.ts.
+    - Style quiz.
+    - showcase-ar-assets.ts (44 hardcoded demo AR products).
+    - jewellery-ai HF proxy (legacy showcase search bridge).
+    - inventory_signals table (schema existed, no code used it).
+    - brands table (FK existed, no code used it).
+    - Per-jeweller Qdrant collection (customer searches mfr catalog only).
+    - PriceDisplay usage, metal field display.
+
+
+================================================================================
+  SECTION 14 — ENV VARS (new app)
+================================================================================
+
+  # Database (new Supabase project)
+  DATABASE_URL=            # Prisma connection (Supabase pooled)
+  DIRECT_URL=              # Prisma migrations (Supabase direct)
+
+  # Auth secrets (3, each min 32 chars, generate fresh)
+  MANUFACTURER_SECRET=
+  STORE_SECRET=
+  MANAGER_SECRET=
+  COOKIE_TTL_SECONDS=28800     # 8h
+
+  # Cloudinary
+  CLOUDINARY_CLOUD_NAME=
+  CLOUDINARY_API_KEY=
+  CLOUDINARY_API_SECRET=
+  NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=
+
+  # Vector search
+  EMBEDDER_URL=            # HF Space in prod
+  EMBEDDER_API_KEY=        # optional
+  QDRANT_URL=
+  QDRANT_API_KEY=
+  QDRANT_MANUFACTURER_COLLECTION=luxematch_manufacturer_products
+
+  # Email (password reset + optional order confirmation)
+  SMTP_HOST= SMTP_PORT= SMTP_USER= SMTP_PASS= FROM_EMAIL= FROM_NAME=
+  NEXT_PUBLIC_APP_URL=     # for building reset links
+
+  # CORS / deploy
+  ALLOWED_ORIGINS=
+  NODE_ENV=production
+
+
+================================================================================
+  SECTION 15 — BUILD ORDER (recommended sequence for the new folder)
+================================================================================
+
+  Phase 1  Scaffold: create-next-app (App Router, TS, Tailwind), add shadcn,
+           copy globals.css + components/ui/*. Set up Prisma + connect new Supabase.
+  Phase 2  Prisma schema (Section 4). prisma migrate dev. Seed 1 manufacturer,
+           1 approved store, a few categories, a couple manufacturer products.
+  Phase 3  Auth: 3 cookies + guards (Section 5). Login pages + /portal.
+  Phase 4  Manufacturer portal: catalog CRUD + image upload + design numbers
+           + try-on asset upload. (Copy UI, wire to Prisma.)
+  Phase 5  Store: self-register -> manufacturer approval -> login -> profile/branding
+           + fixed address + managers.
+  Phase 6  Kiosk storefront: home, catalog, product detail (copy components),
+           guest cart, checkout, kiosk order flow + manager approval.
+  Phase 7  Custom design: kiosk form -> manager approve/forward -> mfr sanitized
+           order + live status join.
+  Phase 8  B2B order flow: store cart -> manager approve -> mfr -> fulfill on delivery.
+  Phase 9  Similar image search (copy embed+qdrant clients, wire index on image add).
+  Phase 10 AR try-on (copy ar-engine wholesale, wire kiosk tryon-products).
+  Phase 11 Intelligence dashboard (ProductView/TryonEvent/ProductSale + recs).
+  Phase 12 Branding polish, email (reset + optional order confirmation), deploy.
+
+  At each phase: copy the matching old handler, swap supabase-js -> prisma, reuse
+  the old React page/component almost verbatim. The logic is proven; only the
+  data layer and the removal of dead code change.
+
+
+================================================================================
+  SECTION 16 — GOTCHAS CARRIED OVER FROM OLD SYSTEM (don't repeat the bugs)
+================================================================================
+
+  - Hono setCookie URL-encodes values -> if reusing base64 payloads, use base64url
+    (staff cookies already did). Or decode before verify. (New: keep base64url.)
+  - Supabase joins returned array-or-object for single relations. Prisma includes
+    return typed objects -> this whole class of bug disappears. Good.
+  - guest_orders.tracking_number was written without a column -> KioskOrder now
+    declares trackingNumber explicitly.
+  - recordProductSale existed in 2 files -> ONE implementation now.
+  - AR: mirror landmarks ONCE then smooth; overlayMath.ts shared (renderer+preview).
+  - Try-on bucket must reject jpg (transparency required).
+  - No price ANYWHERE — audit every product component before shipping.
+  - Manager status not showing in custom-designs was a missing JOIN -> keep the
+    request->order relation include so manufacturer status shows live.
+  - Custom design form: purity = dropdown, reference image = upload OR url toggle.
+  - Kiosk "Continue Shopping" -> /catalog (not /products).
+
+
+================================================================================
+  SECTION 17 — IMPROVEMENTS & GAPS TO ADDRESS IN THE REBUILD
+================================================================================
+  (Added after review. These are things the original blueprint missed or left
+   implicit. CRITICAL ones must be decided/built; others are production polish.)
+
+  ---------------------------------------------------------------------------
+  17.1  CRITICAL — must be built or the system won't work
+  ---------------------------------------------------------------------------
+
+  [C1] KIOSK -> STORE RESOLUTION  (DECIDED: URL-PATH)
+     Customer has no login. Every kiosk request must know which store it is.
+     MODEL: URL path. Each store's kiosk lives under /<storeSlug>/...
+            e.g. jewelfactory.com/abc/catalog , /abc/try-on , /abc/kiosk-checkout.
+     - store.slug is unique (already in the Store model). It is the first path
+       segment for ALL customer/kiosk pages.
+     - PAGES: put every kiosk page under app/[storeSlug]/... route group:
+         app/[storeSlug]/page.tsx            (home)
+         app/[storeSlug]/catalog/page.tsx
+         app/[storeSlug]/catalog/[design]/page.tsx
+         app/[storeSlug]/try-on/page.tsx
+         app/[storeSlug]/search/page.tsx
+         app/[storeSlug]/kiosk/custom-design/page.tsx
+         app/[storeSlug]/kiosk-checkout/page.tsx  (+ /success)
+         app/[storeSlug]/compare , /saved
+       Each page reads params.storeSlug, resolves the Store (cache the lookup),
+       404s if the slug is unknown or the store is not active/approved.
+     - APIs: kiosk API calls carry the storeSlug (path segment or a header the
+       client sets from the URL). Resolve storeId server-side from the slug;
+       NEVER trust storeId from the request body. Options:
+         (a) /api/kiosk/[storeSlug]/orders  (slug in the API path), or
+         (b) client sends X-Store-Slug header taken from window URL, guard
+             resolves + validates it.  Pick one and be consistent.
+     - Store branding (logo/name/city) on the kiosk = the resolved store's fields.
+     - Portal/staff routes (/portal, /store/*, /manufacturer/*) are NOT under
+       [storeSlug] — they stay at the root.
+     - Local dev: just visit /abc/... — no DNS setup needed (advantage over
+       subdomains). A default/demo slug can be seeded for quick testing.
+     NOTE: this replaces the old lm_store-cookie / SHOP_JEWELLER_ID kiosk hack.
+     WHY URL-path over subdomain: no wildcard DNS, no wildcard TLS, works on
+     localhost and any host immediately, simpler deploy.
+
+  [C2] SEED / FIRST-RUN  (DECIDED: pre-seeded, same as current live system)
+     - Manufacturer has NO signup UI. Seed exactly one manufacturer row
+       (name, email, bcrypt password) via a prisma seed script.
+     - Seed the Category list (Ring, Earring, Necklace, Bangle, Pendant, ...).
+     - Optionally seed a demo store (approved) for testing.
+     - prisma/seed.ts run via `prisma db seed`. Document the manufacturer login
+       credentials in a secure place (not in the repo).
+
+  [C3] ORDER NUMBER — no collisions  (ALREADY FIXED in current live system)
+     - Old: 4-digit Math.random() -> only 9000/day -> same-second collision on
+       the UNIQUE order_number constraint -> insert fails.
+     - Fixed: high-entropy suffix (epoch-ms + base36 random) on GK-/B2B-/CD-.
+     - In the NEW Prisma system, prefer a DB sequence or a dedicated counter
+       table per prefix per day, OR keep the high-entropy string. Either is fine;
+       just don't go back to a small random range.
+
+  [C4] TRANSACTION SAFETY  (partially fixed; finish in rebuild)
+     - Multi-insert flows must be atomic or they leave half-written data:
+         * fulfillB2BOrder  (inserts products + images + tryon assets + updates)
+         * placeGuestOrder / placeB2BOrder (order + items + history)
+         * forwardCustomDesignToManufacturer (order insert + request update)
+     - supabase-js can't do cross-statement transactions -> old code couldn't.
+       Prisma CAN: wrap each of these in `prisma.$transaction([...])` (or the
+       interactive `prisma.$transaction(async (tx) => {...})`).
+     - forwardCustomDesignToManufacturer already got a manual rollback in the
+       live system (delete the inserted order if the request update fails);
+       in Prisma this becomes a single transaction — cleaner, do it there.
+
+  [C5] FOREIGN-KEY OWNERSHIP OF ORDER ITEMS  (root cause of two live bugs)
+     Two live bugs came from FK mismatches — design the schema to avoid them:
+       * guest_order_items.product_id FK -> store `products`, but customers order
+         from the MANUFACTURER catalog. Fix was product_id = null + snapshots.
+         REBUILD: KioskOrderItem.manufacturerProductId (FK -> ManufacturerProduct)
+         is the correct link, NOT a store-product FK. Keep snapshots too.
+       * reviewed_by / *_approved_by FK -> store_managers, but the OWNER (not a
+         manager) also approves; owner's storeId isn't a manager row -> FK fail
+         -> the status update silently failed -> duplicate orders.
+         REBUILD: make these columns nullable and store null for owner-approved,
+         OR add an `approvedByRole` enum + nullable managerId. Never write a
+         non-manager id into a store_managers FK.
+
+  ---------------------------------------------------------------------------
+  17.2  IMPORTANT — production quality
+  ---------------------------------------------------------------------------
+
+  [P1] RESPONSE ENVELOPE + ERROR CODES (fixed union)
+     - Every API returns { data } on success OR { error: { code, message } }.
+     - error `code` must be a FIXED TypeScript union — a live bug used an
+       invalid code ('not_ready') that failed typecheck. Define the union once
+       and reuse: bad_request | not_found | conflict | validation_failed |
+       unauthorized | forbidden | rate_limited | upstream_failed | internal_error.
+
+  [P2] LIVE MANUFACTURER STATUS IN MANAGER PORTAL — for ALL 3 order types
+     - Manager/owner must see the manufacturer's live status for kiosk, b2b, AND
+       custom design orders (custom design was fixed by joining request->order).
+     - REBUILD rule: every manager list view that shows a forwarded order MUST
+       include the downstream order's status (Prisma relation include), so a
+       reload always reflects the manufacturer's latest status.
+
+  [P3] LOADING / EMPTY / ERROR STATES on every data page
+     - Reuse EmptyState / ErrorState / LoadingState components. No blank screens.
+     - Kiosk especially: catalog, search, try-on must degrade gracefully.
+
+  [P4] NOTIFICATIONS
+     - Decide per event: order placed / approved / shipped / delivered ->
+       who is notified (customer? store?) and how (email via SMTP already wired;
+       SMS optional). At minimum: password reset email (already), and an order
+       confirmation to the customer email if provided.
+
+  [P5] IMAGE PERFORMANCE
+     - Use next/image + Cloudinary transforms (f_auto, q_auto, sized w/h).
+     - Kiosk catalog loads many images -> lazy-load + responsive sizes.
+
+  [P6] SEARCH RESILIENCE (embedder cold start)
+     - The OpenCLIP HF Space cold-boots in ~30-90s. /api/search/image must
+       handle a slow/failed embedder gracefully: show "warming up, try again"
+       (503) or fall back to text search — never a blank/hung screen.
+     - Keep a short timeout + one retry.
+
+  [P7] RATE LIMITING on public kiosk endpoints
+     - /api/kiosk/* and /api/search/image are public -> add basic per-IP rate
+       limiting (e.g. upstash/ratelimit or a simple in-memory limiter) to avoid
+       spam orders and embedder abuse.
+
+  ---------------------------------------------------------------------------
+  17.3  NICE TO HAVE — polish / future
+  ---------------------------------------------------------------------------
+
+  [N1] Unified activity log — who approved/rejected/forwarded what and when
+       (beyond the per-row reviewed_by/approved_by).
+  [N2] Delete policy — cascade vs soft-delete for: manufacturer product with
+       existing order items; store with existing orders. Decide explicitly.
+  [N3] Testing — integration tests for the 3 order flows + auth guards + the
+       two FK edge cases above (owner-approve, kiosk-item product_id).
+  [N4] Deployment — NEW single-app Dockerfile + Render config + wildcard DNS/TLS
+       for subdomains + Prisma migrate on deploy. (Old monorepo Dockerfile won't
+       apply.)
+  [N5] inventory_signals rollup — old table existed but no code used it. Either
+       implement the nightly rollup for the intelligence dashboard or drop it.
+
+  ---------------------------------------------------------------------------
+  17.4  LIVE BUGS ALREADY FIXED (2026-07-10) — for reference
+  ---------------------------------------------------------------------------
+  These were fixed on the current LuxeMatch (master) and inform the rebuild:
+    1. guest_orders.tracking_number column was missing (written w/o a column)
+       -> ALTER TABLE guest_orders ADD COLUMN tracking_number text.
+    2. Owner-approve FK violation (reviewed_by/approved_by = storeId) silently
+       failed the status update -> duplicate custom design orders. Fixed with
+       approverIdOrNull() (owner -> null) + error capture + order rollback.
+    3. Kiosk order FK violation: guest_order_items.product_id got a manufacturer
+       product id (FK -> store products). Fixed: product_id = null + snapshots.
+    4. Order-number Math.random() collision risk -> high-entropy suffix.
+    5. Invalid error code 'not_ready' -> 'upstream_failed'.
+
+
+================================================================================
+  END OF BLUEPRINT
+================================================================================
