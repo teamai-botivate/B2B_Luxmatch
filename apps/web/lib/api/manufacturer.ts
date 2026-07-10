@@ -455,10 +455,31 @@ manufacturerRoutes.delete('/products/:id/tryon-asset', async (c) => {
 
 // ── Kiosk / Guest Orders (manufacturer view) ──────────────────────────────────
 
+/**
+ * Privacy invariant: the manufacturer must NEVER see customer PII (name, phone,
+ * email) or any price/amount. It only ever sees the STORE identity + product
+ * specs + delivery preference. Strip everything else before responding.
+ */
+function sanitizeKioskOrderForManufacturer(order: Record<string, unknown>) {
+  const {
+    customer_name, customer_phone, customer_email,           // PII — drop
+    total_amount,                                             // price — drop
+    items,
+    ...safe
+  } = order as Record<string, unknown> & { items?: Array<Record<string, unknown>> };
+  const safeItems = Array.isArray(items)
+    ? items.map((it) => {
+        const { unit_price_snapshot, ...restItem } = it;     // price — drop
+        return restItem;
+      })
+    : undefined;
+  return safeItems ? { ...safe, items: safeItems } : safe;
+}
+
 // GET /api/manufacturer/kiosk-orders
 manufacturerRoutes.get('/kiosk-orders', async (c) => {
   const orders = await getGuestOrdersByManufacturer(c.get('manufacturerId'));
-  return sendData(c, orders);
+  return sendData(c, orders.map((o) => sanitizeKioskOrderForManufacturer(o as unknown as Record<string, unknown>)));
 });
 
 // GET /api/manufacturer/kiosk-orders/:id
@@ -468,7 +489,7 @@ manufacturerRoutes.get('/kiosk-orders/:id', async (c) => {
   if (order.manufacturer_id !== c.get('manufacturerId')) {
     return sendError(c, 'forbidden', 'Not your order', 403);
   }
-  return sendData(c, order);
+  return sendData(c, sanitizeKioskOrderForManufacturer(order as unknown as Record<string, unknown>));
 });
 
 const UpdateKioskOrderStatusBody = z.object({

@@ -3,14 +3,6 @@
 import { ChevronRight, Loader2, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-function formatINR(value: number) {
-  return new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency: 'INR',
-    maximumFractionDigits: 0,
-  }).format(value);
-}
-
 const STATUS_COLORS: Record<string, string> = {
   placed: 'bg-yellow-100 text-yellow-800',
   confirmed: 'bg-blue-100 text-blue-800',
@@ -27,16 +19,14 @@ const NEXT_STATUS: Record<string, string> = {
   shipped: 'delivered',
 };
 
+// Manufacturer view: no customer PII, no amount (see privacy invariant).
 type GuestOrder = {
   id: string;
   order_number: string;
   store_name_snapshot: string;
   store_city_snapshot: string | null;
-  customer_name: string;
-  customer_phone: string;
   status: string;
   total_items: number;
-  total_amount: number;
   pickup_store: boolean;
   delivery_address: string | null;
   created_at: string;
@@ -130,7 +120,7 @@ export default function ManufacturerKioskOrdersPage() {
                   onClick={() => void toggleDetail(order.id)}
                   className="w-full flex items-center gap-4 px-4 py-3 text-left hover:bg-muted/30 transition-colors"
                 >
-                  <div className="flex-1 min-w-0 grid grid-cols-2 sm:grid-cols-5 gap-x-4 gap-y-0.5">
+                  <div className="flex-1 min-w-0 grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-0.5">
                     <div>
                       <p className="text-xs text-muted-foreground">Order</p>
                       <p className="text-sm font-medium">{order.order_number}</p>
@@ -143,12 +133,8 @@ export default function ManufacturerKioskOrdersPage() {
                       )}
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Customer</p>
-                      <p className="text-sm truncate">{order.customer_name}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Amount</p>
-                      <p className="text-sm font-semibold tabular-nums">{formatINR(order.total_amount)}</p>
+                      <p className="text-xs text-muted-foreground">Items</p>
+                      <p className="text-sm tabular-nums">{order.total_items}</p>
                     </div>
                     <div className="flex items-start gap-2 pt-0.5">
                       <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${STATUS_COLORS[order.status] ?? 'bg-gray-100 text-gray-700'}`}>
@@ -170,8 +156,8 @@ export default function ManufacturerKioskOrdersPage() {
                     {!detailLoading && detail && (
                       <div className="pt-3 space-y-4">
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
-                          <div><p className="text-xs text-muted-foreground">Customer Phone</p><p>{order.customer_phone}</p></div>
                           <div><p className="text-xs text-muted-foreground">Date</p><p>{new Date(order.created_at).toLocaleDateString('en-IN')}</p></div>
+                          <div><p className="text-xs text-muted-foreground">Fulfilment</p><p>{order.pickup_store ? 'Store Pickup' : 'Delivery'}</p></div>
                           {order.delivery_address && (
                             <div className="sm:col-span-1">
                               <p className="text-xs text-muted-foreground">Delivery Address</p>
@@ -184,10 +170,9 @@ export default function ManufacturerKioskOrdersPage() {
                           <div>
                             <p className="text-xs font-medium text-muted-foreground mb-1.5">Items</p>
                             <div className="space-y-1">
-                              {(detail.items as Array<{ product_name_snapshot: string; quantity: number; unit_price_snapshot: number }>).map((item, i) => (
-                                <div key={i} className="flex justify-between text-sm">
+                              {(detail.items as Array<{ product_name_snapshot: string; quantity: number }>).map((item, i) => (
+                                <div key={i} className="text-sm">
                                   <span>{item.product_name_snapshot} × {item.quantity}</span>
-                                  <span className="tabular-nums">{formatINR(item.unit_price_snapshot * item.quantity)}</span>
                                 </div>
                               ))}
                             </div>

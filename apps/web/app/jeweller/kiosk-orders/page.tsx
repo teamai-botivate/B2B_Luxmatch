@@ -5,14 +5,6 @@ import { useEffect, useState } from 'react';
 
 import JewellerLayout from '@/components/layout/JewellerLayout';
 
-function formatINR(value: number) {
-  return new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency: 'INR',
-    maximumFractionDigits: 0,
-  }).format(value);
-}
-
 const STATUS_COLORS: Record<string, string> = {
   placed: 'bg-yellow-100 text-yellow-800',
   confirmed: 'bg-blue-100 text-blue-800',
@@ -29,7 +21,6 @@ type GuestOrder = {
   customer_phone: string;
   status: string;
   total_items: number;
-  total_amount: number;
   pickup_store: boolean;
   created_at: string;
 };
@@ -120,8 +111,8 @@ export default function StoreKioskOrdersPage() {
                         <p className="text-sm truncate">{order.customer_name}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-muted-foreground">Amount</p>
-                        <p className="text-sm font-semibold tabular-nums">{formatINR(order.total_amount)}</p>
+                        <p className="text-xs text-muted-foreground">Items</p>
+                        <p className="text-sm tabular-nums">{order.total_items}</p>
                       </div>
                       <div className="flex items-start gap-2 pt-0.5">
                         <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${STATUS_COLORS[order.status] ?? 'bg-gray-100 text-gray-700'}`}>
@@ -146,10 +137,9 @@ export default function StoreKioskOrdersPage() {
                             <div>
                               <p className="text-xs font-medium text-muted-foreground mb-1.5">Items</p>
                               <div className="space-y-1">
-                                {(detail.items as Array<{ product_name_snapshot: string; quantity: number; unit_price_snapshot: number }>).map((item, i) => (
-                                  <div key={i} className="flex justify-between text-sm">
+                                {(detail.items as Array<{ product_name_snapshot: string; quantity: number }>).map((item, i) => (
+                                  <div key={i} className="text-sm">
                                     <span>{item.product_name_snapshot} × {item.quantity}</span>
-                                    <span className="tabular-nums">{formatINR(item.unit_price_snapshot * item.quantity)}</span>
                                   </div>
                                 ))}
                               </div>
