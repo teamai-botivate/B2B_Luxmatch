@@ -8,14 +8,6 @@ import { useEffect, useState } from 'react';
 import JewellerLayout from '@/components/layout/JewellerLayout';
 import { Button } from '@/components/ui/button';
 
-function formatINR(value: number) {
-  return new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency: 'INR',
-    maximumFractionDigits: 0,
-  }).format(value);
-}
-
 const STATUS_COLORS: Record<string, string> = {
   pending: 'bg-yellow-100 text-yellow-800',
   confirmed: 'bg-blue-100 text-blue-800',
@@ -89,7 +81,6 @@ export default function StoreB2BOrdersPage() {
                 <tr className="border-b bg-muted/40">
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">Order</th>
                   <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground sm:table-cell">Date</th>
-                  <th className="px-4 py-3 text-right font-medium text-muted-foreground">Amount</th>
                   <th className="px-4 py-3 text-center font-medium text-muted-foreground">Status</th>
                   <th className="px-4 py-3" />
                 </tr>
@@ -109,9 +100,6 @@ export default function StoreB2BOrdersPage() {
                         month: 'short',
                         year: 'numeric',
                       })}
-                    </td>
-                    <td className="px-4 py-3 text-right font-medium">
-                      {formatINR(order.total_amount)}
                     </td>
                     <td className="px-4 py-3 text-center">
                       <span className={`rounded-full px-2 py-0.5 text-xs font-medium capitalize ${STATUS_COLORS[order.status] ?? ''}`}>

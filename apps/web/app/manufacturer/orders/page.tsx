@@ -93,8 +93,7 @@ export default function ManufacturerOrdersPage() {
                 <tr className="border-b bg-muted/40">
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">Order #</th>
                   <th className="hidden sm:table-cell px-4 py-3 text-left font-medium text-muted-foreground">Date</th>
-                  <th className="hidden md:table-cell px-4 py-3 text-left font-medium text-muted-foreground">Items</th>
-                  <th className="px-4 py-3 text-right font-medium text-muted-foreground">Amount</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Items</th>
                   <th className="px-4 py-3 text-center font-medium text-muted-foreground">Status</th>
                   <th className="px-4 py-3" />
                 </tr>
@@ -108,11 +107,8 @@ export default function ManufacturerOrdersPage() {
                         day: '2-digit', month: 'short', year: 'numeric',
                       })}
                     </td>
-                    <td className="hidden md:table-cell px-4 py-3 text-muted-foreground">
+                    <td className="px-4 py-3 text-muted-foreground">
                       {order.total_items} item{order.total_items !== 1 ? 's' : ''}
-                    </td>
-                    <td className="px-4 py-3 text-right tabular-nums font-medium">
-                      ₹{order.total_amount.toLocaleString('en-IN')}
                     </td>
                     <td className="px-4 py-3 text-center">
                       <span className={`rounded-full px-2 py-0.5 text-xs font-medium capitalize ${STATUS_COLORS[order.status] ?? ''}`}>

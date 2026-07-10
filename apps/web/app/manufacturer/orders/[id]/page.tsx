@@ -155,20 +155,15 @@ export default function ManufacturerOrderDetailPage() {
                         {item.product_name_snapshot ?? 'Product'}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        Qty: {item.quantity} × ₹{(item.unit_price_snapshot ?? 0).toLocaleString('en-IN')}
+                        Qty: {item.quantity}
                       </p>
                     </div>
-                    <p className="text-sm font-medium tabular-nums flex-shrink-0">
-                      ₹{((item.unit_price_snapshot ?? 0) * item.quantity).toLocaleString('en-IN')}
-                    </p>
                   </div>
                 ))}
               </div>
               <div className="flex items-center justify-between px-4 py-3 border-t bg-muted/20">
-                <p className="text-sm font-semibold">Total</p>
-                <p className="text-sm font-semibold tabular-nums">
-                  ₹{order.total_amount.toLocaleString('en-IN')}
-                </p>
+                <p className="text-sm font-semibold">Total Items</p>
+                <p className="text-sm font-semibold tabular-nums">{order.total_items}</p>
               </div>
             </div>
 

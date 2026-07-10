@@ -168,8 +168,7 @@ export default function ManufacturerDashboardPage() {
                     <div>
                       <p className="text-sm font-medium">{order.order_number}</p>
                       <p className="text-xs text-muted-foreground">
-                        {order.total_items} item{order.total_items !== 1 ? 's' : ''} ·{' '}
-                        ₹{order.total_amount.toLocaleString('en-IN')}
+                        {order.total_items} item{order.total_items !== 1 ? 's' : ''}
                       </p>
                     </div>
                     <span

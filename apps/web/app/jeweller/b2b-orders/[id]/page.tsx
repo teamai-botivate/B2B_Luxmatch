@@ -9,14 +9,6 @@ import { useEffect, useState } from 'react';
 import JewellerLayout from '@/components/layout/JewellerLayout';
 import { Button } from '@/components/ui/button';
 
-function formatINR(value: number) {
-  return new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency: 'INR',
-    maximumFractionDigits: 0,
-  }).format(value);
-}
-
 const STATUS_COLORS: Record<string, string> = {
   pending: 'bg-yellow-100 text-yellow-800',
   confirmed: 'bg-blue-100 text-blue-800',
@@ -137,18 +129,15 @@ export default function B2BOrderDetailPage() {
                         {item.product_name_snapshot ?? 'Product'}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        Qty {item.quantity} x {formatINR(item.unit_price_snapshot ?? 0)}
+                        Qty {item.quantity}
                       </p>
                     </div>
-                    <p className="shrink-0 text-sm font-semibold">
-                      {formatINR((item.unit_price_snapshot ?? 0) * item.quantity)}
-                    </p>
                   </div>
                 ))}
               </div>
               <div className="flex items-center justify-between border-t bg-muted/20 px-4 py-3 text-sm font-semibold">
-                <span>Total</span>
-                <span>{formatINR(order.total_amount)}</span>
+                <span>Total Items</span>
+                <span>{order.total_items}</span>
               </div>
             </div>
 
