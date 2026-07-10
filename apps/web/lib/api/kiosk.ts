@@ -164,7 +164,7 @@ kioskRoutes.post(
       const msg = err instanceof Error ? err.message : String(err);
       console.error('[kiosk/orders] placeGuestOrder failed:', msg);
       if (msg.includes('relation') && msg.includes('does not exist')) {
-        return sendError(c, 'not_ready', 'Database migration 0006 not yet applied. Apply it in Supabase SQL editor first.', 503);
+        return sendError(c, 'upstream_failed', 'Database migration 0006 not yet applied. Apply it in Supabase SQL editor first.', 503);
       }
       return sendError(c, 'internal_error', `Order could not be placed: ${msg}`, 500);
     }

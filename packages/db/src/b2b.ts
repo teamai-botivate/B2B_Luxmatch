@@ -702,7 +702,7 @@ export async function fulfillB2BOrder(orderId: string): Promise<FulfillB2BOrderR
 
 export async function approveB2BOrder(
   orderId: string,
-  approvedById: string,
+  approvedById: string | null,
 ): Promise<void> {
   const sb = getSupabaseServer();
   const { error } = await sb

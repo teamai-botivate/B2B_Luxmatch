@@ -51,6 +51,17 @@ type Vars = {
 
 export const storeManagerRoutes = new Hono<Vars>();
 
+/**
+ * Resolve the reviewer/approver id for the *_approved_by / reviewed_by columns,
+ * which all FK-reference store_managers(id). When the store OWNER approves,
+ * managerGuard sets managerId = storeId (owner acts as itself), and that storeId
+ * is NOT a store_managers row → passing it would violate the FK and silently
+ * fail the status update. So: owner → null (owner-approved), manager → managerId.
+ */
+function approverIdOrNull(c: { get: (k: 'managerId' | 'isOwner') => string | boolean }): string | null {
+  return c.get('isOwner') ? null : (c.get('managerId') as string);
+}
+
 // ── Auth (public) ─────────────────────────────────────────────────────────────
 
 const LoginBody = z.object({
@@ -301,7 +312,7 @@ storeManagerRoutes.post('/kiosk-orders/:id/approve', managerGuard, async (c) => 
   const order = await getGuestOrderWithItems(c.req.param('id'));
   if (!order) return sendError(c, 'not_found', 'Order not found', 404);
   if (order.store_id !== c.get('storeId')) return sendError(c, 'forbidden', 'Not your order', 403);
-  await approveKioskOrder(order.id, c.get('managerId'));
+  await approveKioskOrder(order.id, approverIdOrNull(c));
   return sendData(c, { ok: true });
 });
 
@@ -327,7 +338,7 @@ storeManagerRoutes.post('/b2b-orders/:id/approve', managerGuard, async (c) => {
   const order = await getB2BOrderWithItems(c.req.param('id'));
   if (!order) return sendError(c, 'not_found', 'Order not found', 404);
   if (order.store_id !== c.get('storeId')) return sendError(c, 'forbidden', 'Not your order', 403);
-  await approveB2BOrder(order.id, c.get('managerId'));
+  await approveB2BOrder(order.id, approverIdOrNull(c));
   return sendData(c, { ok: true });
 });
 
@@ -372,13 +383,13 @@ storeManagerRoutes.post('/custom-designs/:id/approve', managerGuard, async (c) =
       store.manufacturer_id,
       store.name,
       storeAddress,
-      c.get('managerId'),
+      approverIdOrNull(c),
     );
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     // If migration 0008 is not yet applied, tables won't exist yet
     if (msg.includes('relation') && msg.includes('does not exist')) {
-      return sendError(c, 'not_ready', 'Database migration 0008 not yet applied. Apply it in Supabase SQL editor.', 503);
+      return sendError(c, 'upstream_failed', 'Database migration 0008 not yet applied. Apply it in Supabase SQL editor.', 503);
     }
     return sendError(c, 'internal_error', msg, 500);
   }
@@ -394,6 +405,6 @@ storeManagerRoutes.post('/custom-designs/:id/reject', managerGuard, async (c) =>
   const request = await getCustomDesignRequest(storeId, requestId);
   if (!request) return sendError(c, 'not_found', 'Custom design request not found', 404);
 
-  await rejectCustomDesignRequest(storeId, requestId, c.get('managerId'));
+  await rejectCustomDesignRequest(storeId, requestId, approverIdOrNull(c));
   return sendData(c, { ok: true });
 });

@@ -333,7 +333,7 @@ export async function getGuestOrdersByStorePending(
 
 export async function approveKioskOrder(
   orderId: string,
-  approvedById: string,
+  approvedById: string | null,
 ): Promise<void> {
   const sb = getSupabaseServer();
   const { error } = await sb

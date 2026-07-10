@@ -209,7 +209,7 @@ export async function forwardCustomDesignToManufacturer(
     .single();
   if (orderError) throw orderError;
 
-  await sb
+  const { error: updateError } = await sb
     .from('custom_design_requests')
     .update({
       status: 'forwarded',
@@ -218,6 +218,13 @@ export async function forwardCustomDesignToManufacturer(
       updated_at: new Date().toISOString(),
     })
     .eq('id', requestId);
+  // Must not silently fail — if the status doesn't flip, the manager sees the
+  // request as still-pending and re-approves, creating duplicate orders.
+  if (updateError) {
+    // Roll back the order we just inserted so we don't leave an orphan.
+    await sb.from('custom_design_orders').delete().eq('id', order.id);
+    throw new Error(`forwardCustomDesignToManufacturer status update failed: ${updateError.message}`);
+  }
 
   return order as CustomDesignOrderRow;
 }
