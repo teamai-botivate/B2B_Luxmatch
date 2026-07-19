@@ -26,6 +26,7 @@ Seed/demo credentials:
 | Jeweller device PIN mode | `/jeweller/unlock`       | PIN`123456`                      | none          |
 | Customer (kiosk)         | No login — guest checkout | name + phone on`/kiosk-checkout` | none          |
 
+>
 > **Staff Portal entry point (live site):** Go to any page → scroll to footer → click **Staff Portal**. This opens `/portal` where you choose Store Owner Login or Manufacturer Login.
 
 Main demo IDs:
